@@ -1,0 +1,11 @@
+@keyframes tw-wobble{0%,100%{transform:rotate(var(--slant-sm))}50%{transform:rotate(calc(var(--slant-sm) * -1))}}
+@keyframes tw-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes tw-pop-in{0%{transform:scale(.6) rotate(-8deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes tw-slide-stripes{to{background-position:120px 0}}
+@keyframes tw-marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes tw-toast-in{0%{transform:translateY(20px) rotate(-6deg) scale(.8);opacity:0}100%{transform:translateY(0) rotate(-2deg) scale(1);opacity:1}}
+@keyframes tw-eq{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
+.tw-heading{font-family:var(--font-display);color:var(--text-heading);line-height:var(--lh-tight);letter-spacing:var(--tracking-display);-webkit-text-stroke:var(--heading-stroke) var(--ink);paint-order:stroke fill;text-shadow:var(--heading-shadow);margin:0}
+.tw-pixel{font-family:var(--font-pixel);letter-spacing:var(--tracking-pixel);text-transform:uppercase}
+.tw-stripes{background-image:repeating-linear-gradient(-60deg,rgba(255,255,255,.035) 0 18px,transparent 18px 40px)}
+a{color:var(--sun-400);text-decoration:none}a:hover{color:var(--orange-400)}

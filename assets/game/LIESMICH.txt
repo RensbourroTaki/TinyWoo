@@ -1,0 +1,6 @@
+Hier kommen die Grafiken für das Fadenkreuz-Spiel rein.
+  ziel.png         = PNG transparent, Frames NEBENEINANDER (z.B. 2 Frames à 128x128 = 256x128), nach rechts schauend
+  hintergrund.jpg  = 16:9, z.B. 1920x1080
+Danach in inhalt.js bei "spiel" eintragen:
+  ziel: { src: 'assets/game/ziel.png', frames: 2, fps: 8 },
+  hintergrund: 'assets/game/hintergrund.jpg',

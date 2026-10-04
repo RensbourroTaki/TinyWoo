@@ -1,0 +1,12 @@
+:root{
+--font-display:'Jungle Adventurer','Rubik',system-ui,sans-serif;
+--font-pixel:'Bold Pixels','Courier New',monospace;
+--font-body:'Rubik',system-ui,-apple-system,sans-serif;
+--fs-hero:clamp(56px,9vw,128px);/* @kind font */--fs-h1:64px;--fs-h2:44px;--fs-h3:30px;--fs-h4:22px;
+--fs-lg:19px;--fs-body:16px;--fs-sm:14px;--fs-xs:12px;
+--fs-pixel-lg:24px;--fs-pixel:16px;--fs-pixel-sm:12px;
+--lh-tight:.92;/* @kind other */--lh-snug:1.15;/* @kind other */--lh-body:1.55;/* @kind other */
+--tracking-display:.01em;/* @kind other */--tracking-pixel:.06em;/* @kind other */--tracking-caps:.12em;/* @kind other */
+/* Display headers wear an ink outline + offset drop, like the logo */
+--heading-stroke:3px;/* @kind other */--heading-shadow:0 4px 0 var(--ink),0 6px 0 rgba(6,18,51,.45);/* @kind shadow */
+}

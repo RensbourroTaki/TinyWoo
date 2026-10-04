@@ -1,0 +1,21 @@
+:root{
+/* Hard "sticker" shadows — offset, no blur, ink-colored */
+--shadow-pop-sm:0 3px 0 var(--ink);
+--shadow-pop:0 5px 0 var(--ink);
+--shadow-pop-lg:0 8px 0 var(--ink);
+--shadow-pop-orange:0 5px 0 var(--orange-700);
+--shadow-float:0 18px 40px -12px rgba(4,10,30,.6);
+--shadow-inset:inset 0 3px 0 rgba(255,255,255,.35),inset 0 -4px 0 rgba(0,0,0,.18);
+--glow-sun:0 0 0 4px rgba(255,210,31,.28);
+/* The slant — everything leans */
+--slant:-6deg;/* @kind other */--slant-sm:-3deg;/* @kind other */--slant-lg:-10deg;/* @kind other */
+--slant-clip:polygon(0 6%,100% 0,100% 94%,0 100%);/* @kind other */
+--slant-clip-rev:polygon(0 0,100% 6%,100% 100%,0 94%);/* @kind other */
+--blur-glass:blur(14px) saturate(140%);/* @kind other */
+--glass:rgba(14,31,69,.72);/* @kind color */
+/* Motion — fast, springy, cheeky */
+--ease-pop:cubic-bezier(.34,1.56,.64,1);/* @kind other */
+--ease-snap:cubic-bezier(.2,.9,.1,1);/* @kind other */
+--ease-out:cubic-bezier(.16,1,.3,1);/* @kind other */
+--dur-fast:120ms;/* @kind other */--dur:220ms;/* @kind other */--dur-slow:420ms;/* @kind other */
+}

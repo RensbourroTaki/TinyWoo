@@ -1,0 +1,26 @@
+:root{
+/* Matte blue — the ground */
+--blue-950:#08142E;--blue-900:#0E1F45;--blue-800:#152B5C;--blue-700:#1F3A70;--blue-600:#2A4C8C;--blue-500:#3A62AC;
+/* Electric logo blue — accents only */
+--electric-500:#0066F5;--electric-400:#2E86FF;--electric-300:#6AA9FF;
+/* Ink — the navy logo outline */
+--ink:#061233;
+/* Sun yellow → orange (logo "WOO" gradient) */
+--sun-200:#FFF0A0;--sun-300:#FFE45C;--sun-400:#FFD21F;--sun-500:#FFB800;
+--orange-400:#FF9A1A;--orange-500:#F57A0A;--orange-600:#D85A00;--orange-700:#A84200;
+/* Light gray — text */
+--gray-50:#F7F9FC;--gray-100:#EEF1F6;--gray-200:#D3D9E3;--gray-300:#A9B3C4;--gray-400:#7D889C;--gray-500:#566177;
+/* Pop accents (from the Rocket Trump menu) */
+--lime-400:#7BE84A;--lime-600:#3FA81E;--sky-400:#5BC8F5;--sky-600:#1E8FC4;--cherry-400:#FF5468;--cherry-600:#D11F37;
+
+/* Semantic */
+--bg-page:var(--blue-700);--bg-deep:var(--blue-900);--bg-sunken:var(--blue-800);--bg-raised:var(--blue-600);
+--surface-card:var(--blue-800);--surface-card-hi:var(--blue-600);--surface-chrome:var(--blue-950);
+--text-heading:var(--sun-400);--text-heading-alt:var(--orange-400);--text-body:var(--gray-200);--text-strong:var(--gray-50);--text-muted:var(--gray-300);--text-faint:var(--gray-400);--text-on-sun:var(--ink);
+--border-ink:var(--ink);--border-soft:rgba(255,255,255,.10);--border-strong:rgba(255,255,255,.22);
+--accent:var(--sun-400);--accent-2:var(--orange-500);--accent-electric:var(--electric-500);
+--success:var(--lime-400);--info:var(--sky-400);--danger:var(--cherry-400);--warning:var(--orange-400);
+--grad-sun:linear-gradient(180deg,var(--sun-300) 0%,var(--sun-500) 55%,var(--orange-500) 100%);/* @kind color */
+--grad-sun-hot:linear-gradient(180deg,var(--sun-200) 0%,var(--sun-400) 50%,var(--orange-400) 100%);/* @kind color */
+--grad-blue:linear-gradient(180deg,var(--blue-500) 0%,var(--blue-700) 100%);/* @kind color */
+}

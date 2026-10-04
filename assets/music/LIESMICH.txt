@@ -1,0 +1,4 @@
+Hier kommen die Musik-Dateien rein (MP3).
+Dateiname klein, ohne Leerzeichen/Umlaute, z.B. jungle-hangar.mp3
+Danach in inhalt.js bei "musik" eintragen:
+  { title: 'Jungle Hangar', artist: 'Tiny Woo', src: 'assets/music/jungle-hangar.mp3', duration: 201 },
