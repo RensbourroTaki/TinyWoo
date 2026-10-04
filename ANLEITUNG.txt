@@ -22,7 +22,7 @@ Falls eine alte index.html da ist: wird einfach überschrieben.
    ANLEITUNG.txt         Diese Datei
    assets/logo/          tinywoo-logo.png
    assets/games/         Game-Bilder (rocket-trump-menu.jpg)
-   assets/music/         MP3s (noch leer)
+   assets/music/         OGGs (noch leer)
    assets/game/          Grafiken fürs Fadenkreuz-Spiel (noch leer)
    fonts/                Schriften. Nicht anfassen.
    js/, tokens/, styles.css   Technik. Nicht anfassen.
@@ -32,13 +32,13 @@ Falls eine alte index.html da ist: wird einfach überschrieben.
 --------------------------------
 A) Datei hochladen
    - Auf GitHub in den Ordner gehen, z.B. assets -> music
-   - "Add file" -> "Upload files" -> MP3 reinziehen -> "Commit changes"
+   - "Add file" -> "Upload files" -> OGG reinziehen -> "Commit changes"
 
 B) In inhalt.js eintragen
    - Auf GitHub inhalt.js anklicken
    - Rechts oben auf das STIFT-Symbol klicken
    - Zeile ergänzen, z.B. unter "musik":
-       { title: 'Jungle Hangar', artist: 'Tiny Woo', src: 'assets/music/jungle-hangar.mp3', duration: 201 },
+       { title: 'Jungle Hangar', artist: 'Tiny Woo', src: 'assets/music/jungle-hangar.ogg', duration: 201 },
    - Oben rechts "Commit changes" -> nochmal "Commit changes"
 
 C) 1–2 Minuten warten, Seite neu laden (Strg + F5).
@@ -47,9 +47,12 @@ C) 1–2 Minuten warten, Seite neu laden (Strg + F5).
 4. DIE WICHTIGSTEN STELLEN IN inhalt.js
 --------------------------------------
    links.discord   -> dein Discord-Einladungslink (alle Discord-Buttons)
+   links.email     -> Kontakt-Adresse (Footer, About, Press)
    socials         -> Social-Buttons. href = Link. Zeile löschen = Button weg.
    musik           -> Playlist. Reihenfolge = Reihenfolge im Player.
    games           -> Games. featured: true = groß auf der Startseite.
+                      trailer = YouTube-Link, presse = Fakten + Screenshots.
+   presse          -> Press-Seite: Intro, Studio-Fakten, Downloads.
    spiel           -> Fadenkreuz-Spiel: Titel, Sekunden, Munition, Grafiken.
    texte           -> Überschrift, Texte, Laufband, Footer.
 

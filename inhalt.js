@@ -16,6 +16,7 @@ window.TW_INHALT = {
   /* ---------- LINKS ---------- */
   links: {
     discord: '#',            // z.B. 'https://discord.gg/abc123'
+    email: 'tinywoogames@gmail.com',
   },
 
   /* Social-Buttons. Nicht gebraucht? Zeile löschen.
@@ -31,11 +32,12 @@ window.TW_INHALT = {
   ],
 
   /* ---------- MUSIK ----------
-     MP3 nach assets/music/ hochladen, dann hier eintragen.
+     OGG nach assets/music/ hochladen, dann hier eintragen.
      duration = Länge in Sekunden (nur Anzeige, wird beim Abspielen korrigiert).
-     Ohne src spielt der Player nur zum Schein (Demo). */
+     Ohne src spielt der Player nur zum Schein (Demo).
+     Browser ohne OGG-Unterstützung zeigen den Player gar nicht an. */
   musik: [
-    { title: 'Rocket Trump — Main Menu', artist: 'Tiny Woo', duration: 154 /*, src: 'assets/music/main-menu.mp3' */ },
+    { title: 'Rocket Trump — Main Menu', artist: 'Tiny Woo', duration: 154 /*, src: 'assets/music/main-menu.ogg' */ },
     { title: 'Jungle Hangar',            artist: 'Tiny Woo', duration: 201 },
     { title: 'Tiger Gang Theme',         artist: 'Tiny Woo', duration: 132 },
     { title: 'Highscore Boogie',         artist: 'Tiny Woo', duration: 178 },
@@ -44,7 +46,9 @@ window.TW_INHALT = {
   /* ---------- GAMES ----------
      Bild (16:9, JPG) nach assets/games/ hochladen.
      featured: true  = groß auf der Startseite (nur bei EINEM Game).
-     link = Steam / itch.io / eigene Seite. '#' = noch kein Link. */
+     link = Steam / itch.io / eigene Seite. '#' = noch kein Link.
+     trailer = YouTube-Link (z.B. 'https://www.youtube.com/watch?v=abc123'). '' = kein Trailer.
+     presse = Fakten + Screenshots für die Press-Seite. Screenshots (JPG/PNG) nach assets/games/ hochladen. */
   games: [
     {
       title: 'Rocket Trump',
@@ -56,8 +60,34 @@ window.TW_INHALT = {
       link: '#',
       linkText: 'Wishlist',
       featured: true,
+      trailer: '',
+      presse: {
+        fakten: [
+          ['Release',   'TBA'],
+          ['Platforms', 'PC (Steam)'],
+          ['Price',     'TBA'],
+          ['Genre',     'Arcade'],
+        ],
+        screenshots: ['assets/games/rocket-trump-menu.jpg'],
+      },
     },
   ],
+
+  /* ---------- PRESSE ----------
+     fakten = Zeilen der Studio-Faktenliste ['Name', 'Wert']. Zeile löschen = weg.
+     downloads = Dateien zum Herunterladen (Logo, Key Art, Presskit-ZIP ...). */
+  presse: {
+    intro: 'Everything you need to cover Tiny Woo and its games. All assets are free to use in coverage.',
+    fakten: [
+      ['Developer', 'Tiny Woo'],
+      ['Team',      'One person'],
+      ['Contact',   'tinywoogames@gmail.com'],
+    ],
+    downloads: [
+      { label: 'Tiny Woo logo (PNG)',     src: 'assets/logo/tinywoo-logo.png' },
+      { label: 'Rocket Trump key art',    src: 'assets/games/rocket-trump-menu.jpg' },
+    ],
+  },
 
   /* ---------- FADENKREUZ-SPIEL ----------
      ziel: PNG mit transparentem Hintergrund, Frames NEBENEINANDER, nach rechts schauend.

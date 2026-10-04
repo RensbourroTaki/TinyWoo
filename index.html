@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tiny Woo</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Tiny Woo</title>
 <link rel="icon" href="assets/logo/tinywoo-logo.png">
 <link rel="stylesheet" href="styles.css">
-<style>html,body{margin:0;background:var(--bg-page);color:var(--text-body);font-family:var(--font-body);overflow-x:hidden}</style>
+<style>:root{color-scheme:dark}html,body{margin:0;background:var(--bg-page);color:var(--text-body);font-family:var(--font-body);overflow-x:hidden}</style>
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
@@ -14,7 +14,8 @@
 <script type="text/babel">
 const { NavBar, MusicPlayer } = window.TinyWooDesignSystem_fe221f;
 const I = window.TW_INHALT;
-const LINKS = [{ id: 'home', label: 'Home' }, { id: 'games', label: 'Games' }, { id: 'arcade', label: 'Arcade' }, { id: 'about', label: 'About' }];
+const LINKS = [{ id: 'home', label: 'Home' }, { id: 'games', label: 'Games' }, { id: 'arcade', label: 'Arcade' }, { id: 'about', label: 'About' }, { id: 'press', label: 'Press' }];
+const CAN_OGG = !!document.createElement('audio').canPlayType('audio/ogg; codecs="vorbis"');
 function App() {
   const [page, setPage] = React.useState(() => (location.hash.slice(1) || 'home'));
   React.useEffect(() => { const h = () => setPage(location.hash.slice(1) || 'home'); window.addEventListener('hashchange', h); return () => window.removeEventListener('hashchange', h); }, []);
@@ -30,13 +31,14 @@ function App() {
         <ArcadeTeaser onNav={nav} />
         <Community />
       </>}
-      {page === 'games' && <GamesPage />}
+      {page === 'games' && <GamesPage onNav={nav} />}
       {page === 'arcade' && <ArcadePage />}
       {page === 'about' && <AboutPage />}
-      <Footer />
-      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 14, zIndex: 30, padding: '0 16px', pointerEvents: 'none' }}>
+      {page === 'press' && <PressPage />}
+      <Footer onNav={nav} />
+      {CAN_OGG && <div style={{ position: 'fixed', left: 0, right: 0, bottom: 14, zIndex: 30, padding: '0 16px', pointerEvents: 'none' }}>
         <MusicPlayer tracks={I.musik} storageKey="tw-site-player" style={{ pointerEvents: 'none' }} />
-      </div>
+      </div>}
     </div>
   );
 }

@@ -1364,6 +1364,23 @@ const pixel = (fs, color) => ({
   color,
   lineHeight: 1
 });
+const hdrBtn = active => ({
+  ...pixel(11),
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 4,
+  height: 26,
+  minWidth: 26,
+  padding: 0,
+  flexShrink: 0,
+  boxSizing: 'border-box',
+  borderRadius: 8,
+  border: '2px solid var(--ink)',
+  background: active ? 'var(--ink)' : 'rgba(255,255,255,.35)',
+  color: active ? 'var(--sun-400)' : 'var(--ink)',
+  cursor: 'pointer'
+});
 function Ctl({
   label,
   onClick,
@@ -1407,10 +1424,25 @@ function MusicPlayer({
   rail = true,
   defaultOpen = false,
   width = 380,
+  miniWidth = 250,
   storageKey = 'tw-player-x',
   defaultX = 1,
   style
 }) {
+  const [mini, setMini] = React.useState(() => {
+    try {
+      return localStorage.getItem(storageKey + '-mini') === '1';
+    } catch (e) {
+      return false;
+    }
+  });
+  const toggleMini = () => setMini(m => {
+    try {
+      localStorage.setItem(storageKey + '-mini', m ? '0' : '1');
+    } catch (e) {}
+    return !m;
+  });
+  const w = mini ? miniWidth : width;
   const [i, setI] = React.useState(0);
   const [playing, setPlaying] = React.useState(false);
   const [t, setT] = React.useState(0);
@@ -1475,7 +1507,7 @@ function MusicPlayer({
     drag.current = {
       sx: e.clientX,
       sxv: x,
-      range: Math.max(1, box.width - width)
+      range: Math.max(1, box.width - w)
     };
     e.currentTarget.setPointerCapture(e.pointerId);
     setDragging(true);
@@ -1516,9 +1548,9 @@ function MusicPlayer({
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'relative',
-      width,
+      width: w,
       maxWidth: '100%',
-      marginLeft: `calc((100% - ${width}px) * ${x})`,
+      marginLeft: `max(0px, calc((100% - ${w}px) * ${x}))`,
       boxSizing: 'border-box',
       background: 'var(--blue-950)',
       border: '3px solid var(--ink)',
@@ -1555,7 +1587,41 @@ function MusicPlayer({
       backgroundSize: '5px 5px',
       opacity: 0.7
     }
-  }), /*#__PURE__*/React.createElement("span", {
+  }), mini ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => setPlaying(p => !p),
+    onPointerDown: e => e.stopPropagation(),
+    "aria-label": playing ? 'Pause' : 'Play',
+    title: playing ? 'Pause' : 'Play',
+    style: hdrBtn(playing)
+  }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: playing ? 'pause' : 'play',
+    size: 14
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      overflow: 'hidden',
+      whiteSpace: 'nowrap'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'inline-block',
+      animation: 'tw-marquee 9s linear infinite',
+      animationPlayState: playing ? 'running' : 'paused',
+      ...pixel(11, 'var(--ink)')
+    }
+  }, marquee, marquee)), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => go(i + 1),
+    onPointerDown: e => e.stopPropagation(),
+    "aria-label": "Next",
+    title: "Next",
+    style: hdrBtn(false)
+  }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: "skip-forward",
+    size: 14
+  }))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
     style: {
       ...pixel(13, 'var(--ink)'),
       flex: 1
@@ -1569,17 +1635,8 @@ function MusicPlayer({
     "aria-label": "Toggle playlist",
     "aria-expanded": open,
     style: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 4,
-      height: 26,
-      padding: '0 8px',
-      borderRadius: 8,
-      border: '2px solid var(--ink)',
-      background: open ? 'var(--ink)' : 'rgba(255,255,255,.35)',
-      color: open ? 'var(--sun-400)' : 'var(--ink)',
-      cursor: 'pointer',
-      ...pixel(11)
+      ...hdrBtn(open),
+      padding: '0 8px'
     }
   }, "PL ", /*#__PURE__*/React.createElement(__ds_scope.Icon, {
     name: "chevron-down",
@@ -1588,7 +1645,17 @@ function MusicPlayer({
       transform: open ? 'rotate(180deg)' : 'none',
       transition: 'transform var(--dur) var(--ease-pop)'
     }
-  }))), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: toggleMini,
+    onPointerDown: e => e.stopPropagation(),
+    "aria-label": mini ? 'Expand player' : 'Collapse player',
+    title: mini ? 'Expand player' : 'Collapse player',
+    style: hdrBtn(false)
+  }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: mini ? 'maximize-2' : 'minimize-2',
+    size: 14
+  }))), !mini && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 12,
       display: 'flex',
@@ -1728,7 +1795,7 @@ function MusicPlayer({
       accentColor: 'var(--orange-500)',
       margin: 0
     }
-  }))), /*#__PURE__*/React.createElement("div", {
+  }))), !mini && /*#__PURE__*/React.createElement("div", {
     style: {
       maxHeight: open ? 44 * tracks.length + 16 : 0,
       overflow: 'auto',
