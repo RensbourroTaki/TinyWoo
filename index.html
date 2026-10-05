@@ -36,7 +36,7 @@ function App() {
       {page === 'about' && <AboutPage />}
       {page === 'press' && <PressPage />}
       <Footer onNav={nav} />
-      {CAN_OGG && <div style={{ position: 'fixed', left: 0, right: 0, bottom: 14, zIndex: 30, padding: '0 16px', pointerEvents: 'none' }}>
+      {CAN_OGG && <div style={{ position: 'fixed', inset: '14px 16px', zIndex: 30, pointerEvents: 'none' }}>
         <MusicPlayer tracks={I.musik} storageKey="tw-site-player" style={{ pointerEvents: 'none' }} />
       </div>}
     </div>

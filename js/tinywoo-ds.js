@@ -1421,12 +1421,12 @@ function Ctl({
 function MusicPlayer({
   tracks = DEMO_TRACKS,
   draggable = true,
-  rail = true,
   defaultOpen = false,
   width = 380,
   miniWidth = 250,
-  storageKey = 'tw-player-x',
+  storageKey = 'tw-player-pos',
   defaultX = 1,
+  defaultY = 1,
   style
 }) {
   const [mini, setMini] = React.useState(() => {
@@ -1449,17 +1449,24 @@ function MusicPlayer({
   const [dur, setDur] = React.useState(tracks[0]?.duration || 0);
   const [vol, setVol] = React.useState(0.8);
   const [open, setOpen] = React.useState(defaultOpen);
-  const [x, setX] = React.useState(() => {
+  const [pos, setPos] = React.useState(() => {
     try {
-      const v = parseFloat(localStorage.getItem(storageKey));
-      return isNaN(v) ? defaultX : v;
+      const v = JSON.parse(localStorage.getItem(storageKey));
+      return v && typeof v.x === 'number' && typeof v.y === 'number' ? v : {
+        x: defaultX,
+        y: defaultY
+      };
     } catch (e) {
-      return defaultX;
+      return {
+        x: defaultX,
+        y: defaultY
+      };
     }
   });
   const [dragging, setDragging] = React.useState(false);
   const audio = React.useRef(null),
     wrap = React.useRef(null),
+    card = React.useRef(null),
     drag = React.useRef(null);
   const tr = tracks[i] || {};
   const go = React.useCallback(n => {
@@ -1504,25 +1511,32 @@ function MusicPlayer({
   const onDown = e => {
     if (!draggable || e.button !== 0) return;
     const box = wrap.current.getBoundingClientRect();
+    const c = card.current.getBoundingClientRect();
     drag.current = {
       sx: e.clientX,
-      sxv: x,
-      range: Math.max(1, box.width - w)
+      sy: e.clientY,
+      start: pos,
+      rx: Math.max(1, box.width - c.width),
+      ry: Math.max(1, box.height - c.height)
     };
     e.currentTarget.setPointerCapture(e.pointerId);
     setDragging(true);
   };
+  const clamp = v => Math.min(1, Math.max(0, v));
   const onMove = e => {
     const d = drag.current;
     if (!d) return;
-    setX(Math.min(1, Math.max(0, d.sxv + (e.clientX - d.sx) / d.range)));
+    setPos({
+      x: clamp(d.start.x + (e.clientX - d.sx) / d.rx),
+      y: clamp(d.start.y + (e.clientY - d.sy) / d.ry)
+    });
   };
   const onUp = () => {
     if (!drag.current) return;
     drag.current = null;
     setDragging(false);
     try {
-      localStorage.setItem(storageKey, String(x));
+      localStorage.setItem(storageKey, JSON.stringify(pos));
     } catch (e) {}
   };
   const marquee = `${i + 1}. ${tr.artist ? tr.artist + ' — ' : ''}${tr.title || 'No track'}  ·  `;
@@ -1531,32 +1545,23 @@ function MusicPlayer({
     style: {
       position: 'relative',
       width: '100%',
+      height: '100%',
       ...style
     }
-  }, rail && /*#__PURE__*/React.createElement("div", {
-    "aria-hidden": true,
+  }, /*#__PURE__*/React.createElement("div", {
+    ref: card,
     style: {
       position: 'absolute',
-      left: 0,
-      right: 0,
-      top: 21,
-      height: 4,
-      borderRadius: 2,
-      background: 'repeating-linear-gradient(90deg,var(--sun-400) 0 14px,transparent 14px 24px)',
-      opacity: 0.55
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
+      left: `${pos.x * 100}%`,
+      top: `${pos.y * 100}%`,
       width: w,
       maxWidth: '100%',
-      marginLeft: `max(0px, calc((100% - ${w}px) * ${x}))`,
       boxSizing: 'border-box',
       background: 'var(--blue-950)',
       border: '3px solid var(--ink)',
       borderRadius: 'var(--radius-lg)',
       boxShadow: dragging ? '0 14px 0 var(--ink), var(--shadow-float)' : 'var(--shadow-pop), var(--shadow-float)',
-      transform: dragging ? 'rotate(-1.5deg) scale(1.02)' : 'none',
+      transform: `translate(${-pos.x * 100}%, ${-pos.y * 100}%)` + (dragging ? ' rotate(-1.5deg) scale(1.02)' : ''),
       transition: dragging ? 'box-shadow var(--dur)' : 'transform var(--dur) var(--ease-pop), box-shadow var(--dur)',
       userSelect: 'none',
       overflow: 'hidden',
@@ -1628,7 +1633,7 @@ function MusicPlayer({
     }
   }, "Woo\xB7Amp"), /*#__PURE__*/React.createElement("span", {
     style: pixel(11, 'var(--orange-700)')
-  }, draggable ? '◀ drag ▶' : ''), /*#__PURE__*/React.createElement("button", {
+  }, draggable ? 'drag me' : ''), /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: () => setOpen(o => !o),
     onPointerDown: e => e.stopPropagation(),
