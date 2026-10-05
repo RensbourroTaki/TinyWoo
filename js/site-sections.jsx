@@ -1,5 +1,5 @@
 (() => {
-const { Button, Icon, Badge, SlantSection, SocialLinks, CrosshairGame } = window.TinyWooDesignSystem_fe221f;
+const { Button, Icon, Badge, Input, SlantSection, SocialLinks, CrosshairGame } = window.TinyWooDesignSystem_fe221f;
 const I = window.TW_INHALT;
 const S = I.spiel || {};
 const gameProps = { duration: S.sekunden || 45, ammo: S.munition || 8, title: S.titel || 'Woo Hunt', sprite: S.ziel || undefined, background: S.hintergrund || undefined, storageKey: 'tw-site-scores' };
@@ -9,6 +9,55 @@ const H2 = ({ children, color, style }) => <h2 className="tw-heading" style={{ f
 const Kicker = ({ children }) => <span className="tw-pixel" style={{ fontSize: 13, color: 'var(--sky-400)' }}>{children}</span>;
 const card = { background: 'var(--surface-card)', border: '4px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop)', padding: 24, display: 'flex', flexDirection: 'column', gap: 18 };
 const grid2 = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', gap: 28, alignItems: 'start' };
+
+const mailAddr = (I.links.email || []).join('@');
+
+function EmailButton() {
+  const [shown, setShown] = React.useState(false);
+  if (!mailAddr) return null;
+  return (
+    <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+      <Button variant="sky" icon={<Icon name="mail" size={20} />} onClick={() => { setShown(true); location.href = `mailto:${mailAddr}`; }}>Email</Button>
+      {shown && <span style={{ fontSize: 17, color: 'var(--text-strong)', userSelect: 'all', overflowWrap: 'anywhere' }}>{mailAddr}</span>}
+    </div>
+  );
+}
+
+function ContactForm() {
+  const [f, setF] = React.useState({ name: '', email: '', message: '' });
+  const [state, setState] = React.useState('idle');
+  const set = k => e => setF({ ...f, [k]: e.target.value });
+  const ok = f.name.trim() && /\S+@\S+\.\S+/.test(f.email) && f.message.trim().length > 5;
+  const send = async e => {
+    e.preventDefault();
+    if (!ok || state === 'sending') return;
+    setState('sending');
+    try {
+      const r = await fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ access_key: I.links.kontaktFormKey, subject: `Tiny Woo website: ${f.name}`, from_name: 'Tiny Woo website', name: f.name, email: f.email, message: f.message }) });
+      const j = await r.json();
+      setState(j.success ? 'sent' : 'error');
+      if (j.success) setF({ name: '', email: '', message: '' });
+    } catch (err) {
+      setState('error');
+    }
+  };
+  return (
+    <form onSubmit={send} style={card}>
+      <Kicker>Contact</Kicker>
+      <Input label="Name" value={f.name} onChange={set('name')} maxLength={80} />
+      <Input label="Your email" type="email" value={f.email} onChange={set('email')} maxLength={120} />
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <span className="tw-pixel" style={{ fontSize: 12, color: 'var(--gray-300)' }}>Message</span>
+        <textarea value={f.message} onChange={set('message')} rows={6} maxLength={4000} style={{ resize: 'vertical', padding: '14px 18px', borderRadius: 'var(--radius-lg)', border: '3px solid var(--ink)', background: 'var(--blue-950)', boxShadow: 'inset 0 3px 0 rgba(0,0,0,.35)', color: 'var(--gray-50)', fontFamily: 'var(--font-body)', fontSize: 16, outline: 'none' }} />
+      </label>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Button type="submit" icon={<Icon name="send" size={20} />} disabled={!ok || state === 'sending'}>{state === 'sending' ? 'Sending…' : 'Send'}</Button>
+        {state === 'sent' && <span className="tw-pixel" style={{ fontSize: 13, color: 'var(--lime-400)' }}>Message sent. Thanks!</span>}
+        {state === 'error' && <span className="tw-pixel" style={{ fontSize: 13, color: 'var(--cherry-400)' }}>Sending failed. Try again later.</span>}
+      </div>
+    </form>
+  );
+}
 
 const ytId = url => { const m = (url || '').match(/(?:youtu\.be\/|[?&]v=|embed\/|shorts\/)([\w-]{11})/); return m ? m[1] : null; };
 
@@ -90,7 +139,7 @@ function Footer({ onNav }) {
       <span className="tw-pixel" style={{ fontSize: 12, color: 'var(--gray-400)' }}>{I.texte.footer}</span>
       <span className="tw-pixel" style={{ fontSize: 12, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
         <a href="#press" onClick={e => { e.preventDefault(); onNav('press'); }}>Press kit</a>
-        {I.links.email && <a href={`mailto:${I.links.email}`}>{I.links.email}</a>}
+        <a href="#about" onClick={e => { e.preventDefault(); onNav('about'); }}>Contact</a>
       </span>
     </footer>
   );
@@ -150,8 +199,8 @@ function AboutPage() {
       <H2 style={{ fontSize: 'var(--fs-hero)' }}>About</H2>
       <p style={{ margin: 0, fontSize: 19, lineHeight: 1.6, color: 'var(--text-strong)' }}>{I.texte.aboutText1}</p>
       <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6 }}>{I.texte.aboutText2}</p>
-      {I.links.email && <div><Button variant="sky" icon={<Icon name="mail" size={20} />} href={`mailto:${I.links.email}`}>{I.links.email}</Button></div>}
       <SocialLinks links={I.socials} />
+      <ContactForm />
     </section>
   );
 }
@@ -194,7 +243,7 @@ function PressPage() {
         <div style={card}>
           <Kicker>Studio</Kicker>
           {P.fakten && <FactList rows={P.fakten} />}
-          {I.links.email && <div><Button variant="sky" icon={<Icon name="mail" size={20} />} href={`mailto:${I.links.email}`}>Contact</Button></div>}
+          <EmailButton />
         </div>
         <div style={card}>
           <Kicker>Downloads</Kicker>

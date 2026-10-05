@@ -1797,7 +1797,7 @@ function MusicPlayer({
     }
   }))), !mini && /*#__PURE__*/React.createElement("div", {
     style: {
-      maxHeight: open ? 44 * tracks.length + 16 : 0,
+      maxHeight: open ? Math.min(44 * tracks.length + 16, 280) : 0,
       overflow: 'auto',
       transition: 'max-height var(--dur-slow) var(--ease-out)',
       borderTop: open ? '3px solid var(--ink)' : '0 solid transparent',
@@ -1899,6 +1899,17 @@ function NavLink({
     }
   }));
 }
+const MQ = '(max-width: 760px)';
+function useNarrow() {
+  const [n, setN] = React.useState(() => window.matchMedia(MQ).matches);
+  React.useEffect(() => {
+    const m = window.matchMedia(MQ);
+    const h = e => setN(e.matches);
+    m.addEventListener('change', h);
+    return () => m.removeEventListener('change', h);
+  }, []);
+  return n;
+}
 function NavBar({
   logo,
   links = [],
@@ -1908,6 +1919,111 @@ function NavBar({
   sticky = true,
   style
 }) {
+  const narrow = useNarrow();
+  const [open, setOpen] = React.useState(false);
+  React.useEffect(() => setOpen(false), [active, narrow]);
+  const logoLink = /*#__PURE__*/React.createElement("a", {
+    href: "#",
+    onClick: e => {
+      onNavigate && (e.preventDefault(), onNavigate('home'));
+    },
+    style: {
+      display: 'flex',
+      alignItems: 'center'
+    }
+  }, logo ? /*#__PURE__*/React.createElement("img", {
+    src: logo,
+    alt: "Tiny Woo",
+    style: {
+      height: narrow ? 46 : 56,
+      width: narrow ? 46 : 56,
+      objectFit: 'cover',
+      borderRadius: 14,
+      border: '3px solid var(--ink)',
+      boxShadow: 'var(--shadow-pop-sm)',
+      transform: 'rotate(-4deg)'
+    }
+  }) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: 'var(--font-display)',
+      fontSize: 30,
+      color: 'var(--sun-400)'
+    }
+  }, "TINY WOO"));
+  const discordBtn = /*#__PURE__*/React.createElement(__ds_scope.Button, {
+    size: "sm",
+    variant: "secondary",
+    href: discordHref,
+    icon: /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+      name: "discord",
+      brand: true,
+      size: 18
+    })
+  }, "Discord");
+  const navLinks = links.map(l => /*#__PURE__*/React.createElement(NavLink, {
+    key: l.id,
+    href: l.href || '#' + l.id,
+    active: active === l.id,
+    onClick: onNavigate ? e => {
+      e.preventDefault();
+      onNavigate(l.id);
+    } : undefined
+  }, l.label));
+  if (narrow) return /*#__PURE__*/React.createElement("header", {
+    style: {
+      position: sticky ? 'sticky' : 'relative',
+      top: 0,
+      zIndex: 40,
+      ...style
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "aria-hidden": true,
+    style: {
+      position: 'absolute',
+      inset: 0,
+      background: 'var(--glass)',
+      backdropFilter: 'var(--blur-glass)',
+      WebkitBackdropFilter: 'var(--blur-glass)',
+      borderBottom: '3px solid var(--ink)'
+    }
+  }), /*#__PURE__*/React.createElement("nav", {
+    style: {
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '8px var(--gutter)',
+      boxSizing: 'border-box'
+    }
+  }, logoLink, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), discordBtn, /*#__PURE__*/React.createElement(__ds_scope.IconButton, {
+    label: open ? 'Close menu' : 'Open menu',
+    tone: "sun",
+    size: 42,
+    active: open,
+    onClick: () => setOpen(o => !o),
+    icon: /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+      name: open ? 'x' : 'menu',
+      size: 22
+    })
+  })), open && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      gap: 6,
+      padding: '10px var(--gutter) 18px',
+      background: 'var(--blue-950)',
+      borderBottom: '4px solid var(--sun-400)',
+      boxShadow: 'var(--shadow-float)',
+      animation: 'tw-pop-in var(--dur) var(--ease-pop)',
+      transformOrigin: 'top right'
+    }
+  }, navLinks));
   return /*#__PURE__*/React.createElement("header", {
     style: {
       position: sticky ? 'sticky' : 'relative',
@@ -1938,58 +2054,14 @@ function NavBar({
       padding: '8px var(--gutter)',
       boxSizing: 'border-box'
     }
-  }, /*#__PURE__*/React.createElement("a", {
-    href: "#",
-    onClick: e => {
-      onNavigate && (e.preventDefault(), onNavigate('home'));
-    },
-    style: {
-      display: 'flex',
-      alignItems: 'center'
-    }
-  }, logo ? /*#__PURE__*/React.createElement("img", {
-    src: logo,
-    alt: "Tiny Woo",
-    style: {
-      height: 56,
-      width: 56,
-      objectFit: 'cover',
-      borderRadius: 14,
-      border: '3px solid var(--ink)',
-      boxShadow: 'var(--shadow-pop-sm)',
-      transform: 'rotate(-4deg)'
-    }
-  }) : /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontFamily: 'var(--font-display)',
-      fontSize: 30,
-      color: 'var(--sun-400)'
-    }
-  }, "TINY WOO")), /*#__PURE__*/React.createElement("div", {
+  }, logoLink, /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 22,
       flexWrap: 'wrap',
       flex: 1
     }
-  }, links.map(l => /*#__PURE__*/React.createElement(NavLink, {
-    key: l.id,
-    href: l.href || '#' + l.id,
-    active: active === l.id,
-    onClick: onNavigate ? e => {
-      e.preventDefault();
-      onNavigate(l.id);
-    } : undefined
-  }, l.label))), /*#__PURE__*/React.createElement(__ds_scope.Button, {
-    size: "sm",
-    variant: "secondary",
-    href: discordHref,
-    icon: /*#__PURE__*/React.createElement(__ds_scope.Icon, {
-      name: "discord",
-      brand: true,
-      size: 18
-    })
-  }, "Discord")));
+  }, navLinks), discordBtn));
 }
 Object.assign(__ds_scope, { NavBar });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/navigation/NavBar.jsx", error: String((e && e.message) || e) }); }

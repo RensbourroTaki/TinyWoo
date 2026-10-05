@@ -47,7 +47,8 @@ C) 1–2 Minuten warten, Seite neu laden (Strg + F5).
 4. DIE WICHTIGSTEN STELLEN IN inhalt.js
 --------------------------------------
    links.discord   -> dein Discord-Einladungslink (alle Discord-Buttons)
-   links.email     -> Kontakt-Adresse (Footer, About, Press)
+   links.email     -> Kontakt-Adresse, getrennt in ['name', 'domain'] (Press-Seite, Spam-Schutz)
+   links.kontaktFormKey -> Web3Forms-Key fürs Kontaktformular (About-Seite)
    socials         -> Social-Buttons. href = Link. Zeile löschen = Button weg.
    musik           -> Playlist. Reihenfolge = Reihenfolge im Player.
    games           -> Games. featured: true = groß auf der Startseite.

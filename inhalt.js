@@ -16,7 +16,8 @@ window.TW_INHALT = {
   /* ---------- LINKS ---------- */
   links: {
     discord: '#',            // z.B. 'https://discord.gg/abc123'
-    email: 'tinywoogames@gmail.com',
+    email: ['tinywoogames', 'gmail.com'],   // absichtlich getrennt (Schutz vor Spam-Bots): ['name', 'domain']
+    kontaktFormKey: '',      // Web3Forms Access Key (kostenlos auf web3forms.com mit deiner E-Mail holen)
   },
 
   /* Social-Buttons. Nicht gebraucht? Zeile löschen.
@@ -37,10 +38,29 @@ window.TW_INHALT = {
      Ohne src spielt der Player nur zum Schein (Demo).
      Browser ohne OGG-Unterstützung zeigen den Player gar nicht an. */
   musik: [
-    { title: 'Rocket Trump — Main Menu', artist: 'Tiny Woo', duration: 154 /*, src: 'assets/music/main-menu.ogg' */ },
-    { title: 'Jungle Hangar',            artist: 'Tiny Woo', duration: 201 },
-    { title: 'Tiger Gang Theme',         artist: 'Tiny Woo', duration: 132 },
-    { title: 'Highscore Boogie',         artist: 'Tiny Woo', duration: 178 },
+    { title: 'Island Storm Surge · Main Menu', artist: 'Tiny Woo', src: 'assets/music/island-storm-surge-main-menu.ogg', duration: 328 },
+    { title: 'Neon Jungle Hunt · Main Menu', artist: 'Tiny Woo', src: 'assets/music/neon-jungle-hunt-main-menu.ogg', duration: 249 },
+    { title: 'Mercenary Training', artist: 'Tiny Woo', src: 'assets/music/mercenary-training.ogg', duration: 153 },
+    { title: 'Chase the Sun · 2nd Balloon Time', artist: 'Tiny Woo', src: 'assets/music/chase-the-sun-2nd-balloon-time.ogg', duration: 58 },
+    { title: 'Coconut in the Air · Balloon Time', artist: 'Tiny Woo', src: 'assets/music/coconut-in-the-air-balloon-time.ogg', duration: 109 },
+    { title: 'Coconut in the Air 2 · Balloon Time', artist: 'Tiny Woo', src: 'assets/music/coconut-in-the-air-2-balloon-time.ogg', duration: 61 },
+    { title: 'Jungle Heist · Balloon Time', artist: 'Tiny Woo', src: 'assets/music/jungle-heist-balloon-time.ogg', duration: 218 },
+    { title: 'Jungle Heist 3 · Balloon Time', artist: 'Tiny Woo', src: 'assets/music/jungle-heist-3-balloon-time.ogg', duration: 140 },
+    { title: 'Jungle Heist · Showdown', artist: 'Tiny Woo', src: 'assets/music/jungle-heist-showdown.ogg', duration: 410 },
+    { title: 'Jungle Heist 5 · Showdown', artist: 'Tiny Woo', src: 'assets/music/jungle-heist-5-showdown.ogg', duration: 381 },
+    { title: 'Jungle Heist 8 · Showdown', artist: 'Tiny Woo', src: 'assets/music/jungle-heist-8-showdown.ogg', duration: 389 },
+    { title: 'Jungle Rush · 2nd Balloon Time', artist: 'Tiny Woo', src: 'assets/music/jungle-rush-2nd-balloon-time.ogg', duration: 183 },
+    { title: 'Jungle Rush 2 · Balloon Time', artist: 'Tiny Woo', src: 'assets/music/jungle-rush-2-balloon-time.ogg', duration: 129 },
+    { title: 'Jungle Rush 3 · Showdown', artist: 'Tiny Woo', src: 'assets/music/jungle-rush-3-showdown.ogg', duration: 165 },
+    { title: 'Neon Jungle Hunt · Balloon Time', artist: 'Tiny Woo', src: 'assets/music/neon-jungle-hunt-balloon-time.ogg', duration: 249 },
+    { title: 'Neon Jungle Run · 2nd Balloon Time', artist: 'Tiny Woo', src: 'assets/music/neon-jungle-run-2nd-balloon-time.ogg', duration: 203 },
+    { title: 'Neon Jungle Run 2 · 2nd Balloon Time', artist: 'Tiny Woo', src: 'assets/music/neon-jungle-run-2-2nd-balloon-time.ogg', duration: 174 },
+    { title: 'Samba na Coco · 2nd Balloon Time', artist: 'Tiny Woo', src: 'assets/music/samba-na-coco-2nd-balloon-time.ogg', duration: 360 },
+    { title: 'Samba na Coco 1 · 2nd Balloon Time', artist: 'Tiny Woo', src: 'assets/music/samba-na-coco-1-2nd-balloon-time.ogg', duration: 360 },
+    { title: 'Shield Break', artist: 'Tiny Woo', src: 'assets/music/shield-break.ogg', duration: 215 },
+    { title: 'Tropical Marimba', artist: 'Tiny Woo', src: 'assets/music/tropical-marimba.ogg', duration: 138 },
+    { title: 'Tropical Marimba Dance', artist: 'Tiny Woo', src: 'assets/music/tropical-marimba-dance.ogg', duration: 150 },
+    { title: 'Tropical Marimba (Slower)', artist: 'Tiny Woo', src: 'assets/music/tropical-marimba-slower.ogg', duration: 64 },
   ],
 
   /* ---------- GAMES ----------
@@ -81,7 +101,6 @@ window.TW_INHALT = {
     fakten: [
       ['Developer', 'Tiny Woo'],
       ['Team',      'One person'],
-      ['Contact',   'tinywoogames@gmail.com'],
     ],
     downloads: [
       { label: 'Tiny Woo logo (PNG)',     src: 'assets/logo/tinywoo-logo.png' },
