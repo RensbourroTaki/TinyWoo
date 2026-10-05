@@ -130,7 +130,7 @@ window.TW_INHALT = {
     communityText: 'Devlogs, playtests, memes and the occasional existential crisis. The Discord is where it all happens.',
     aboutText1: "I've been making games for 35 years, from placing pixels one by one in the 80s to full 3D. I trained as a commercial artist, taught myself 3D, learned the industry standards along the way and ended up as a technical artist. I've been working in Unity since 2007.",
     aboutText2: "I'm indie. No publisher, no boardroom, no one telling me what a game should be. Arcade games have always been my thing, and Tiny Woo is where I finally make my own.",
-    aboutText3: "I'm a composer too, but writing, arranging and producing music has always been too time-consuming and expensive for my games. So, to be upfront: the music is AI-generated, picked and put together by me. AI also helps me with code and parts of the UI. Everything else is handcrafted.",
+    aboutText3: "I'm a composer too, but writing, arranging and producing music has always been too time-consuming and expensive for my games. So, to be upfront: the music is AI-generated, picked and put together by me. AI also helps me with code and parts of the UI. Some assets come from other artists and are listed in the credits of my games. Everything else is handcrafted.",
     footer: '© 2026 Tiny Woo · Made by one guy with a sword',
   },
 };
