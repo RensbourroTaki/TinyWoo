@@ -17,7 +17,7 @@ window.TW_INHALT = {
   links: {
     discord: '#',            // z.B. 'https://discord.gg/abc123'
     email: ['tinywoogames', 'gmail.com'],   // absichtlich getrennt (Schutz vor Spam-Bots): ['name', 'domain']
-    kontaktFormKey: '',      // Web3Forms Access Key (kostenlos auf web3forms.com mit deiner E-Mail holen)
+    kontaktFormKey: 'a95235b3-d5b6-4cfc-9213-7161abaa0399',      // Web3Forms Access Key (kostenlos auf web3forms.com mit deiner E-Mail holen)
   },
 
   /* Social-Buttons. Nicht gebraucht? Zeile löschen.
@@ -108,16 +108,14 @@ window.TW_INHALT = {
     ],
   },
 
-  /* ---------- FADENKREUZ-SPIEL ----------
-     ziel: PNG mit transparentem Hintergrund, Frames NEBENEINANDER, nach rechts schauend.
-           null = Standard-Zielscheibe.
-     hintergrund: JPG 16:9. null = Standard-Himmel. */
-  spiel: {
-    titel: 'Woo Hunt',
-    sekunden: 45,
-    munition: 8,
-    ziel: null,              // z.B. { src: 'assets/game/ziel.png', frames: 2, fps: 8 }
-    hintergrund: null,       // z.B. 'assets/game/hintergrund.jpg'
+  /* ---------- DAIGANOID (Arcade-Seite) ----------
+     Das Spiel selbst liegt in game/ und assets/daiganoid/ (siehe ANLEITUNG, Punkt 7).
+     musikMenue / musikSpiel: OGG nach assets/daiganoid/music/ hochladen und hier eintragen ('' = keine Musik). */
+  daiganoid: {
+    titel: 'Daiganoid',
+    text: 'A fan-made Arkanoid: 32 rounds, two exits per round, lasers, mega balls and a cube that wants your ball. Pixel-exact ball physics rebuilt from the 1987 arcade original.',
+    musikMenue: '',          // z.B. 'assets/daiganoid/music/menu.ogg'
+    musikSpiel: '',          // z.B. 'assets/daiganoid/music/game.ogg'
   },
 
   /* ---------- TEXTE ---------- */
@@ -125,7 +123,7 @@ window.TW_INHALT = {
     heroZeile1: 'One samurai.',
     heroZeile2: 'Zero Japan.',
     heroText: 'Tiny Woo is a one-person game studio making fast, loud, slightly rude little games. Grab a controller, bring snacks.',
-    laufband: ['Rocket Trump in development', 'Join the Discord', 'One samurai', 'Zero Japan', 'Highscores open'],
+    laufband: ['Rocket Trump in development', 'Play Daiganoid in the arcade', 'Join the Discord', 'One samurai', 'Zero Japan', 'Highscores open'],
     communityTitel: 'Join the dojo',
     communityText: 'Devlogs, playtests, memes and the occasional existential crisis. The Discord is where it all happens.',
     aboutText1: "I've been making games for 35 years, from placing pixels one by one in the 80s to full 3D. I trained as a commercial artist, taught myself 3D, learned the industry standards along the way and ended up as a technical artist. I've been working in Unity since 2007.",
