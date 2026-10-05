@@ -128,8 +128,9 @@ window.TW_INHALT = {
     laufband: ['Rocket Trump in development', 'Join the Discord', 'One samurai', 'Zero Japan', 'Highscores open'],
     communityTitel: 'Join the dojo',
     communityText: 'Devlogs, playtests, memes and the occasional existential crisis. The Discord is where it all happens.',
-    aboutText1: 'Tiny Woo is one person: designer, coder, artist, composer, QA, marketing department and coffee machine operator.',
-    aboutText2: "A samurai — not from Japan — building small, fast games that don't take themselves too seriously. Everything here is made solo.",
+    aboutText1: "I've been making games for 35 years, from placing pixels one by one in the 80s to full 3D. I trained as a commercial artist, taught myself 3D, learned the industry standards along the way and ended up as a technical artist. I've been working in Unity since 2007.",
+    aboutText2: "I'm indie. No publisher, no boardroom, no one telling me what a game should be. Arcade games have always been my thing, and Tiny Woo is where I finally make my own.",
+    aboutText3: "I'm a composer too, but writing, arranging and producing music has always been too time-consuming and expensive for my games. So, to be upfront: the music is AI-generated, picked and put together by me. AI also helps me with code and parts of the UI. Everything else is handcrafted.",
     footer: '© 2026 Tiny Woo · Made by one guy with a sword',
   },
 };

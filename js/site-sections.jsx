@@ -199,6 +199,7 @@ function AboutPage() {
       <H2 style={{ fontSize: 'var(--fs-hero)' }}>About</H2>
       <p style={{ margin: 0, fontSize: 19, lineHeight: 1.6, color: 'var(--text-strong)' }}>{I.texte.aboutText1}</p>
       <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6 }}>{I.texte.aboutText2}</p>
+      <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6 }}>{I.texte.aboutText3}</p>
       <SocialLinks links={I.socials} />
       <ContactForm />
     </section>
