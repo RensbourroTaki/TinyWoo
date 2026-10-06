@@ -22,8 +22,9 @@ Falls eine alte index.html da ist: wird einfach überschrieben.
    ANLEITUNG.txt         Diese Datei
    assets/logo/          tinywoo-logo.png
    assets/games/         Game-Bilder (rocket-trump-menu.jpg)
-   assets/music/         OGGs (noch leer)
-   assets/game/          Grafiken fürs Fadenkreuz-Spiel (noch leer)
+   assets/music/         OGGs für den Site-Player
+   assets/daiganoid/     Grafiken + Sounds des Arcade-Spiels DAIGANOID (siehe Punkt 7)
+   game/                 Der Spiel-Code von DAIGANOID (siehe game/README.md)
    fonts/                Schriften. Nicht anfassen.
    js/, tokens/, styles.css   Technik. Nicht anfassen.
 
@@ -54,7 +55,7 @@ C) 1–2 Minuten warten, Seite neu laden (Strg + F5).
    games           -> Games. featured: true = groß auf der Startseite.
                       trailer = YouTube-Link, presse = Fakten + Screenshots.
    presse          -> Press-Seite: Intro, Studio-Fakten, Downloads.
-   spiel           -> Fadenkreuz-Spiel: Titel, Sekunden, Munition, Grafiken.
+   daiganoid       -> Arcade-Spiel: Titel, Text auf der Startseite, Musik (OGG-Pfade).
    texte           -> Überschrift, Texte, Laufband, Footer.
 
 Alles in inhalt.js ist kommentiert. Beispiele stehen direkt dabei.
@@ -76,3 +77,34 @@ Alles in inhalt.js ist kommentiert. Beispiele stehen direkt dabei.
 ------------
    Werden im Browser jedes Besuchers gespeichert (jeder sieht seine eigenen).
    Gemeinsame Liste für alle = kommt mit dem Admin/CMS später.
+
+
+7. DAIGANOID (ARCADE-SEITE)
+---------------------------
+   Das Spiel läuft komplett im Browser, ohne Build. Steuerung: Maus (Klick = Mauszeiger wird
+   "eingefangen" wie ein Arcade-Spinner, Esc gibt ihn frei), Pfeiltasten/A-D, Touch.
+   Feuer = Klick/Leertaste. P = Pause. Vollbild-Knopf unter dem Spiel.
+
+   Grafiken austauschen: assets/daiganoid/... (PNG mit Transparenz, Animationen als senkrechte
+   Streifen, Frame unter Frame). Maße und Namen stehen in game/render/assets.js.
+   Noch als Platzhalter (werden automatisch benutzt, sobald die Datei da ist):
+     assets/daiganoid/menu/logo.png              Logo 237x65
+     assets/daiganoid/player/paddle-laser.png    Laser-Schläger, 2 Frames 34x9 (wie paddle-thrust.png)
+     assets/daiganoid/player/paddle-catch.png    Magnet-Schläger, 2 Frames 34x9
+     assets/daiganoid/player/laser-shot.png      Laserschuss
+
+   Hintergründe: assets/daiganoid/board/bg01.png, bg02.png, bg03.png ... (fortlaufend nummeriert,
+   das Spiel lädt bis zur ersten fehlenden Nummer; neues Bild ablegen genügt). Runde 1 = bg01,
+   danach reihum bg02 bis zum letzten. Vollbilder haben 240x334 (= Spielauflösung) und werden
+   nicht wiederholt; kleine Bilder (Kacheln) werden ab links oben über den Schirm wiederholt.
+   Schimmer: liegt daneben bgNN_mask.png (schwarz/weiß, gleiche Größe), fließt auf den weißen
+   Stellen Strom im Farbton des Hintergrunds. Regler: game/render/bgfx.js (BGFX).
+
+   Musik: OGG nach assets/daiganoid/music/ hochladen, Pfade in inhalt.js unter "daiganoid" eintragen.
+   Spielt der Site-Player gerade, bleibt die Spielmusik aus (Optionen im Spiel: MUSIC ON).
+
+   Level: game/play/levels.js, 32 Runden mit je zwei Varianten (linkes/rechtes Portal),
+   Textzeilen mit 11 Zeichen, Legende steht oben in der Datei.
+
+   Lokal testen (Module brauchen einen Server): im Ordner "python -m http.server 8765",
+   dann http://localhost:8765/#arcade öffnen.

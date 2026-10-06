@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Daiganoid Test</title>
+<style>html,body{margin:0;background:#1F3A70;color:#eee;font:14px system-ui}#host{display:flex;justify-content:center;padding:12px}#log{white-space:pre;font:12px monospace;padding:0 12px}</style>
+</head><body>
+<div id="host"></div>
+<div id="log"></div>
+<script type="module">
+// Testseite ohne React: ?state=game&ticks=400 spult das Spiel vor (fuer Screenshots), ?scale=4 setzt die Skalierung,
+// ?bg=3 erzwingt Hintergrund bg03.
+import { mountDaiganoid } from './daiganoid.js';
+const q = new URLSearchParams(location.search);
+const log = (m) => { document.getElementById('log').textContent += m + '\n'; };
+window.addEventListener('error', (e) => log('FEHLER ' + e.message + ' @ ' + e.filename + ':' + e.lineno));
+window.addEventListener('unhandledrejection', (e) => log('PROMISE ' + (e.reason && e.reason.stack || e.reason)));
+const game = await mountDaiganoid(document.getElementById('host'), {
+  assetBase: '../assets/daiganoid/',
+  maxScale: parseInt(q.get('scale') || '4', 10),
+  availHeight: () => 1400,
+  hooks: { onHud: (h) => { document.title = `Daiganoid ${h.score} R${h.round} L${h.lives}`; }, onState: (s) => log('state ' + s) },
+});
+window.game = game;
+const app = game.app;
+const ticks = parseInt(q.get('ticks') || '0', 10);
+if (q.get('state') === 'game') {
+  app.boardAlpha = 1; app.menuAlpha = 1;
+  app.startGame();
+  if (q.get('paddle')) app.session.setPaddleType(parseInt(q.get('paddle'), 10));   // 2 gross, 8 klein, 3 Twin, 7 Schatten
+}
+if (q.get('state') === 'menu') { app.setState('menu'); app.boardAlpha = 1; app.menuAlpha = 1; app.bs.phaserFrame = 3; }
+if (q.get('state') === 'options') { app.setState('options'); app.boardAlpha = 1; app.menuAlpha = 1; }
+if (q.get('state') === 'highscores') { app.setState('highscores'); app.boardAlpha = 1; app.menuAlpha = 1; }
+for (let i = 0; i < ticks; i++) {
+  if (app.state === 'game' && app.session) {
+    // Mini-Autopilot: Schlaeger unter den tiefsten Ball
+    const f = app.session.field;
+    let target = -1, lowest = 999;
+    for (let b = 0; b < 32; b++) if (f.isActive(b) && f.balls[b].y < lowest) { lowest = f.balls[b].y; target = f.balls[b].x; }
+    if (target >= 0) app.input.accum += Math.max(-6, Math.min(6, target - 2 - f.paddle.center));
+    if (i % 200 === 0) app.input.firePressed = true;
+  }
+  app.tick();
+}
+if (q.get('bg')) app.board.build(app.S, parseInt(q.get('bg'), 10) - 1);
+app.draw();
+log('Hintergruende: ' + app.board.backgrounds.map((b) => b.name + (b.mask ? '+mask' : '')).join(' '));
+log('bereit S=' + app.S + ' state=' + app.state + (app.session ? ' phase=' + app.session.phase + ' round=' + (app.session.round + 1) + ' score=' + app.session.score : ''));
+</script>
+</body></html>

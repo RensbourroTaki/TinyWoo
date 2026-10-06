@@ -1,8 +1,7 @@
 (() => {
-const { Button, Icon, Badge, Input, SlantSection, SocialLinks, CrosshairGame } = window.TinyWooDesignSystem_fe221f;
+const { Button, Icon, Badge, Input, SlantSection, SocialLinks } = window.TinyWooDesignSystem_fe221f;
 const I = window.TW_INHALT;
-const S = I.spiel || {};
-const gameProps = { duration: S.sekunden || 45, ammo: S.munition || 8, title: S.titel || 'Woo Hunt', sprite: S.ziel || undefined, background: S.hintergrund || undefined, storageKey: 'tw-site-scores' };
+const D = I.daiganoid || {};
 const featured = I.games.find(g => g.featured) || I.games[0];
 
 const H2 = ({ children, color, style }) => <h2 className="tw-heading" style={{ fontSize: 'var(--fs-h1)', transform: 'rotate(-3deg)', transformOrigin: 'left', color, ...style }}>{children}</h2>;
@@ -113,11 +112,11 @@ function ArcadeTeaser({ onNav }) {
     <section style={{ maxWidth: 'var(--container)', margin: '0 auto', padding: 'var(--space-9) var(--gutter)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,320px),1fr))', gap: 48, alignItems: 'center' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <Kicker>Arcade · Play right here</Kicker>
-        <H2 color="var(--orange-400)">{gameProps.title}</H2>
-        <p style={{ margin: 0, fontSize: 17, lineHeight: 1.55 }}>{gameProps.duration} seconds, {gameProps.ammo} shells, zero mercy. Small targets score more. Beat the board, write your name, brag on Discord.</p>
-        <div><Button variant="lime" icon={<Icon name="crosshair" size={20} />} onClick={() => onNav('arcade')}>Open arcade</Button></div>
+        <H2 color="var(--orange-400)">{D.titel || 'Daiganoid'}</H2>
+        <p style={{ margin: 0, fontSize: 17, lineHeight: 1.55 }}>{D.text || ''}</p>
+        <div><Button variant="lime" icon={<Icon name="gamepad-2" size={20} />} onClick={() => onNav('arcade')}>Open arcade</Button></div>
       </div>
-      <div style={{ transform: 'rotate(1.5deg)' }}><CrosshairGame {...gameProps} height={380} /></div>
+      <div style={{ display: 'flex', justifyContent: 'center' }}><DaiganoidTeaser onNav={onNav} /></div>
     </section>
   );
 }
@@ -188,7 +187,10 @@ function ArcadePage() {
   return (
     <section style={{ maxWidth: 'var(--container)', margin: '0 auto', padding: '48px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: 28 }}>
       <H2 color="var(--orange-400)" style={{ fontSize: 'var(--fs-hero)' }}>Arcade</H2>
-      <CrosshairGame {...gameProps} height={560} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Kicker>Free to play · {D.titel || 'Daiganoid'}</Kicker>
+        <DaiganoidArcade />
+      </div>
     </section>
   );
 }

@@ -8,8 +8,10 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 <script src="js/tinywoo-ds.js"></script>
 <script>document.write('<script src="inhalt.js?v=' + Date.now() + '"><\/script>');</script>
+<script type="module">import * as m from './game/daiganoid.js'; window.Daiganoid = m;</script>
 </head><body><div id="root"></div>
 <script type="text/babel" src="js/site-hero.jsx"></script>
+<script type="text/babel" src="js/site-daiganoid.jsx"></script>
 <script type="text/babel" src="js/site-sections.jsx"></script>
 <script type="text/babel">
 const { NavBar, MusicPlayer } = window.TinyWooDesignSystem_fe221f;

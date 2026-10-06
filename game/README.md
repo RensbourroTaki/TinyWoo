@@ -1,0 +1,57 @@
+# Daiganoid – Spiel-Code
+
+Reines JavaScript (ES-Module), kein Build-Schritt. Eingebunden über `js/site-daiganoid.jsx` (Arcade-Seite und
+Teaser auf der Startseite). Grafiken und Sounds liegen in `assets/daiganoid/`.
+
+## Aufbau
+
+| Ordner | Inhalt |
+|---|---|
+| `core/` | Ball-/Schläger-/Stein-Logik von „Arkanoid – Revenge of Doh“, byte-genau portiert (`playfield.js`, `ballmotion.js`, `brickgrid.js`, `ball.js`, `paddle.js`, `tables.js`). 11 Spalten im Spiel, 13 für die Verifikation. |
+| `play/` | Eigenes Gameplay: `session.js` (Runden, Leben, Items, Laser, Gegner, Portale), `levels.js` (32 Runden × 2 Varianten, Textformat), `items.js`. |
+| `render/` | Darstellung: `board.js` (Hintergrund, Rahmen + Schatten, Türen, Lichter, Phaser), `bgfx.js` (Masken-Schimmer), `view.js` (Steine, Schläger, Bälle, Effekte), `font.js` + `spintext.js` (Drehschrift, Konsolenschrift), `assets.js` (Ladeliste). |
+| `app.js` | Zustandsmaschine: Intro → Menü / Optionen / Highscore / Credits → Spiel → Game Over. |
+| `daiganoid.js` | Einstieg `mountDaiganoid(container, opts)`: Canvas, Skalierung (ganzzahlig, max. 4×), Vollbild. |
+| `input.js`, `audio.js` | Maus (Pointer-Lock = Spinner), Touch, Tastatur; WAV-Effekte, Musik. |
+| `tools/verify.mjs` | Node: Kern gegen die MAME-Traces prüfen (`node game/tools/verify.mjs <trace.bin>...`). |
+| `tools/autopilot.mjs` | Node: Session ohne Browser durchspielen (Ausnahmen-Test). |
+| `test.html` | Testseite ohne React: `game/test.html?state=game&ticks=600` spult vor (lokaler Server nötig). |
+
+## Koordinaten
+
+Logik in Original-Pixeln (Zelle 16×8, Y wächst nach oben). Anzeige: 1 Logik-Pixel = 1,25 Art-Pixel
+(Stein 20×10, Ball 5 px), Art-Pixel × S Gerätepixel (S = 2..4, ganzzahlig). Art-X = 10 + 1,25·(X−16),
+Art-Y = 301 − 1,25·Y. Schirm 240×334 (= Vollbild-Hintergrund), Rahmen oben angehängt, Spielfläche 220×301 bei
+(10,10), Phaser-Linie y 308 und Düsen y 311 (7 bzw. 10 px unter dem Rohrende 301), Portale y 281,
+Schläger y 285. Im Daiganoid-Feld liegen Decke und Steinraster um `lift` = 8 höher als im Original
+(Decke Y 233), das Schläger-Band (Y 8..15) bleibt; der Original-Modus (13 Spalten) hat `lift` 0.
+
+## Lokal testen
+
+Module brauchen einen Server (kein `file://`): im Repo `python -m http.server 8765`, dann
+`http://localhost:8765/#arcade` oder `http://localhost:8765/game/test.html`.
+
+## Schrift
+
+Alle Texte im Spiel benutzen die Drehschrift `assets/daiganoid/fonts/spin.png` (456×387, 16 Frames à 23 px,
+Frame-Abstand 24, Start y=2; Frame 4 = weiße Vorderansicht = Ruhe-Frame, 8 = Kante, 12 = Rückseite). Zellen und
+Frame-Layout stehen in `fonts/fonts.json` unter `spin` (9 px Zellen, W 15 px, `.`/`,`/`!`/`?`/`>` nur in Frame 4).
+Menü = Originalgröße (23 px), Ansagen im Spiel = 2× (46 px). Das Ausdrehen steuert `SETTLE_PROFILE` /
+`SETTLE_TAIL` in `render/spintext.js`. `fonts/console.png` bleibt vorhanden, wird im Spiel aber nicht benutzt.
+
+## Grafiken ersetzen
+
+Alle Bilder sind PNG mit Transparenz, Animationen als vertikale Streifen (Frame unter Frame). Maße stehen in
+`render/assets.js`. Optionale Bilder (werden benutzt, sobald sie da sind): `assets/daiganoid/menu/logo.png`
+(237×65), `player/paddle-laser.png`, `player/paddle-catch.png` (je 2 Frames 34×9 wie `paddle-thrust.png`),
+`player/laser-shot.png`. Musik: OGG nach `assets/daiganoid/music/`, Pfade in `inhalt.js` unter `daiganoid`.
+
+## Hintergründe
+
+`board/bg01.png`, `bg02.png`, … werden der Reihe nach geladen, bis eine Nummer fehlt (`render/assets.js`).
+Runde 1 = bg01, danach reihum bg02..bgNN (`roundBackground`). Ein Bild, das in beiden Richtungen kleiner als der
+halbe Schirm ist, gilt als Kachel und wird ab links oben wiederholt; alles andere ist ein Vollbild ab (0,0).
+Gibt es `bgNN_mask.png`, leuchten deren weiße Pixel (`render/bgfx.js`): Stränge werden beim Laden vermessen,
+darüber laufen Fluss-Wellen, Kaustik-Rauschen und Funken, gerastert in `BGFX.steps` Stufen. Fehlende Masken
+erzeugen je einen harmlosen 404 in der Konsole. Steine gibt es nur noch „klar“; den Schatten von Rahmen,
+Türen und Düsen zeichnet `Board.drawShadow` (`SHADOW` in `board.js`). Testseite: `?bg=3` erzwingt bg03.
