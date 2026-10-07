@@ -143,9 +143,25 @@ window.TW_INHALT = {
     laufband: ['Rocket Trump in development', 'Play Daiganoid in the arcade', 'Join the Discord', 'One samurai', 'Zero Japan', 'Highscores open'],
     communityTitel: 'Join the dojo',
     communityText: 'Devlogs, playtests, memes and the occasional existential crisis. The Discord is where it all happens.',
-    aboutText1: "I've been making games for 35 years, from placing pixels one by one in the 80s to full 3D. I trained as a commercial artist, taught myself 3D, learned the industry standards along the way and ended up as a technical artist. I've been working in Unity since 2007.",
-    aboutText2: "I'm indie. No publisher, no boardroom, no one telling me what a game should be. Arcade games have always been my thing, and Tiny Woo is where I finally make my own.",
-    aboutText3: "I'm a composer too, but writing, arranging and producing music has always been too time-consuming and expensive for my games. So, to be upfront: the music is AI-generated, picked and put together by me. AI also helps me with code and parts of the UI. Some assets come from other artists and are listed in the credits of my games. Everything else is handcrafted.",
+    // About-Seite: Bausteine in Reihenfolge. { h } = Zwischenüberschrift, { p } = Absatz, { liste } = Aufzählung, { schluss } = Schlusssatz.
+    about: [
+      { h: "Here's my story:" },
+      { p: "As a kid, I started pixeling game assets on the Amiga at the age of 13. Later I worked for some local developers of the time, which was a big joke in my country, and moved pretty quickly over to 3D. During that time I attended the Graphic Institute of Vienna and learned all the commercial art and design tricks, from layout to typography etc., but I never felt cosy in such working environments. Game development has always been my thing, and it still is today. Over time I learned the technical aspects and how game systems and mechanics work. I also learned the industry standards in modelling, texturing, rigging, hand weight painting etc. – the whole 3D pipeline palette, so I could create my own assets too. Dynabot The Robo Marble was one of our first attempts back in 2013, but I had to put the Kickstarter for the project on ice because I burned out after doing most of the work on the project myself." },
+      { p: "However, alongside my artistic skills, I increasingly specialized in game optimization, gameplay dynamics, technical solutions and other aspects of game development." },
+      { p: "And now we have AI, which makes it possible for me to develop faster, more precisely and bug-free, and to realize all the visions I've always chased. What I do is take my knowledge and direct the AI through the exact steps and the technical approach I want for each part/module of the game. That means every game takes a minimum of six months to design and build from scratch, even if we're only talking about a small gameplay loop with all the necessary things around it." },
+      { h: 'What do I use AI for when creating my games?' },
+      { liste: [
+        'Code support',
+        'Tools for the game',
+        'Shaders',
+        "Background music (IF it sounds acceptable – hard choices!), because I won't go down the composer route anymore, since it takes more time than anything else! (I compose & arrange with Studio One and VSTs, but it takes tooooooo long to write a good track/song. Have mercy!)",
+        "Certain UI icons (I'm much more effective when I don't have to pixel them anymore, because that takes a lot of time too.)",
+      ] },
+      { p: "Everything else is either made by me or is a purchased asset, which I mostly modify and/or adapt to fit the game visually and performance-wise. Or it's an asset from an artist whose work I simply love, because it fits the game better than what I would've made." },
+      { p: "I hope you can see the quality in my games and the effort I put into each one, and that you don't call it slop right away, because that is exactly what I don't want to deliver – and never will!" },
+      { p: "One more thing I want to add: I'd rather take my time fighting with the gameplay mechanics until they work the way I want them to than record and edit workflow videos for YouTube or Reddit, which was never my thing. Now this place is here to offer everyone a docking bay for fun and well-developed games." },
+      { schluss: 'I hope you have as much fun playing my games as I had making them – welcome aboard!' },
+    ],
     footer: '© 2026 Tiny Woo · Made by one guy with a sword',
   },
 };

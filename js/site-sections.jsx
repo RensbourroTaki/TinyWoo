@@ -189,9 +189,12 @@ function AboutPage() {
   return (
     <section style={{ maxWidth: 760, margin: '0 auto', padding: '48px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: 22 }}>
       <H2 style={{ fontSize: 'var(--fs-hero)' }}>About</H2>
-      <p style={{ margin: 0, fontSize: 19, lineHeight: 1.6, color: 'var(--text-strong)' }}>{I.texte.aboutText1}</p>
-      <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6 }}>{I.texte.aboutText2}</p>
-      <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6 }}>{I.texte.aboutText3}</p>
+      {I.texte.about.map((b, i) =>
+        b.h ? <h3 key={i} className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h2, 26px)', color: 'var(--text-strong)' }}>{b.h}</h3>
+        : b.liste ? <ul key={i} style={{ margin: 0, paddingLeft: 24, fontSize: 17, lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: 6 }}>{b.liste.map((t, j) => <li key={j}>{t}</li>)}</ul>
+        : b.schluss ? <p key={i} style={{ margin: '8px 0 0', fontSize: 19, lineHeight: 1.6, fontWeight: 700, color: 'var(--text-strong)' }}>{b.schluss}</p>
+        : <p key={i} style={{ margin: 0, fontSize: 17, lineHeight: 1.6 }}>{b.p}</p>
+      )}
       <SocialLinks links={I.socials} />
       <ContactForm />
     </section>
