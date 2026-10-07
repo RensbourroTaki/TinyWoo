@@ -9,8 +9,8 @@ export const ART_W = 240;
 export const ART_H = 334;
 export const FRAME_BOTTOM = 10 + 291;  // Unterkante der Rohre (frame-top 10 hoch, Rohre 291 hoch)
 export const INNER = Object.freeze({ x: 10, y: 10, w: 220, h: 301 });   // Spielflaeche innerhalb der Rohre
-export const PHASER_Y = FRAME_BOTTOM + 6;   // Phaser-Glow 240x22
-export const FOOT_Y = FRAME_BOTTOM + 10;    // Rohr-Endkappen 14x9
+export const PHASER_Y = FRAME_BOTTOM + 5;   // Phaser-Glow 240x22
+export const FOOT_Y = FRAME_BOTTOM + 9;    // Rohr-Endkappen 14x9
 export const DOOR_TOP = Object.freeze([{ x: 24, y: 1 }, { x: 187, y: 1 }]);           // 28x18
 export const DOOR_LEFT = Object.freeze({ x: 0, y: 281, w: 18, h: 17, lightX: 10, lightW: 8 });
 export const DOOR_RIGHT = Object.freeze({ x: 224, y: 281, w: 16, h: 17, lightX: 224, lightW: 6 });
@@ -20,6 +20,7 @@ export const SHADOW = Object.freeze({ dx: 6, dy: 6, alpha: 0.33 });
 /** Phaser: Schleifen-Frames 3..8, Helligkeit zittert in diesem Bereich. */
 const PHASER_LOOP = [3, 8];
 const PHASER_ALPHA = [0.72, 1];
+export const PHASER_ALPHA_MENU = [0.35, 1];   // Menue: staerkeres Flackern
 
 /** Schwarze Silhouette eines Bildes (gleiche Groesse). */
 function silhouette(im, w = im.width, h = im.height) {
@@ -209,11 +210,11 @@ export function boardState() {
  * Phaser-Flackern: jeden Tick ein zufaelliger Schleifen-Frame (nie zweimal derselbe) und zitternde Helligkeit.
  * Nur Darstellung, benutzt Math.random (beruehrt keine Spiel-Zufallszahlen). flash = volle Helligkeit.
  */
-export function flickerPhaser(st, flash = false) {
+export function flickerPhaser(st, flash = false, range = PHASER_ALPHA) {
   const n = PHASER_LOOP[1] - PHASER_LOOP[0] + 1;
   const inLoop = st.phaserFrame >= PHASER_LOOP[0] && st.phaserFrame <= PHASER_LOOP[1];
   let f = PHASER_LOOP[0] + Math.floor(Math.random() * (inLoop ? n - 1 : n));
   if (inLoop && f >= st.phaserFrame) f++;
   st.phaserFrame = f;
-  st.phaserAlpha = flash ? 1 : PHASER_ALPHA[0] + Math.random() * (PHASER_ALPHA[1] - PHASER_ALPHA[0]);
+  st.phaserAlpha = flash ? 1 : range[0] + Math.random() * (range[1] - range[0]);
 }

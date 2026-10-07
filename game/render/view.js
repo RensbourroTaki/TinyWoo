@@ -5,6 +5,7 @@
 // so bleibt die 1,25-Schrittweite bei 4x exakt (5 Geraete-Pixel je Logik-Pixel).
 import { ART_H, INNER, PHASER_Y, boardState, flickerPhaser } from './board.js';
 import { BRICK_COLORS } from './assets.js';
+import { ZAP, glowSprite } from './zap.js';
 import { SpinText } from './spintext.js';
 import { GOLD, KIND_MASK, KIND_SPECIAL, REGENERATES, ROWS } from '../core/brickgrid.js';
 import { PaddleType } from '../core/paddle.js';
@@ -41,23 +42,8 @@ export const SPARKS = {
  * Radien in Art-Pixeln (mal Explosions-Skalierung), len in Frames.
  */
 export const BOOM = { len: 24, core: 13, glow: 34, coreAlpha: 1, glowAlpha: 0.85, ring: [4, 30], ringAlpha: 0.7 };
-
-/** Weicher, runder Lichtpunkt (radiale Verlaufs-Textur) fuer additives Zeichnen. */
-function glowSprite([r, g, b]) {
-  const c = document.createElement('canvas');
-  c.width = c.height = 32;
-  const x = c.getContext('2d');
-  const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16);
-  gr.addColorStop(0, `rgba(${r},${g},${b},1)`);
-  gr.addColorStop(0.45, `rgba(${r},${g},${b},0.45)`);
-  gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
-  x.fillStyle = gr;
-  x.fillRect(0, 0, 32, 32);
-  return c;
-}
-
 export class GameView {
-  constructor(assets, fonts, board, audio) {
+  constructor(assets, fonts, board, audio, zap) {
     this.img = assets.img;
     this.spin = fonts.spin;
     this.board = board;
@@ -71,7 +57,7 @@ export class GameView {
     this.beamFrame = -1;
     this.paddleVisible = true;
     this.paddleFade = null;       // { dir: -1 aus / 1 ein, t } nach Leben-Verlust
-    this.lostBall = null;         // { x, y, t } Ball faellt in den Phaser
+    this.lostBall = null;         // { x, y, vx, vy, t } Ball fliegt in seinem Winkel in die Elektro-Zone
     this.phaserFlash = 0;
     this.lightMode = 'idle';      // idle | flicker | clear
     this.lightTimer = 0;
@@ -89,6 +75,7 @@ export class GameView {
     this.glowMega = glowSprite(BALL_GLOW.mega);
     this.glowHot = glowSprite([255, 245, 215]);
     this.glowFire = glowSprite([255, 140, 40]);
+    this.zap = zap;               // Elektro-Zone (gehoert der App, laeuft auch im Menue)
   }
 
   /** Funken an (x, y) ausstossen: Richtung (dx, dy) mit Streuung spread (Bogenmass), cfg aus SPARKS. */
@@ -179,9 +166,16 @@ export class GameView {
           this.explode(ax(e.x), ay(e.y), 1);
           this.audio.play('phaser', 0.6, 1.4);
           break;
-        case 'ballLost':
-          this.lostBall = { x: ax(e.x - 3) - 0.5, y: ay(e.y + 1) - 0.5, t: 0 };
+        case 'ballLost': {
+          // Bewegung je Frame aus der Ball-Spur: der Ball fliegt im Eingangswinkel weiter
+          const c = this.ballCenter(e);
+          const tr = this.trails[e.ball] || [];
+          const last = tr[tr.length - 1];
+          const vx = last ? c.x - last.x : 0;
+          const vy = last && c.y - last.y > 0.5 ? c.y - last.y : 2.5;
+          this.lostBall = { x: ax(e.x - 3) - 0.5, y: ay(e.y + 1) - 0.5, vx, vy, t: 0 };
           break;
+        }
         case 'lifeLost':
           this.paddleFade = { dir: -1, t: 0 };   // Schlaeger blendet aus, Respawn nach BALL_LOST_FRAMES
           break;
@@ -358,12 +352,22 @@ export class GameView {
       for (let i = 0; i < cells.length; i++) if (cells[i] !== 0) filled.push(i);
       if (filled.length) this.effects.push({ type: 'shine', cell: filled[Math.floor(this.rand() * filled.length)], t: 0, len: 12 });
     }
-    // Ball verloren: faellt unten aus dem Bild (ohne Deflector gibt es keinen Phaser)
+    // Ball verloren: fliegt im Eingangswinkel weiter und explodiert mitten in der Elektro-Zone
     if (this.lostBall) {
       const lb = this.lostBall;
       lb.t++;
-      lb.y += 2.5;
-      if (lb.y >= ART_H) this.lostBall = null;
+      lb.x += lb.vx;
+      lb.y += lb.vy;
+      if (lb.x < INNER.x || lb.x > INNER.x + INNER.w - 6) {   // an den Rohren abprallen
+        lb.x = Math.max(INNER.x, Math.min(INNER.x + INNER.w - 6, lb.x));
+        lb.vx = -lb.vx;
+      }
+      if (lb.y + 3 >= ZAP.boomY) {
+        const x = lb.x + 3;
+        this.explode(x, ZAP.boomY, 0.6);
+        if (this.zap) this.zap.burst(x, ZAP.boomY);
+        this.lostBall = null;
+      }
     }
     if (this.phaserFlash > 0) this.phaserFlash--;
     // Phaser-Animation: Hochfahren (Frames 0..3), danach Flackern jeden Tick
@@ -494,7 +498,7 @@ export class GameView {
       ctx.globalAlpha = 1;
     }
     if (this.beamFrame >= 0) {
-      const cx = ax(f.paddle.center) - 46, cy = 295 - 19;
+      const cx = ax(f.paddle.center) - 46, cy = 300 - 19;
       ctx.drawImage(I.paddleBeam, 0, this.beamFrame * 19, 93, 19, Math.round(cx * S), Math.round(cy * S), 93 * S, 19 * S);
     }
     // Baelle: Trail und Glow additiv darunter, Mega-Ball mit eigenem Sprite und rotem Rand-Glow
@@ -510,8 +514,10 @@ export class GameView {
         ctx.globalAlpha = 1;
       }
     }
-    if (this.lostBall) this.drawBall(ctx, S, this.lostBall.x, this.lostBall.y, false);
     ctx.restore();
+    // Elektro-Zone und verlorener Ball liegen unter dem Rahmen, reichen aber bis zur Bildunterkante
+    if (this.zap) this.zap.draw(ctx, S);
+    if (this.lostBall) this.drawBall(ctx, S, this.lostBall.x, this.lostBall.y, false);
     this.board.drawFrame(ctx);
 
     // Explosionen (auch ueber den Rohren)
@@ -638,7 +644,7 @@ export class GameView {
       const e = Math.min(1, this.exitAnim.t / EXITING_FRAMES);
       shiftX = this.exitAnim.side * e * e * 90;
     }
-    const y = 285;
+    const y = 290;
     const variant = session.laser ? 'laser' : p.type === PaddleType.CATCH ? 'catch' : 'normal';
     if (p.type === PaddleType.TWIN) {
       this.drawPaddleBody(ctx, S, ax(p.left) + shiftX, ax(p.left + 33), y, frame, variant);

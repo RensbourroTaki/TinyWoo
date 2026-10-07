@@ -9,16 +9,16 @@
 /** Regler. Zeiten in Frames (60/s), Laengen in Art-Pixeln. [a, b] = Zufallsbereich. */
 export const BGFX = {
   flowWaves: 2,              // Wellenzuege je Strang
-  flowSpeed: [0.25, 0.8],    // Tempo der Wellen
+  flowSpeed: [0.125, 0.4],   // Tempo der Wellen (halbiert, User 2026-10-07)
   flowLength: [20, 56],      // Abstand der Wellenberge
   flowSharp: 6,              // Schaerfe der Wellenberge (hoeher = kuerzere Pulse)
   flowWarp: 2.5,             // wie stark das Rauschen die Wellen verbiegt
   flowGain: 0.9,             // Helligkeit des Flusses
   noiseScale: 44,            // Groesse der Kaustik-Flecken
-  noiseSpeed: 0.008,         // Tempo des Rauschens
+  noiseSpeed: 0.004,         // Tempo des Rauschens
   noiseFloor: 0.2,           // Grundhelligkeit ausserhalb der Kaustik-Adern
-  sparkRate: 0.06,           // Wahrscheinlichkeit je Frame fuer einen neuen Funken
-  sparkSpeed: [1.5, 3.5],
+  sparkRate: 0.03,           // Wahrscheinlichkeit je Frame fuer einen neuen Funken
+  sparkSpeed: [0.75, 1.75],
   sparkLength: [10, 26],
   steps: 5,                  // Helligkeitsstufen
   white: 0.55,               // Weiss-Anteil im heissen Kern

@@ -41,6 +41,8 @@ export const ENEMY_W = 16, ENEMY_H = 19;   // Sprite 20x24 Art-Pixel / 1,25
 export const REGEN_FRAMES = 540;           // Doppelblau waechst nach 9 s nach
 export const MOVER_SLIDE = 24;             // Frames je Zelle des wandernden Goldsteins (50 Art-Pixel/s)
 
+export const PADDLE_DROP = 4;              // Schlaeger-Ebene 4 Logik-Pixel (= 5 Art-Pixel) tiefer als im ROM
+
 export const FIELD_LEFT = 0x10;
 export const FIELD_RIGHT = 0x10 + 16 * COLUMNS;   // 192 = erste Position rechts vom Raster
 export const FIELD_CENTER = (FIELD_LEFT + FIELD_RIGHT) >> 1;
@@ -56,6 +58,7 @@ export class GameSession {
     this.field.listener = this;
     this.field.difficulty = 1;
     this.field.solidGold = true;   // Gold ist auch fuer den Mega-Ball unzerstoerbar
+    this.field.paddleDrop = PADDLE_DROP;
 
     this.events = [];
     this.items = [];     // { key, x (Mitte), y16 (Unterkante in 1/16), age }
@@ -341,7 +344,7 @@ export class GameSession {
       it.age++;
       const y = it.y16 >> 4;
       const overPaddle = it.x + (ITEM_W >> 1) >= p.left && it.x - (ITEM_W >> 1) <= p.right + 3;
-      if (y < 16 && y >= 2 && overPaddle) {
+      if (y < 16 - PADDLE_DROP && y >= 2 - PADDLE_DROP && overPaddle) {
         this.items.splice(i, 1);
         this.addScore(1000);
         let key = it.key;
@@ -426,7 +429,7 @@ export class GameSession {
     if (this.shots.length + 2 > MAX_SHOTS + 1) return;
     const p = this.field.paddle;
     const xs = [p.left + 3, p.right - 3];
-    for (const x of xs) this.shots.push({ x: x & 0xFF, y: 16, age: 0 });
+    for (const x of xs) this.shots.push({ x: x & 0xFF, y: 16 - PADDLE_DROP, age: 0 });
     this.emit('shot', { count: xs.length });
   }
 
@@ -494,7 +497,7 @@ export class GameSession {
 
       // Schlaeger-Kontakt: Gegner zerplatzt
       const p = f.paddle;
-      if (en.y - (ENEMY_H >> 1) < 16 && en.x + (ENEMY_W >> 1) >= p.left && en.x - (ENEMY_W >> 1) <= p.right) {
+      if (en.y - (ENEMY_H >> 1) < 16 - PADDLE_DROP &&en.x + (ENEMY_W >> 1) >= p.left && en.x - (ENEMY_W >> 1) <= p.right) {
         this.killEnemy(i);
         continue;
       }

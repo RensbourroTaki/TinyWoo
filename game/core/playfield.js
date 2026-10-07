@@ -70,6 +70,7 @@ export class Playfield {
     this.pierceBall = 0;        // $E731: Durchschlag-Ball
     this.solidGold = false;     // eigenes Gameplay (nicht im ROM): Gold haelt auch dem Durchschlag-Ball stand, Ball prallt ab
     this.floorBounce = 0;       // eigenes Gameplay (nicht im ROM): ungleich 0 = Ball prallt unten ab statt verloren zu gehen (Deflector)
+    this.paddleDrop = 0;        // eigenes Gameplay (nicht im ROM): Schlaeger-Ebene (Start, Abprall, Verlust) um n Logik-Pixel tiefer
     this.minSpeed = 0;          // $E7E0: Mindest-Speed nach Deckenkontakt
     this.difficulty = 0;        // $E7E5: Abpraller-Tabelle 0..3
     this.specialMode = 0;       // $E5F7: Sondermodus (Baelle werden nachgefuellt, Tabelle 4)
@@ -112,7 +113,7 @@ export class Playfield {
   startRound(startSpeed, minSpeed) {
     for (let i = 0; i < MAX_BALLS; i++) this.balls[i].clear();
     const b = this.balls[0];
-    b.y = 0x10;
+    b.y = 0x10 - this.paddleDrop;
     b.x = this.paddle.center;
     b.direction = 0x02;
     b.stickTimer = 0xB4;
@@ -297,7 +298,7 @@ export class Playfield {
         if (L && L.onLaunch) L.onLaunch(index);
       } else {
         b.speed = 0;
-        if (b.y < 0x11) b.x = (b.x + this.paddle.delta) & 0xFF;
+        if (b.y < 0x11 - this.paddleDrop) b.x = (b.x + this.paddle.delta) & 0xFF;
       }
     }
 
@@ -466,10 +467,13 @@ export class Playfield {
   /** $5C6B: Schlaegerpruefung fuer einen abwaerts fliegenden Ball. */
   checkPaddle(index, b) {
     if (b.paddleLock) return;
-    if (b.y >= 0x10) return;
-    if (b.y < 0x08) {
+    const d = this.paddleDrop;
+    // mit paddleDrop kann Y unter 0 laufen und auf $Fx umbrechen: dann gilt der Ball als unten
+    const y = d !== 0 && b.y >= 0xF0 ? b.y - 0x100 : b.y;
+    if (y >= 0x10 - d) return;
+    if (y < 0x08 - d) {
       if (this.floorBounce !== 0) {
-        b.y = 0x08;
+        b.y = 0x08 - d;
         reflectHorizontal(b);
         if (this.listener && this.listener.onFloorBounce) this.listener.onFloorBounce(index);
         return;
@@ -526,7 +530,7 @@ export class Playfield {
     if (L && L.onPaddleHit) L.onPaddleHit(index, b.direction);
 
     if (normalHandler && this.paddle.type === PaddleType.CATCH) {
-      b.y = 0x10;
+      b.y = 0x10 - this.paddleDrop;
       b.stickTimer = 0x78;
       if (L && L.onCatch) L.onCatch(index);
       this.finishPaddleHit(b);
@@ -586,7 +590,7 @@ export class Playfield {
 
   /** $5E79: Ball verloren. Der Listener bekommt die letzte Position (fuer die Anzeige). */
   loseBall(index, b) {
-    const lastX = b.x, lastY = b.y;
+    const lastX = b.x, lastY = b.y >= 0xF0 ? b.y - 0x100 : b.y;   // umgebrochenes Y (paddleDrop) als negativ melden
     b.x = 0;
     b.y = 0;
     b.speed = 0;

@@ -4,8 +4,9 @@
 // Die Texte im Spiel benutzen die Drehschrift (SpinFont); die Hinweiszeile im Menue die Pixelschrift BoldPixels (PixelFont).
 import { loadAssets, roundBackground } from './render/assets.js';
 import { PixelFont, SpinFont } from './render/font.js';
-import { ART_H, ART_W, Board, boardState, flickerPhaser } from './render/board.js';
+import { ART_H, ART_W, Board, boardState, flickerPhaser, PHASER_ALPHA_MENU } from './render/board.js';
 import { GameView } from './render/view.js';
+import { ElectroZone } from './render/zap.js';
 import { SpinText } from './render/spintext.js';
 import { LogoFx } from './render/logo.js';
 import { GameSession, Phase } from './play/session.js';
@@ -81,6 +82,7 @@ export class DaiganoidApp {
     this.glow = [];             // Glow-Staerke je Zeile (Menue bzw. Optionen), blendet weich um
     this.session = null;
     this.view = null;
+    this.zap = new ElectroZone();   // Elektro-Zone unter dem Schlaeger, immer aktiv (Menue und Spiel)
     this.menuTexts = [];        // Drehschrift-Eintraege des aktuellen Bildschirms
     this.header = null;         // Ueberschrift (Drehschrift)
     this.pendingState = null;   // Zielzustand nach dem Ausfliegen der Eintraege
@@ -253,6 +255,7 @@ export class DaiganoidApp {
     this.lightTimer++;
     if (this.state === 'loading') return;
     this.board.update();
+    this.zap.update();
     const keys = this.input ? this.input.takeKeys() : [];
     const clicks = this.input ? this.input.takeClicks() : [];
     const fire = this.input ? this.input.takeFire() : false;
@@ -282,7 +285,7 @@ export class DaiganoidApp {
 
   idleLights() {
     for (let i = 0; i < 6; i++) this.bs.lights[i] = ((this.lightTimer >> 5) % 6) === i ? 1 : 0;
-    if (this.bs.phaserFrame >= 0) flickerPhaser(this.bs);
+    this.phaserIdle = true;   // Flackern laeuft in drawFront je Bild-Frame
     if (this.logo) this.logo.update();
   }
 
@@ -373,6 +376,7 @@ export class DaiganoidApp {
     this.audio.play('beep', 0.8, 1.2);
     const target = ['starting', 'highscores', 'options', 'credits'][this.menuIndex];
     if (target === 'options') this.optIndex = 0;
+    if (target === 'starting') this.bs.phaserFrame = -1;   // Phaser aus, im Spiel schaltet ihn nur das Deflector-Item ein
     this.leaveTo(target, this.menuIndex);
   }
 
@@ -449,7 +453,7 @@ export class DaiganoidApp {
   startGame(round = 0, variant = 0) {
     this.session = new GameSession((Date.now() & 0xFFFFFF) | 1);
     this.session.god = this.god;
-    this.view = new GameView(this.assets, this.fonts, this.board, this.audio);
+    this.view = new GameView(this.assets, this.fonts, this.board, this.audio, this.zap);
     this.view.bs = this.bs;
     this.view.zoom = this.menuZoom;
     this.session.startGame(round, variant);
@@ -605,9 +609,15 @@ export class DaiganoidApp {
     const spin = this.fonts.spin;
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, ART_W * S, ART_H * S);
+    if (this.phaserIdle && this.bs.phaserFrame >= 0) flickerPhaser(this.bs, false, PHASER_ALPHA_MENU);
     if (this.boardAlpha > 0) {
       ctx.globalAlpha = this.boardAlpha;
-      this.board.drawAll(ctx, this.bs);
+      // wie board.drawAll, aber mit der Elektro-Zone unter dem Rahmen (wie im Spiel)
+      this.board.drawBackground(ctx);
+      this.board.drawShadow(ctx, this.bs);
+      this.zap.draw(ctx, S, this.boardAlpha);
+      this.board.drawFrame(ctx);
+      this.board.drawDynamic(ctx, this.bs);
       ctx.globalAlpha = 1;
     }
     const showLogo = this.state === 'intro' || this.state === 'menu' || this.state === 'starting' || this.state === 'options';
