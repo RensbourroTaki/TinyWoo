@@ -346,7 +346,7 @@ function GameRow({ g, flip, onNav }) {
               <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Icon name="steam" brand size={36} /><span className="tw-heading" style={{ fontSize: 'var(--fs-h3)', lineHeight: 1.1 }}>{g.kicker[0]}</span></span>
               <span style={{ fontSize: 19, lineHeight: 1.5, fontWeight: 700 }}>{g.kicker[1]}</span>
             </div>
-          : <div style={{ flex: '1 1 380px', minWidth: 0, background: 'var(--grad-sun)', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '28px 32px', display: 'flex', alignItems: 'center', gap: 20, transform: `rotate(${-tilt * 0.8}deg)` }}>
+          : <div style={{ flex: '1 1 380px', minWidth: 0, background: 'var(--grad-sun)', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '28px 32px', display: 'flex', alignItems: 'center', gap: 20, transform: 'translateY(-100px) rotate(-20deg)' }}>
               <Icon name="steam" brand size={48} />
               <span style={{ fontSize: 22, lineHeight: 1.45, fontWeight: 700 }}>{g.kicker}</span>
             </div>)}
