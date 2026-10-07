@@ -168,7 +168,6 @@ window.TW_INHALT = {
         'Some UI icons, so I can spend my pixel time where it matters',
       ] },
       { p: "Everything else I make myself, or it's a purchased asset I modify to fit the game visually and technically. Sometimes it's the work of an artist I simply love, because it fits better than anything I would have made." },
-      { schluss: 'I hope you have fun with them.' },
     ],
     footer: '© 2026 Tiny Woo · Made by one guy with a sword',
   },
