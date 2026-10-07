@@ -76,25 +76,35 @@ window.TW_INHALT = {
       tagline: 'Yes, it\'s Trump. Yes, the chickens have guns.',
       text: 'Catch rockets, stack coins, hire the Tiger Claws and climb the highscore. Chaotic jungle-base arcade action with a very short fuse.',
       // Games-Seite: tagline = Unterzeile, beschreibung = Absaetze unter dem Titel (\n = neue Zeile),
-      // kicker = gelber Steam-Kasten (Text, oder [Titel, Text]), nachsatz = Absatz darunter. (text = kurz, fuer die Startseite)
-      // Optional (derzeit aus): cast = Figurenkarten [Name, Text], ablauf = nummerierte Kaertchen, features = Liste, hinweis = kleine Zeile.
+      // featuresIntro = Satz ueber den Listen, featuresTitel + features = erste Liste (Aufgaben), zwischenzeile = fetter Satz danach,
+      // features2Titel + features2 = zweite Liste (Features), featuresSchluss = gelbe Schlusszeile.
+      // kicker = gelber Steam-Kasten rechts (Text, oder [Titel, Text]), nachsatz = Absatz darunter ('' / weglassen = aus). (text = kurz, fuer die Startseite)
+      // Optional (derzeit aus): cast = Figurenkarten [Name, Text], ablauf = nummerierte Kaertchen, hinweis = kleine Zeile.
       beschreibung: [
         'Shoot Trump higher and higher with rockets, and shoot balloons to extend your play time. Earn the respect of the Tiger Claws, three mercenary birds who help you shoot down balloons, UFOs and snails. And invite Putin: he gives you perks, but you have to impress him, or he leaves.',
       ],
       featuresIntro: 'Rocket Trump is a small but nasty gameplay loop where everything comes down to your rocket skills, and you compete worldwide with other Steam players.',
-      featuresTitel: 'What\'s in the box',
+      featuresTitel: 'Your job',
       features: [
-        'Unlimited rockets to fire',
         'Launch Trump as high as you can for extra bonuses',
         'Shoot balloons to extend your play time',
-        'Grab mortars for triple shots',
+        'Shoot UFOs and grab mortars for triple shots',
         'Hit snails to fire up the balloon cannon',
         'Earn the respect of the Tiger Claws gang',
         'Invite Putin for perks, and impress him so he stays',
       ],
+      zwischenzeile: 'Now try to manage all of that at once!',
+      features2Titel: 'Features',
+      features2: [
+        'Unlimited rockets',
+        'Worldwide highscore board with Steam names and avatars',
+        'Top 20 ticker in the main menu: everyone sees the best players',
+        'Rocket and mercenary upgrades',
+        'Pet shop',
+        'Stats screen with your total progress chart, accuracy and best combos',
+      ],
       featuresSchluss: 'Welcome to the crazy rocket campus!',
-      kicker: 'Compete worldwide with every Steam player on the in-game highscore list, with Steam names and avatars.',
-      nachsatz: 'Upgrade your rockets and the mercenaries, lower your rocket prices and buy pets who watch your next shot!',
+      kicker: 'Every Steam player. One board. Top 20 in the main menu. Get your name up there.',
       tags: ['PC', 'Arcade', 'Singleplayer'],
       status: 'In dev',
       link: '#',
