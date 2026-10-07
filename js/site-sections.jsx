@@ -204,11 +204,17 @@ function GameRow({ g, flip, onNav }) {
           {g.featuresTitel && <Kicker>{g.featuresTitel}</Kicker>}
           <ul style={{ margin: 0, paddingLeft: 24, fontSize: 18, lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: 8 }}>{g.features.map(t => <li key={t}>{t}</li>)}</ul>
         </div>}
-        {g.kicker && <div style={{ flex: '1 1 380px', minWidth: 0, background: 'var(--grad-sun)', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: 14, transform: `rotate(${-tilt * 1.3}deg)` }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Icon name="steam" brand size={36} /><span className="tw-heading" style={{ fontSize: 'var(--fs-h3)', lineHeight: 1.1 }}>{g.kicker[0]}</span></span>
-          <span style={{ fontSize: 19, lineHeight: 1.5, fontWeight: 700 }}>{g.kicker[1]}</span>
-        </div>}
+        {g.kicker && (Array.isArray(g.kicker)
+          ? <div style={{ flex: '1 1 380px', minWidth: 0, background: 'var(--grad-sun)', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: 14, transform: `rotate(${-tilt * 1.3}deg)` }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Icon name="steam" brand size={36} /><span className="tw-heading" style={{ fontSize: 'var(--fs-h3)', lineHeight: 1.1 }}>{g.kicker[0]}</span></span>
+              <span style={{ fontSize: 19, lineHeight: 1.5, fontWeight: 700 }}>{g.kicker[1]}</span>
+            </div>
+          : <div style={{ flex: '1 1 380px', minWidth: 0, background: 'var(--grad-sun)', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '28px 32px', display: 'flex', alignItems: 'center', gap: 20, transform: `rotate(${-tilt * 0.8}deg)` }}>
+              <Icon name="steam" brand size={48} />
+              <span style={{ fontSize: 22, lineHeight: 1.45, fontWeight: 700 }}>{g.kicker}</span>
+            </div>)}
       </div>}
+      {g.nachsatz && <p style={{ margin: 0, fontSize: 20, lineHeight: 1.55 }}>{g.nachsatz}</p>}
       {g.hinweis && <p className="tw-pixel" style={{ margin: 0, fontSize: 12, color: 'var(--gray-400)', textAlign: 'center' }}>{g.hinweis}</p>}
     </SlantSection>
   );

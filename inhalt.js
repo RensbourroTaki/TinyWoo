@@ -75,35 +75,14 @@ window.TW_INHALT = {
       image: 'assets/games/rocket-trump-menu.jpg',
       tagline: 'Yes, it\'s Trump. Yes, the chickens have guns.',
       text: 'Catch rockets, stack coins, hire the Tiger Claws and climb the highscore. Chaotic jungle-base arcade action with a very short fuse.',
-      // Games-Seite: tagline = Unterzeile, beschreibung = Absaetze (\n = neue Zeile), cast = Figurenkarten [Name, Text],
-      // ablauf = nummerierte Kaertchen (Text oder [Titel, Text]), kicker = gelber Kasten [Titel, Text],
-      // featuresTitel + features = Liste, hinweis = kleine Zeile unten. (text = kurz, fuer die Startseite)
+      // Games-Seite: tagline = Unterzeile, beschreibung = Absaetze unter dem Titel (\n = neue Zeile),
+      // kicker = gelber Steam-Kasten (Text, oder [Titel, Text]), nachsatz = Absatz darunter. (text = kurz, fuer die Startseite)
+      // Optional (derzeit aus): cast = Figurenkarten [Name, Text], ablauf = nummerierte Kaertchen, features = Liste, hinweis = kleine Zeile.
       beschreibung: [
-        'Trump is lying in the jungle.\nYou have a rocket.\nYou know what to do.',
-        'Hit him again before he lands. And again. He does a backflip every time. Nobody knows why.',
+        'Shoot Trump higher and higher with rockets. Earn the respect of the Tiger Claws, three mercenary birds who help you shoot down balloons, UFOs and snails. And invite Putin: he gives you perks, but you have to impress him, or he leaves.',
       ],
-      castTitel: 'The cast',
-      cast: [
-        ['Trump',                  'Has a shield. Has no patience. Can fly, if you help.'],
-        ['The Tiger Claws',        'Three chickens. Armed. They don\'t like you. Yet.\nEarn their respect and they shoot stuff for you. One shoots UFOs. One shoots balloons. One shoots the snail.\nDon\'t ask about the snail.'],
-        ['Putin',                  'Comes by helicopter. Watches you. Judges you.\nGood game? He sleeps over. In a tent.\nBad game? Bye.'],
-        ['The chicken on the left', 'Sits there all game. Then a UFO takes him. Every time.'],
-      ],
-      ablaufTitel: 'How to play',
-      ablauf: [
-        'Shoot balloons. Balloons are time.',
-        'Shoot the shield. Three times. Hurry, he\'s impatient.',
-        'Knock him over.',
-        'Throw him up. Higher is more points. Way up top: +30 seconds. Good luck.',
-      ],
-      kicker: ['Every Steam player. One list. Your face on it.', 'Who\'s the best Rocketeer on Steam? Probably not you. Prove it.'],
-      featuresTitel: 'Also',
-      features: [
-        'Shoot a UFO, get a mortar. Three rockets at once. Chaos.',
-        'Shoot the snail, get more balloons.',
-        'Buy bigger rockets. Buy cheaper rockets. Buy everything.',
-      ],
-      hinweis: 'A meme game. No politics. Nobody gets hurt. Except balloons.',
+      kicker: 'Compete worldwide with every Steam player on the in-game highscore list, with Steam names and avatars.',
+      nachsatz: 'Upgrade your rockets and the mercenaries, lower your rocket prices and buy pets who watch your next shot!',
       tags: ['PC', 'Arcade', 'Singleplayer'],
       status: 'In dev',
       link: '#',
