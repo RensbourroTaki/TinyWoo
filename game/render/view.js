@@ -106,8 +106,8 @@ export class GameView {
           if (e.newRound) this.startIntro(session, true); else this.respawn();
           break;
         case 'ready':
-          this.say(`LEVEL ${String(session.round + 1).padStart(2, '0')}`, 30, 128);
-          this.queue = [{ at: 150, text: levelName(session.round, session.variant), hold: 60 }];
+          this.say(`LEVEL ${String(session.round + 1).padStart(2, '0')}`, 70, 114);
+          this.queue = [{ at: 18, text: levelName(session.round, session.variant), hold: 70, y: 142 }];
           this.audio.play('beep');
           break;
         case 'go': break;   // Phaser bleibt im Spiel aus, nur das Deflector-Item schaltet ihn ein
@@ -301,8 +301,7 @@ export class GameView {
       const elapsed = READY_FRAMES - session.phaseTimer;
       if (elapsed >= this.queue[0].at) {
         const q = this.queue.shift();
-        for (const a of this.announces) a.stop();
-        this.say(q.text, q.hold, 128);
+        this.say(q.text, q.hold, q.y);
         this.audio.play('beep', 0.7, 1.1);
       }
     }

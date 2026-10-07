@@ -24,7 +24,7 @@ export const Phase = Object.freeze({
 
 export const START_LIVES = 3;
 export const INTRO_FRAMES = 110;
-export const READY_FRAMES = 330;   // LEVEL NN / Name in der Drehschrift mit langsamem Ausdrehen
+export const READY_FRAMES = 200;   // LEVEL NN / Name in der Drehschrift mit langsamem Ausdrehen
 export const BALL_LOST_FRAMES = 78;   // 1,3 s nach dem Ballverlust, dann Schlaeger + Ball direkt (ohne Intro/Ansage)
 export const EXITING_FRAMES = 80;
 export const MEGA_FRAMES = 600;
