@@ -34,10 +34,17 @@ const MENU_Y = [116, 142, 168, 194];   // Zeilen fuer die Menueschrift (3/4 Groe
 const GLOW = { alpha: 0.6, fade: 0.2 };
 /** Eigener Mauszeiger (menu/cursor.png): Pixelgroesse = Spielpixel; F8/F9 (nur DEV_KEYS) aendern sie um 1 Geraete-Pixel. */
 const CURSOR = { minus: 'F8', plus: 'F9' };
-/** Auto-Pause: so viele Frames darf die Maus waehrend des Spiels ausserhalb des Spiels sein. */
-const MOUSE_AWAY_FRAMES = 45;
 /** Hinweiszeile unter dem Menue (Pixelschrift): Text, Art-y, Blinktakt in Frames (an + aus), Font-Pixel S - shrink. */
-const HINT = { text: 'No Coins Needed!', y: 240, period: 60, shrink: 1 };const CREDITS = ['DAIGANOID', 'A TINY WOO GAME', '', 'GRAPHICS SOUND', 'AND DESIGN', 'TINY WOO', '', 'BALL PHYSICS FROM', 'ARKANOID 2 1987', '', 'PRESS FIRE'];
+const HINT = { text: 'No Coins Needed!', y: 240, period: 60, shrink: 1 };
+/** Credits in der Pixelschrift (wie die Hinweiszeile): { h } = Ueberschrift in CREDITS_Y.color, '' = kleiner Abstand. */
+const CREDITS = [
+  { h: 'DAIGANOID' }, 'A Tiny Woo Game', '',
+  { h: 'Graphics, Sound FX and Design' }, 'Tiny Woo', '',
+  { h: 'Music' }, 'Out There by yd', 'Party Sector by Joth', '',
+  { h: 'Ball Physics from' }, 'Arkanoid 2 (1987)',
+];
+/** Credits-Layout in Art-Pixeln: erste Zeile, Zeilenabstand, Abstand fuer '', Ueberschriftfarbe; PRESS FIRE wie im Highscore. */
+const CREDITS_Y = { top: 50, line: 16, gap: 10, color: '#FFD21F' };
 
 export function loadScores() {
   try { const v = JSON.parse(localStorage.getItem(SCORES_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
@@ -51,14 +58,19 @@ export function saveScore(entry) {
 
 function loadOptions() {
   // mlock (frueher lock): Pointer-Lock ist jetzt standardmaessig aus, alte gespeicherte Werte gelten nicht mehr
-  const d = { sfx: true, music: true, scanlines: true, sens: 5, mlock: false, muted: false };
-  try { return Object.assign(d, JSON.parse(localStorage.getItem(OPTIONS_KEY) || '{}')); } catch (e) { return d; }
+  // music: Lautstaerke 0 (OFF) .. 10; frueher ON/OFF gespeichert -> true = 7, false = 0
+  const d = { sfx: true, music: 7, scanlines: true, sens: 5, mlock: false, muted: false };
+  let o = d;
+  try { o = Object.assign(d, JSON.parse(localStorage.getItem(OPTIONS_KEY) || '{}')); } catch (e) { /* Standard */ }
+  if (typeof o.music !== 'number') o.music = o.music === false ? 0 : 7;
+  o.music = Math.max(0, Math.min(10, Math.round(o.music)));
+  return o;
 }
 
 export class DaiganoidApp {
   /**
    * @param canvas HTMLCanvasElement
-   * @param opts { assetBase, musicMenu, musicGame, teaser, scores, hooks: { onHud, onGameOver, onState, onClick } }
+   * @param opts { assetBase, musicMenu, musicHighscore, musicGame, teaser, scores, hooks: { onHud, onGameOver, onState, onClick } }
    *   scores: optionale Funktion, die die anzuzeigende Highscore-Liste liefert (z. B. die gemeinsame Liste
    *   vom Server); ohne sie wird die lokale Liste aus localStorage benutzt.
    */
@@ -95,21 +107,23 @@ export class DaiganoidApp {
     this.god = false;           // God Mode (DEV_KEYS), bleibt ueber Level-Wechsel erhalten
     this.godKeyHeld = false;
     this.cursorStep = 0;        // Zeigergroesse relativ zu S (F8/F9)
-    this.mouseInGame = false;   // Maus war seit Spielstart ueber dem Spiel (erst dann gibt es Auto-Pause)
     this.scores = typeof opts.scores === 'function' ? opts.scores : loadScores;
     this.hi = 0;
     this.syncHi();
     this.scanPattern = null;
     this.logoY = -80;
     this.menuZoom = 0.75;       // Menueschrift: (S - 1) Geraetepixel je Font-Pixel, mindestens 1
-    this.onVisibility = () => { if (document.hidden && this.state === 'game') this.pause(true); };
+    this.onVisibility = () => {
+      if (this.audio) this.audio.setHidden(document.hidden);
+      if (document.hidden && this.state === 'game') this.pause(true);
+    };
   }
 
   async init() {
     const base = this.opts.assetBase || 'assets/daiganoid/';
     this.audio = new GameAudio(base);
     this.audio.sfxOn = this.options.sfx;
-    this.audio.musicOn = this.options.music;
+    this.audio.musicLevel = this.options.music;
     this.audio.setMuted(this.options.muted);
     this.assets = await loadAssets(base, (p) => { this.progress = p; });
     this.fonts = {
@@ -205,9 +219,11 @@ export class DaiganoidApp {
     if (s === 'options') { this.logoY = 24; this.enterOptions(); }
     if (s === 'highscores') this.enterList('HIGHSCORE');
     if (s === 'credits') this.enterList('CREDITS');
-    if (s === 'menu' || s === 'intro') this.audio.playMusic(this.opts.musicMenu || '');
-    if (s === 'game') this.audio.playMusic(this.opts.musicGame || '');
-    if (s === 'gameover') this.audio.playMusic(this.opts.musicMenu || '');
+    // Musik: Menue-Track in Intro/Menue/Optionen/Credits, eigener Track im Highscore (ueberblendet).
+    // START GAME blendet aus (chooseMenu); im Spiel und bei Game Over Stille, falls kein Spiel-Track gesetzt ist.
+    if (['intro', 'menu', 'options', 'credits'].includes(s)) this.audio.playMusic(this.opts.musicMenu || '');
+    if (s === 'highscores') this.audio.playMusic(this.opts.musicHighscore || this.opts.musicMenu || '');
+    if (s === 'game' && this.opts.musicGame) this.audio.playMusic(this.opts.musicGame);
   }
 
   /** Drehschrift-Eintrag, der mit Verzoegerung einfliegt und bis zum stop() stehen bleibt. */
@@ -384,7 +400,10 @@ export class DaiganoidApp {
     this.audio.play('beep', 0.8, 1.2);
     const target = ['starting', 'highscores', 'options', 'credits'][this.menuIndex];
     if (target === 'options') this.optIndex = 0;
-    if (target === 'starting') this.bs.phaserFrame = -1;   // Phaser aus, im Spiel schaltet ihn nur das Deflector-Item ein
+    if (target === 'starting') {
+      this.bs.phaserFrame = -1;   // Phaser aus, im Spiel schaltet ihn nur das Deflector-Item ein
+      this.audio.fadeOutMusic();  // Menue-Musik blendet waehrend der Startsequenz aus
+    }
     this.leaveTo(target, this.menuIndex);
   }
 
@@ -392,7 +411,7 @@ export class DaiganoidApp {
     const o = this.options;
     return [
       ['SOUND FX', o.sfx ? 'ON' : 'OFF'],
-      ['MUSIC', o.music ? 'ON' : 'OFF'],
+      ['MUSIC', o.music ? String(o.music) : 'OFF'],
       ['SCANLINES', o.scanlines ? 'ON' : 'OFF'],
       ['MOUSE SPEED', String(o.sens)],
       ['MOUSE LOCK', o.mlock ? 'ON' : 'OFF'],
@@ -423,7 +442,10 @@ export class DaiganoidApp {
     const o = this.options;
     switch (this.optIndex) {
       case 0: o.sfx = !o.sfx; this.audio.sfxOn = o.sfx; break;
-      case 1: o.music = !o.music; this.audio.setMusicOn(o.music); break;
+      case 1:   // Lautstaerke OFF, 1..10; ueber 10 hinaus (Klick/Enter) wieder OFF, damit auch die Maus leiser stellen kann
+        o.music = o.music + change > 10 ? 0 : Math.max(0, o.music + change);
+        this.audio.setMusicLevel(o.music);
+        break;
       case 2: o.scanlines = !o.scanlines; break;
       case 3: o.sens = Math.max(1, Math.min(10, o.sens + change)); this.input.sensitivity = 0.4 + o.sens * 0.16; break;
       case 4: o.mlock = !o.mlock; this.input.wantLock = o.mlock; if (!o.mlock) this.input.releaseLock(); break;
@@ -468,7 +490,6 @@ export class DaiganoidApp {
     this.applyRoundBackground();
     this.view.handleEvents(this.session);
     this.paused = false;
-    this.mouseInGame = false;
     this.setState('game');
     this.pushHud();
   }
@@ -487,14 +508,6 @@ export class DaiganoidApp {
     const inp = this.input;
     if (this.paused) {
       if (fire && (inp.pointerInside || inp.touchActive)) this.pause(false);   // Klick ins Spiel spielt weiter
-      return;
-    }
-    // Maus verlaesst waehrend des Spiels das Spielfeld: nach kurzer Zeit automatisch Pause (Zeiger sichtbar)
-    if (inp.pointerInside || inp.locked) { this.mouseInGame = true; inp.outsideFrames = 0; }
-    else if (this.mouseInGame && !inp.touchActive && ++inp.outsideFrames > MOUSE_AWAY_FRAMES) {
-      this.mouseInGame = false;
-      inp.outsideFrames = 0;
-      this.pause(true);
       return;
     }
     const delta = this.input.paddleDelta(s.field.paddle.center);
@@ -679,7 +692,15 @@ export class DaiganoidApp {
       });
       if (blink) spin.drawText(ctx, S, 'PRESS FIRE', 120, 258, 'center', z);
     } else if (this.state === 'credits') {
-      CREDITS.forEach((line, i) => { if (line && (i < CREDITS.length - 1 || blink)) spin.drawText(ctx, S, line, 120, 46 + i * 20, 'center', z); });
+      // Pixelschrift, ein Geraetepixel kleiner wie die Hinweiszeile im Menue (HINT.shrink)
+      let y = CREDITS_Y.top;
+      for (const line of CREDITS) {
+        if (!line) { y += CREDITS_Y.gap; continue; }
+        if (line.h) this.fonts.bold.drawText(ctx, S, line.h, 120, y, 'center', CREDITS_Y.color, HINT.shrink);
+        else this.fonts.bold.drawText(ctx, S, line, 120, y, 'center', null, HINT.shrink);
+        y += CREDITS_Y.line;
+      }
+      if (blink) spin.drawText(ctx, S, 'PRESS FIRE', 120, 258, 'center', z);
     }
   }
 

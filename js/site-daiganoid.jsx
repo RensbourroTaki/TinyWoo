@@ -49,6 +49,7 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
       return m.mountDaiganoid(host.current, {
         assetBase: 'assets/daiganoid/',
         musicMenu: D.musikMenue || '',
+        musicHighscore: D.musikHighscore || '',
         musicGame: D.musikSpiel || '',
         maxScale: 4,
         fullscreenElement: wrap.current,

@@ -61,7 +61,9 @@ Auswahl-Glow im Menü/Optionen: `GLOW` in `app.js`. Tempo-Kurve: `startSpeed`/`m
 Alle Bilder sind PNG mit Transparenz, Animationen als vertikale Streifen (Frame unter Frame). Maße stehen in
 `render/assets.js`. Optionale Bilder (werden benutzt, sobald sie da sind): `assets/daiganoid/menu/logo.png`
 (237×65), `player/paddle-laser.png`, `player/paddle-catch.png` (je 2 Frames 34×9 wie `paddle-thrust.png`),
-`player/laser-shot.png`. Musik: OGG nach `assets/daiganoid/music/`, Pfade in `inhalt.js` unter `daiganoid`.
+`player/laser-shot.png`. Musik: OGG nach `assets/daiganoid/music/`, Pfade in `inhalt.js` unter `daiganoid` (Menü: „Out There“ von yd,
+Highscore: „Party Sector“ von Joth, beide CC0 von OpenGameArt, in den Credits genannt). Blenden und Pegel in
+`audio.js` (`MUSIC`), Option MUSIC = Lautstärke OFF/1–10.
 
 ## Hintergründe
 

@@ -110,13 +110,14 @@ window.TW_INHALT = {
 
   /* ---------- DAIGANOID (Arcade-Seite) ----------
      Das Spiel selbst liegt in game/ und assets/daiganoid/ (siehe ANLEITUNG, Punkt 7).
-     musikMenue / musikSpiel: OGG nach assets/daiganoid/music/ hochladen und hier eintragen ('' = keine Musik).
+     musikMenue / musikHighscore / musikSpiel: OGG nach assets/daiganoid/music/ hochladen und hier eintragen ('' = keine Musik).
      apiUrl: Adresse des Highscore-Servers (Cloudflare Worker, ANLEITUNG Punkt 8). '' = nur lokale Liste im Browser.
      header: Kopf der Arcade-Seite. story: linke Spalte, ein Block = Zwischenueberschrift + Absatz (titel weglassen = nur Absatz). */
   daiganoid: {
     titel: 'Daiganoid',
     text: 'A fan-made Arkanoid: 32 rounds, two exits per round, lasers, mega balls and a cube that wants your ball. Pixel-exact ball physics rebuilt from the 1987 arcade original.',
-    musikMenue: '',          // z.B. 'assets/daiganoid/music/menu.ogg'
+    musikMenue: 'assets/daiganoid/music/OutThere.ogg',        // "Out There" von yd (OpenGameArt, CC0)
+    musikHighscore: 'assets/daiganoid/music/PartySector.ogg', // "Party Sector" von Joth (OpenGameArt, CC0)
     musikSpiel: '',          // z.B. 'assets/daiganoid/music/game.ogg'
 
     apiUrl: 'https://daiganoid-api.tinywoo.workers.dev',   // '' = aus (nur lokale Liste)

@@ -110,7 +110,8 @@ Alles in inhalt.js ist kommentiert. Beispiele stehen direkt dabei.
    Stellen Strom im Farbton des Hintergrunds. Regler: game/render/bgfx.js (BGFX).
 
    Musik: OGG nach assets/daiganoid/music/ hochladen, Pfade in inhalt.js unter "daiganoid" eintragen.
-   Spielt der Site-Player gerade, bleibt die Spielmusik aus (Optionen im Spiel: MUSIC ON).
+   Menü: "Out There" von yd, Highscore: "Party Sector" von Joth (beide OpenGameArt, CC0, in den Credits genannt).
+   Lautstärke im Spiel: Optionen -> MUSIC (OFF, 1-10).
 
    Level: game/play/levels.js, 32 Runden mit je zwei Varianten (linkes/rechtes Portal),
    Textzeilen mit 11 Zeichen, Legende steht oben in der Datei.

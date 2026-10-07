@@ -21,7 +21,6 @@ export class GameInput {
     this.clicks = [];                  // Klicks/Taps in Art-Koordinaten seit dem letzten Frame
     this.pointerArt = null;            // Zeigerposition in Art-Koordinaten, nur solange die Maus ueber dem Spiel ist
     this.pointerInside = false;        // Maus (nicht Touch) steht ueber dem Canvas
-    this.outsideFrames = 0;            // Frames, die die Maus schon ausserhalb des Canvas ist (Auto-Pause)
     this.keyVel = 0;
     this.arrowPaddle = true;           // Pfeil links/rechts steuern den Schlaeger (aus = nur A/D, z. B. Test-Tasten)
     this.locked = false;
