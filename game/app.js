@@ -1,9 +1,9 @@
 // Zustandsmaschine des Spiels: Laden -> Intro (Logo, Board, Lichter, Menue) -> Menue / Optionen /
 // Highscore / Credits -> Spiel -> Game Over. Zeichnet auf ein Canvas mit Geraete-Skalierung S
 // (240x334 Art-Pixel, 1 Art-Pixel = S Geraete-Pixel, Scanlines jede S-te Zeile).
-// Alle Texte im Spiel benutzen die Drehschrift (SpinFont); die Konsolenschrift bleibt geladen, wird aber nicht benutzt.
+// Die Texte im Spiel benutzen die Drehschrift (SpinFont); die Hinweiszeile im Menue die Pixelschrift BoldPixels (PixelFont).
 import { loadAssets, roundBackground } from './render/assets.js';
-import { ConsoleFont, SpinFont } from './render/font.js';
+import { PixelFont, SpinFont } from './render/font.js';
 import { ART_H, ART_W, Board, boardState, flickerPhaser } from './render/board.js';
 import { GameView } from './render/view.js';
 import { SpinText } from './render/spintext.js';
@@ -25,6 +25,10 @@ export const DEV_KEYS = true;
 const DEV_POS_MIN = 1 - ROUNDS, DEV_POS_MAX = ROUNDS;
 const MENU = ['START GAME', 'HIGHSCORE', 'OPTIONS', 'CREDITS'];
 const MENU_Y = [116, 142, 168, 194];   // Zeilen fuer die Menueschrift (3/4 Groesse bei 4x)
+/** Auswahl-Glow ueber dem gewaehlten Eintrag (additiv): Farbe, Blur in Art-Pixeln, Staerke, Puls. */
+const GLOW = { color: '255,190,90', blur: 5, alpha: 0.4, pulse: 0.35, speed: 0.08, fade: 0.2 };
+/** Hinweiszeile unter dem Menue (Pixelschrift): Text, Art-y, Blinktakt in Frames (an + aus), Font-Pixel S - shrink. */
+const HINT = { text: 'FIRE CLICK OR SPACE', y: 240, period: 60, shrink: 1 };
 const CREDITS = ['DAIGANOID', 'A TINY WOO GAME', '', 'GRAPHICS SOUND', 'AND DESIGN', 'TINY WOO', '', 'BALL PHYSICS FROM', 'ARKANOID 2 1987', '', 'PRESS FIRE'];
 
 export function loadScores() {
@@ -66,6 +70,7 @@ export class DaiganoidApp {
     this.options = loadOptions();
     this.menuIndex = 0;
     this.optIndex = 0;
+    this.glow = [];             // Glow-Staerke je Zeile (Menue bzw. Optionen), blendet weich um
     this.session = null;
     this.view = null;
     this.menuTexts = [];        // Drehschrift-Eintraege des aktuellen Bildschirms
@@ -96,7 +101,7 @@ export class DaiganoidApp {
     this.assets = await loadAssets(base, (p) => { this.progress = p; });
     this.fonts = {
       spin: new SpinFont(this.assets.img.fontSpin, this.assets.fonts.spin),
-      console: new ConsoleFont(this.assets.img.fontConsole, this.assets.fonts.console),
+      bold: new PixelFont(this.assets.img.fontBold, this.assets.fonts.bold),
     };
     this.board = new Board(this.assets);
     this.board.build(this.S, 0);
@@ -173,6 +178,7 @@ export class DaiganoidApp {
       this.board.build(this.S, 0);
       this.logoY = -80;
     }
+    if (s === 'menu' || s === 'options') this.glow = [];
     if (s === 'menu') { this.logoY = 24; this.syncHi(); this.enterMenu(); }
     if (s === 'options') { this.logoY = 24; this.enterOptions(); }
     if (s === 'highscores') this.enterList('HIGHSCORE');
@@ -303,9 +309,33 @@ export class DaiganoidApp {
     }
   }
 
+  /** Glow-Staerken weich zur gewaehlten Zeile ueberblenden. */
+  updateGlow(count, index) {
+    for (let i = 0; i < count; i++) {
+      const g = this.glow[i] || 0;
+      this.glow[i] = g + ((i === index ? 1 : 0) - g) * GLOW.fade;
+    }
+  }
+
+  /** draw() noch einmal additiv mit weichem Schein zeichnen; k = Staerke 0..1. */
+  drawGlow(ctx, S, k, draw) {
+    if (k < 0.02) return;
+    const p = 1 - GLOW.pulse + GLOW.pulse * Math.sin(this.lightTimer * GLOW.speed);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = `rgba(${GLOW.color},1)`;
+    ctx.globalAlpha = GLOW.alpha * k * p;
+    ctx.shadowBlur = GLOW.blur * S * (0.8 + 0.4 * p);
+    draw();
+    ctx.shadowBlur = GLOW.blur * S * 0.35;
+    draw();
+    ctx.restore();
+  }
+
   tickMenu(keys, clicks) {
     this.idleLights();
     this.updateTexts();
+    this.updateGlow(MENU.length, this.pendingState ? -1 : this.menuIndex);
     if (this.pendingState) return;
     const hover = this.input.pointerArt;
     const rowAt = (y) => { for (let i = 0; i < MENU.length; i++) if (y >= MENU_Y[i] - 4 && y < MENU_Y[i] + 23) return i; return -1; };
@@ -339,8 +369,9 @@ export class DaiganoidApp {
   tickOptions(keys, clicks) {
     this.idleLights();
     this.updateTexts();
-    if (this.pendingState) return;
     const rows = this.optionRows();
+    this.updateGlow(rows.length, this.pendingState ? -1 : this.optIndex);
+    if (this.pendingState) return;
     const rowY = (i) => 136 + i * 22;
     const rowAt = (y) => { for (let i = 0; i < rows.length; i++) if (y >= rowY(i) - 2 && y < rowY(i) + 20) return i; return -1; };
     const hover = this.input.pointerArt;
@@ -542,40 +573,33 @@ export class DaiganoidApp {
     for (const st of this.menuTexts) st.draw(ctx, S);
 
     if (this.state === 'intro' || this.state === 'menu' || this.state === 'starting') {
-      if (this.state === 'menu' && !this.pendingState) {
-        // Cursor: das cyanfarbene Symbol der Drehschrift links und rechts vom gewaehlten Eintrag
-        const st = this.menuTexts[this.menuIndex];
-        if (st && st.settled) {
-          const w = spin.measure(MENU[this.menuIndex]) * z;
-          spin.drawGlyph(ctx, S, '>', spin.front, 120 - w / 2 - 14 * z, MENU_Y[this.menuIndex], z);
-          ctx.save(); ctx.translate((120 + w / 2 + 14 * z) * S, 0); ctx.scale(-1, 1);
-          spin.drawGlyph(ctx, S, '>', spin.front, 0, MENU_Y[this.menuIndex], z);
-          ctx.restore();
-        }
-      }
-      if (this.menuAlpha > 0 && this.state === 'menu') {
+      // Auswahl: additiver Glow ueber dem gewaehlten Eintrag (blendet beim Umschalten weich um)
+      if (this.state === 'menu') this.menuTexts.forEach((st, i) => this.drawGlow(ctx, S, this.glow[i] || 0, () => st.draw(ctx, S)));
+      // Hinweiszeile in der Pixelschrift, blinkt ab dem Erscheinen
+      if (this.menuAlpha > 0 && this.state === 'menu' && this.t % HINT.period < HINT.period / 2) {
         ctx.globalAlpha = this.menuAlpha;
-        spin.drawText(ctx, S, 'FIRE CLICK OR SPACE', 120, 236, 'center', z);
-        spin.drawText(ctx, S, `HI ${String(this.hi).padStart(7, '0')}`, 120, 262, 'center', z);
+        this.fonts.bold.drawText(ctx, S, HINT.text, 120, HINT.y, 'center', null, HINT.shrink);
         ctx.globalAlpha = 1;
       }
     } else if (this.state === 'options') {
       const rows = this.optionRows();
       rows.forEach((r, i) => {
         const y = 136 + i * 22;
-        const sel = i === this.optIndex;
         let frame = spin.front;
         if (this.valueSpin && this.valueSpin.row === i) {
           this.valueSpin.t++;
           if (this.valueSpin.t >= spin.frames * 2) this.valueSpin = null; else frame = spin.front + (this.valueSpin.t >> 1);
         }
-        if (r[1]) {
-          spin.drawText(ctx, S, r[0], 24, y, 'left', z);
-          spin.drawText(ctx, S, r[1], 216, y, 'right', z, frame);
-        } else {
-          spin.drawText(ctx, S, r[0], 120, y, 'center', z);
-        }
-        if (sel) spin.drawGlyph(ctx, S, '>', spin.front, 10, y, z);
+        const drawRow = () => {
+          if (r[1]) {
+            spin.drawText(ctx, S, r[0], 24, y, 'left', z);
+            spin.drawText(ctx, S, r[1], 216, y, 'right', z, frame);
+          } else {
+            spin.drawText(ctx, S, r[0], 120, y, 'center', z);
+          }
+        };
+        drawRow();
+        this.drawGlow(ctx, S, this.glow[i] || 0, drawRow);
       });
     } else if (this.state === 'highscores') {
       let list = [];

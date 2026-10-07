@@ -19,11 +19,42 @@ export const ay = (hw) => 301 - 1.25 * hw;
 export const PADDLE_SLICE = 9;
 const ITEM_FRAMES = [0, 1, 2, 3, 4, 5, 5, 5, 5, 6, 7, 8, 9];   // 6. Frame viermal halten (Items_Frame_Zeitangabe.doc)
 
+/** Ball-Glow (additiv, Radius in Art-Pixeln ab Ballmitte; Ball selbst = 3) und roter Rand des Mega-Balls. */
+export const BALL_GLOW = { radius: 4.6, alpha: 0.42, color: [150, 235, 255], mega: [255, 40, 20], megaBlur: 2.2, megaAlpha: 0.9 };
+/** Schlaeger nach Leben-Verlust: Ausblenden (Frames) und ruhiges Einblenden beim Respawn mit klebendem Ball. */
+export const PADDLE_FADE = { out: 14, in: 24 };
+/** Ball-Trail: Laenge in Frames, Staerke, Punktradius (Art-Pixel), Abstand der Zwischenpunkte. */
+export const TRAIL = { len: 7, alpha: 0.3, radius: 2.4, step: 1.2 };
+/**
+ * Funken (Wand/Decke und Explosionen): 1 Art-Pixel, additiv, mit Schwerkraft, gluehen von Weiss ueber Gelb
+ * und Orange nach Rot aus. Geschwindigkeiten in Art-Pixeln je Frame.
+ */
+export const SPARKS = {
+  gravity: 0.07, drag: 0.985,
+  wall: { count: [5, 9], speed: [0.5, 1.6], life: [18, 40] },
+  explosion: { count: [22, 32], speed: [0.7, 2.6], life: [26, 60], lift: 0.8 },
+  colors: [[255, 255, 255], [255, 236, 140], [255, 160, 50], [230, 60, 20]],
+  max: 400,
+};
+
+/** Weicher, runder Lichtpunkt (radiale Verlaufs-Textur) fuer additives Zeichnen. */
+function glowSprite([r, g, b]) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const x = c.getContext('2d');
+  const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+  gr.addColorStop(0, `rgba(${r},${g},${b},1)`);
+  gr.addColorStop(0.45, `rgba(${r},${g},${b},0.45)`);
+  gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+  x.fillStyle = gr;
+  x.fillRect(0, 0, 32, 32);
+  return c;
+}
+
 export class GameView {
   constructor(assets, fonts, board, audio) {
     this.img = assets.img;
     this.spin = fonts.spin;
-    this.con = fonts.console;
     this.board = board;
     this.audio = audio;
     this.bs = boardState();
@@ -34,6 +65,7 @@ export class GameView {
     this.introTimer = 0;
     this.beamFrame = -1;
     this.paddleVisible = true;
+    this.paddleFade = null;       // { dir: -1 aus / 1 ein, t } nach Leben-Verlust
     this.lostBall = null;         // { x, y, t } Ball faellt in den Phaser
     this.phaserFlash = 0;
     this.lightMode = 'idle';      // idle | flicker | clear
@@ -46,7 +78,25 @@ export class GameView {
     this.announces = [];          // laufende Ankuendigungen in der Drehschrift
     this.queue = [];
     this.zoom = 0.75;             // Textgroesse wie im Hauptmenue, wird von der App gesetzt
+    this.sparks = [];             // { x, y, vx, vy, t, len } in Art-Pixeln
+    this.trails = [];             // je Ball: letzte Mittelpunkte [{ x, y }] in Art-Pixeln, neueste zuletzt
+    this.glowBall = glowSprite(BALL_GLOW.color);
+    this.glowMega = glowSprite(BALL_GLOW.mega);
   }
+
+  /** Funken an (x, y) ausstossen: Richtung (dx, dy) mit Streuung spread (Bogenmass), cfg aus SPARKS. */
+  spawnSparks(x, y, cfg, dx, dy, spread) {
+    const r = (a) => a[0] + Math.random() * (a[1] - a[0]);
+    const n = Math.round(r(cfg.count));
+    const base = Math.atan2(dy, dx);
+    for (let i = 0; i < n && this.sparks.length < SPARKS.max; i++) {
+      const a = base + (Math.random() - 0.5) * spread, v = r(cfg.speed);
+      this.sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - (cfg.lift || 0) * Math.random(), t: 0, len: Math.round(r(cfg.life)) });
+    }
+  }
+
+  /** Art-Mittelpunkt eines Balls. */
+  ballCenter(b) { return { x: ax(b.x - 3) + 2.5, y: ay(b.y + 1) + 2.5 }; }
 
   rand() {
     this.rng = (this.rng * 1103515245 + 12345) & 0x7FFFFFFF;
@@ -59,7 +109,7 @@ export class GameView {
     for (const e of session.events) {
       switch (e.kind) {
         case 'roundStart':
-          this.startIntro(session, e.newRound);
+          if (e.newRound) this.startIntro(session, true); else this.respawn();
           break;
         case 'ready':
           this.say(`LEVEL ${String(session.round + 1).padStart(2, '0')}`, 30, 128);
@@ -74,8 +124,18 @@ export class GameView {
           this.audio.play('paddle', 1, e.edge ? 1.15 : 1);
           break;
         case 'catch': this.audio.play('paddle', 0.8, 0.8); break;
-        case 'wall': this.audio.play('wall', 0.7, e.side > 0 ? 1.05 : 0.95); break;
-        case 'ceiling': this.audio.play('wall', 0.7, 1.1); break;
+        case 'wall': {
+          this.audio.play('wall', 0.7, e.side > 0 ? 1.05 : 0.95);
+          const c = this.ballCenter(session.field.balls[e.ball]);
+          this.spawnSparks(c.x + 3 * e.side, c.y, SPARKS.wall, -e.side, -0.35, 1.8);
+          break;
+        }
+        case 'ceiling': {
+          this.audio.play('wall', 0.7, 1.1);
+          const c = this.ballCenter(session.field.balls[e.ball]);
+          this.spawnSparks(c.x, c.y - 3, SPARKS.wall, 0, 1, 2.2);
+          break;
+        }
         case 'brickHit':
           this.audio.play('brick', 0.9, e.gold ? 0.6 : 0.85);
           // Gold blinkt mit dem Zerstoer-Effekt auf und bleibt stehen, alles andere wackelt
@@ -110,7 +170,7 @@ export class GameView {
           this.lostBall = { x: ax(e.x - 3) - 0.5, y: ay(e.y + 1) - 0.5, t: 0 };
           break;
         case 'lifeLost':
-          this.paddleVisible = true;
+          this.paddleFade = { dir: -1, t: 0 };   // Schlaeger blendet aus, Respawn nach BALL_LOST_FRAMES
           break;
         case 'ballVanish':
           this.explode(ax(e.x - 1), ay(e.y - 1), 0.6);
@@ -147,13 +207,33 @@ export class GameView {
     }
   }
 
+  /** Nach einem Leben-Verlust: keine Ansage, kein Beam; Schlaeger und klebender Ball blenden ruhig ein. */
+  respawn() {
+    for (const a of this.announces) a.stop();
+    this.queue = [];
+    this.lostBall = null;
+    this.trails = [];
+    this.beamFrame = -1;
+    this.paddleVisible = true;
+    this.paddleFade = { dir: 1, t: 0 };
+  }
+
+  /** Deckkraft von Schlaeger (und Ball beim Einblenden) aus paddleFade. */
+  paddleAlpha() {
+    const pf = this.paddleFade;
+    if (!pf) return 1;
+    return pf.dir < 0 ? Math.max(0, 1 - pf.t / PADDLE_FADE.out) : Math.min(1, pf.t / PADDLE_FADE.in);
+  }
+
   startIntro(session, newRound) {
+    this.paddleFade = null;
     this.effects.length = 0;
     this.texts.length = 0;
     this.announces.length = 0;
     this.queue = [];
     this.lostBall = null;
     this.exitAnim = null;
+    this.trails = [];
     this.doorAnim.left = 0; this.doorAnim.right = 0;
     this.bs.doorLeft = 0; this.bs.doorRight = 0;
     this.lightMode = 'idle';
@@ -199,6 +279,8 @@ export class GameView {
 
   explode(x, y, scale) {
     this.effects.push({ type: 'explosion', x, y, scale, t: 0, len: 24 });
+    const cfg = SPARKS.explosion;
+    this.spawnSparks(x, y, { ...cfg, count: cfg.count.map((n) => n * scale) }, 0, -1, Math.PI * 2);
   }
 
   // ---------------------------------------------------------------- pro Logik-Frame
@@ -222,6 +304,27 @@ export class GameView {
     this.texts = this.texts.filter((t) => t.t < t.len);
     for (const e of this.effects) e.t++;
     this.effects = this.effects.filter((e) => e.t < e.len);
+    // Funken: Schwerkraft, Luftwiderstand, verschwinden ausgeglueht oder unter dem Bild
+    for (const p of this.sparks) {
+      p.vx *= SPARKS.drag; p.vy = p.vy * SPARKS.drag + SPARKS.gravity;
+      p.x += p.vx; p.y += p.vy; p.t++;
+    }
+    this.sparks = this.sparks.filter((p) => p.t < p.len && p.y < 340);
+    if (this.paddleFade) {
+      this.paddleFade.t++;
+      if (this.paddleFade.dir > 0 && this.paddleFade.t >= PADDLE_FADE.in) this.paddleFade = null;
+    }
+    // Ball-Trails: Mittelpunkte der letzten Frames (Spruenge > 24 Art-Pixel = neuer Ball, Trail neu)
+    const f = session.field;
+    for (let i = 0; i < MAX_BALLS; i++) {
+      if (session.ballsHidden || !f.isActive(i)) { this.trails[i] = []; continue; }
+      const tr = this.trails[i] || (this.trails[i] = []);
+      const c = this.ballCenter(f.balls[i]);
+      const last = tr[tr.length - 1];
+      if (last && Math.abs(last.x - c.x) + Math.abs(last.y - c.y) > 24) tr.length = 0;
+      tr.push(c);
+      if (tr.length > TRAIL.len) tr.shift();
+    }
 
     // Intro: Steine erscheinen, Schlaeger fliegt ein
     if (session.phase === Phase.INTRO) {
@@ -372,29 +475,30 @@ export class GameView {
       }
     }
     // Schlaeger
-    if (this.paddleVisible && session.phase !== Phase.GAME_OVER) this.drawPaddle(ctx, S, session);
+    const pa = this.paddleAlpha();
+    if (this.paddleVisible && session.phase !== Phase.GAME_OVER && pa > 0) {
+      ctx.globalAlpha = pa;
+      this.drawPaddle(ctx, S, session);
+      ctx.globalAlpha = 1;
+    }
     if (this.beamFrame >= 0) {
       const cx = ax(f.paddle.center) - 46, cy = 295 - 19;
       ctx.drawImage(I.paddleBeam, 0, this.beamFrame * 19, 93, 19, Math.round(cx * S), Math.round(cy * S), 93 * S, 19 * S);
     }
-    // Baelle
+    // Baelle: Trail und Glow additiv darunter, Mega-Ball mit eigenem Sprite und rotem Rand-Glow
     if (!session.ballsHidden) {
+      const mega = !!f.pierceBall;
       for (let i = 0; i < MAX_BALLS; i++) {
         if (!f.isActive(i)) continue;
         const b = f.balls[i];
         const x = ax(b.x - 3) - 0.5, y = ay(b.y + 1) - 0.5;
-        if (f.pierceBall) {
-          ctx.globalCompositeOperation = 'lighter';
-          ctx.fillStyle = (this.tick & 4) ? 'rgba(255,120,40,0.55)' : 'rgba(255,200,80,0.45)';
-          ctx.beginPath();
-          ctx.arc((x + 3) * S, (y + 3) * S, 5 * S, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.globalCompositeOperation = 'source-over';
-        }
-        ctx.drawImage(I.ball, Math.round(x * S), Math.round(y * S), 6 * S, 6 * S);
+        this.drawTrail(ctx, S, this.trails[i], mega);
+        ctx.globalAlpha = pa;   // beim Respawn blendet der Ball mit dem Schlaeger ein
+        this.drawBall(ctx, S, x, y, mega);
+        ctx.globalAlpha = 1;
       }
     }
-    if (this.lostBall) ctx.drawImage(I.ball, Math.round(this.lostBall.x * S), Math.round(this.lostBall.y * S), 6 * S, 6 * S);
+    if (this.lostBall) this.drawBall(ctx, S, this.lostBall.x, this.lostBall.y, false);
     ctx.restore();
     this.board.drawFrame(ctx);
 
@@ -405,6 +509,7 @@ export class GameView {
       const w = 24 * e.scale, h = 21 * e.scale;
       ctx.drawImage(I.explosion, 0, fr * 21, 24, 21, Math.round((e.x - w / 2) * S), Math.round((e.y - h / 2) * S), Math.round(w * S), Math.round(h * S));
     }
+    this.drawSparks(ctx, S);
     this.board.drawDynamic(ctx, bs);
     if (this.phaserFlash > 0) {
       ctx.fillStyle = `rgba(160,220,255,${0.05 * this.phaserFlash})`;
@@ -418,6 +523,69 @@ export class GameView {
       ctx.globalAlpha = 1;
     }
     for (const an of this.announces) an.draw(ctx, S);
+  }
+
+  /** Ball-Sprite (Art-Position der linken oberen Ecke) mit Glow; mega = fressender Ball (ball-item1.png). */
+  drawBall(ctx, S, x, y, mega) {
+    const I = this.img;
+    const cx = (x + 3) * S, cy = (y + 3) * S;
+    const pulse = 0.85 + 0.15 * Math.sin(this.tick * 0.25);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const r = BALL_GLOW.radius * (mega ? 1.25 : 1) * S;
+    ctx.globalAlpha *= BALL_GLOW.alpha * (mega ? pulse : 1);
+    ctx.drawImage(mega ? this.glowMega : this.glowBall, cx - r, cy - r, 2 * r, 2 * r);
+    ctx.restore();
+    const X = Math.round(x * S), Y = Math.round(y * S);
+    if (mega && I.ballMega) {
+      // roter Outline-Glow: Schatten des Sprites, weich und ohne Versatz
+      ctx.save();
+      ctx.shadowColor = `rgba(${BALL_GLOW.mega.join(',')},${BALL_GLOW.megaAlpha * pulse})`;
+      ctx.shadowBlur = BALL_GLOW.megaBlur * S;
+      ctx.drawImage(I.ballMega, X, Y, 6 * S, 6 * S);
+      ctx.drawImage(I.ballMega, X, Y, 6 * S, 6 * S);
+      ctx.restore();
+      return;
+    }
+    ctx.drawImage(I.ball, X, Y, 6 * S, 6 * S);
+  }
+
+  /** Leichter Schweif: weiche Lichtpunkte entlang der letzten Ballpositionen, aelter = kleiner und blasser. */
+  drawTrail(ctx, S, tr, mega) {
+    if (!tr || tr.length < 2) return;
+    const img = mega ? this.glowMega : this.glowBall;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const n = tr.length - 1, pa = this.paddleAlpha();
+    for (let k = 0; k < n; k++) {
+      const a = tr[k], b = tr[k + 1];
+      const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / TRAIL.step));
+      for (let s = 0; s < steps; s++) {
+        const u = (k + s / steps) / n;          // 0 = aeltester Punkt, 1 = Ball
+        const px = a.x + (b.x - a.x) * s / steps, py = a.y + (b.y - a.y) * s / steps;
+        const r = TRAIL.radius * (0.35 + 0.65 * u) * S;
+        ctx.globalAlpha = pa * TRAIL.alpha * u * u / Math.sqrt(steps);
+        ctx.drawImage(img, px * S - r, py * S - r, 2 * r, 2 * r);
+      }
+    }
+    ctx.restore();
+  }
+
+  /** Funken: 1 Art-Pixel, additiv, Farbe Weiss -> Gelb -> Orange -> Rot, blenden zum Ende aus. */
+  drawSparks(ctx, S) {
+    if (!this.sparks.length) return;
+    const C = SPARKS.colors, last = C.length - 1;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of this.sparks) {
+      const u = p.t / p.len;
+      const q = u * last, i = Math.min(last - 1, Math.floor(q)), w = q - i;
+      const c0 = C[i], c1 = C[i + 1];
+      ctx.fillStyle = `rgb(${Math.round(c0[0] + (c1[0] - c0[0]) * w)},${Math.round(c0[1] + (c1[1] - c0[1]) * w)},${Math.round(c0[2] + (c1[2] - c0[2]) * w)})`;
+      ctx.globalAlpha = 1 - u * u;
+      ctx.fillRect(Math.round(p.x * S), Math.round(p.y * S), S, S);
+    }
+    ctx.restore();
   }
 
   drawPaddle(ctx, S, session) {

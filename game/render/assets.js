@@ -31,7 +31,8 @@ export const IMAGES = {
   explosion: 'player/explosion.png',         // 8 Frames 24x21
   enemy: 'enemy/cube.png',                   // 8 Frames 20x24
   fontSpin: 'fonts/spin.png',                // 16 Frames x 12 px
-  fontConsole: 'fonts/console.png',
+  fontBold: 'fonts/BoldPixels.png',          // Pixelschrift, Raster 9x17, schwarz auf weiss (render/font.js PixelFont)
+  ballMega: 'player/ball-item1.png',         // 6x6, Mega-Ball (frisst alles)
   itemA: 'items/a.png', itemB: 'items/b.png', itemC: 'items/c.png', itemE: 'items/e.png', itemF: 'items/f.png',
   itemL: 'items/l.png', itemMinus: 'items/minus.png', itemN: 'items/n.png', itemO: 'items/o.png', itemX: 'items/x.png',
   itemXl: 'items/xl.png', itemWhat: 'items/what.png',
@@ -51,8 +52,9 @@ export const OPTIONAL_IMAGES = {
 export const BRICK_COLORS = ['brickWhite', 'brickOrange', 'brickTuerk', 'brickGreen', 'brickRed', 'brickBlue', 'brickPink', 'brickYellow'];
 
 /**
- * Hintergruende: board/bg01.png, bg02.png, ... werden der Reihe nach geladen, bis eine Nummer fehlt
- * (neues Bild ablegen genuegt). Gibt es dazu bgNN_mask.png, schimmern dessen weisse Stellen (render/bgfx.js).
+ * Hintergruende: board/bg01.png, bg02.png, ... werden der Reihe nach geladen (neues Bild ablegen genuegt).
+ * Fehlende Nummern werden uebersprungen; erst wenn ein ganzer Block von BG_BATCH Nummern fehlt, ist Schluss.
+ * Gibt es dazu bgNN_mask.png, schimmern dessen weisse Stellen (render/bgfx.js).
  * Ob Vollbild oder Kachel, entscheidet das Board an der Bildgroesse.
  */
 export const BG_DIR = 'board/';
@@ -72,13 +74,12 @@ async function loadBackgrounds(base) {
     for (let n = first; n < first + BG_BATCH && n <= BG_MAX; n++) nums.push(n);
     const got = await Promise.all(nums.map((n) => {
       const name = `bg${String(n).padStart(2, '0')}`;
-      return Promise.all([loadImage(`${base}${BG_DIR}${name}.png`, true), loadImage(`${base}${BG_DIR}${name}_mask.png`, true)])
-        .then(([img, mask]) => (img ? { name, img, mask } : null));
+      return loadImage(`${base}${BG_DIR}${name}.png`, true)
+        .then((img) => (img ? loadImage(`${base}${BG_DIR}${name}_mask.png`, true).then((mask) => ({ name, img, mask })) : null));
     }));
-    for (const g of got) {
-      if (!g) return list;
-      list.push(g);
-    }
+    const found = got.filter(Boolean);
+    if (!found.length) return list;
+    list.push(...found);
   }
   return list;
 }
@@ -106,7 +107,8 @@ export async function loadAssets(base, onProgress) {
   const jobs = [];
   for (const n of names) jobs.push(loadImage(base + IMAGES[n], false).then((i) => { img[n] = i; tick(); }));
   for (const n of optNames) jobs.push(loadImage(base + OPTIONAL_IMAGES[n], true).then((i) => { img[n] = i; tick(); }));
-  const fontsJob = fetch(base + 'fonts/fonts.json').then((r) => r.json()).then((j) => { tick(); return j; });
+  // no-cache: nach einem Update darf keine alte fonts.json aus dem Browser-Cache zu neuem Code passen muessen
+  const fontsJob = fetch(base + 'fonts/fonts.json', { cache: 'no-cache' }).then((r) => r.json()).then((j) => { tick(); return j; });
   const bgJob = loadBackgrounds(base).then((l) => { tick(); return l; });
   await Promise.all(jobs);
   const fonts = await fontsJob;

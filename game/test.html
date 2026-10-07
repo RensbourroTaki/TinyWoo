@@ -28,6 +28,7 @@ if (q.get('state') === 'game') {
   if (q.get('paddle')) app.session.setPaddleType(parseInt(q.get('paddle'), 10));   // 2 gross, 8 klein, 3 Twin, 7 Schatten
   // Test-Tasten (DEV_KEYS): ?keys=ArrowLeft,ArrowLeft,ArrowUp
   for (const k of (q.get('keys') || '').split(',').filter(Boolean)) { app.devKey(k); app.godKeyHeld = false; }
+  if (q.get('mega')) { app.session.field.pierceBall = 1; app.session.pierceFrames = 1e6; }   // Mega-Ball dauerhaft
 }
 if (q.get('state') === 'menu') { app.setState('menu'); app.boardAlpha = 1; app.menuAlpha = 1; app.bs.phaserFrame = 3; }
 if (q.get('state') === 'options') { app.setState('options'); app.boardAlpha = 1; app.menuAlpha = 1; }
@@ -41,6 +42,8 @@ for (let i = 0; i < ticks; i++) {
     if (target >= 0) app.input.accum += Math.max(-6, Math.min(6, target - 2 - f.paddle.center));
     if (i % 200 === 0) app.input.firePressed = true;
   }
+  // ?boom=N: N Ticks vor Schluss eine Explosion mitten ins Feld (Funken pruefen)
+  if (app.view && q.get('boom') && i === ticks - parseInt(q.get('boom'), 10)) app.view.explode(120, 150, 1);
   app.tick();
 }
 if (q.get('bg')) app.board.build(app.S, parseInt(q.get('bg'), 10) - 1);

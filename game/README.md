@@ -43,7 +43,17 @@ Alle Texte im Spiel benutzen die Drehschrift `assets/daiganoid/fonts/spin.png` (
 Frame-Abstand 24, Start y=2; Frame 4 = weiße Vorderansicht = Ruhe-Frame, 8 = Kante, 12 = Rückseite). Zellen und
 Frame-Layout stehen in `fonts/fonts.json` unter `spin` (9 px Zellen, W 15 px, `.`/`,`/`!`/`?`/`>` nur in Frame 4).
 Menü = Originalgröße (23 px), Ansagen im Spiel = 2× (46 px). Das Ausdrehen steuert `SETTLE_PROFILE` /
-`SETTLE_TAIL` in `render/spintext.js`. `fonts/console.png` bleibt vorhanden, wird im Spiel aber nicht benutzt.
+`SETTLE_TAIL` in `render/spintext.js`.
+
+Zweite Schrift: `fonts/BoldPixels.png` bleibt unverändert, `PixelFont` (`render/font.js`) sliced zur Laufzeit
+ASCII 32–126 (Raster 9×17, Zeichen 8×16 ab (1,1), Breite aus der letzten Tintenspalte, Metadaten `fonts.json`
+→ `bold`), 1 Font-Pixel = 1 Art-Pixel. Benutzt für die blinkende Hinweiszeile im Menü (`HINT` in `app.js`).
+
+## Effekte
+
+Regler oben in `render/view.js`: `BALL_GLOW` (Ball-Glow, roter Rand des Mega-Balls `player/ball-item1.png`),
+`TRAIL` (Ball-Schweif), `SPARKS` (Funken bei Wand/Decke und Explosionen, additiv mit Schwerkraft).
+Auswahl-Glow im Menü/Optionen: `GLOW` in `app.js`. Tempo-Kurve: `startSpeed`/`minSpeed`/`difficulty` in `play/session.js`.
 
 ## Grafiken ersetzen
 

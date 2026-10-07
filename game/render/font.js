@@ -1,7 +1,7 @@
 // Zwei Bitmap-Schriften:
 //  - SpinFont: die Drehschrift (fonts/spin.png, 16 Frames = echte 360-Grad-Drehung um die Hochachse,
 //    Frame 4 = weisse Vorderansicht). Layout und Zellen stehen in fonts.json ("spin").
-//  - ConsoleFont: normale 10-px-Schrift (fonts/console.png). Im Spiel nicht mehr benutzt, bleibt verfuegbar.
+//  - PixelFont: BoldPixels (fonts/BoldPixels.png), ASCII 32..126 mit Gross- und Kleinbuchstaben, 1:1 Pixel.
 // Alle Positionen in Art-Pixeln (240x334), gezeichnet mit Skalierung S auf das Ziel-Canvas.
 
 export class SpinFont {
@@ -76,25 +76,56 @@ export class SpinFont {
   get lineH() { return this.frameH; }
 }
 
-export class ConsoleFont {
+/** Raster von BoldPixels.png, falls fonts.json (z. B. aus einem alten Cache) keinen Eintrag "bold" liefert. */
+const BOLD_DEFAULT = { first: 32, count: 95, columns: 16, cellW: 9, cellH: 17, glyphX: 1, glyphY: 1, glyphW: 8, glyphH: 16, ink: [0, 0, 0], top: 4, gap: 1, spaceWidth: 4 };
+
+/**
+ * Pixelschrift aus dem unveraenderten Sheet fonts/BoldPixels.png (Raster aus fonts.json "bold"): Zellen
+ * cellW x cellH, Zeichen glyphW x glyphH ab (glyphX, glyphY) in der Zelle, ASCII ab "first" zeilenweise.
+ * Das Sheet ist schwarz auf weiss; beim Laden wird die Tinte einmal zu weissen Pixeln auf Transparenz,
+ * die Breite jedes Zeichens ergibt sich aus seiner letzten Tintenspalte (proportional). 1 Font-Pixel = 1 Art-Pixel.
+ */
+export class PixelFont {
   constructor(image, meta) {
-    this.image = image;
-    this.lineH = meta.lineHeight;   // 10
-    this.glyphs = meta.glyphs;      // ch -> [x, y, w, h]
-    this.spacing = 1;
-    this.spaceW = 3;
+    meta = Object.assign({}, BOLD_DEFAULT, meta);
+    this.meta = meta;
+    this.top = meta.top ?? 0;           // Oberkante der Grossbuchstaben in der Zeichenzelle
+    this.gap = meta.gap ?? 1;
+    this.spaceW = meta.spaceWidth ?? 4;
+    this.glyphH = meta.glyphH;
+    this.glyphs = {};                   // Zeichen -> [x, y, w] im Bild
     this.tinted = new Map();
+    const c = document.createElement('canvas');
+    c.width = image.width; c.height = image.height;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(image, 0, 0);
+    const data = g.getImageData(0, 0, c.width, c.height);
+    const d = data.data, [ir, ig, ib] = meta.ink || [0, 0, 0];
+    for (let i = 0; i < d.length; i += 4) {
+      const ink = d[i] === ir && d[i + 1] === ig && d[i + 2] === ib && d[i + 3] > 0;
+      d[i] = d[i + 1] = d[i + 2] = 255;
+      d[i + 3] = ink ? 255 : 0;
+    }
+    g.putImageData(data, 0, 0);
+    this.image = c;
+    for (let n = 0; n < meta.count; n++) {
+      const x = (n % meta.columns) * meta.cellW + meta.glyphX;
+      const y = Math.floor(n / meta.columns) * meta.cellH + meta.glyphY;
+      let w = 0;
+      for (let gx = 0; gx < meta.glyphW; gx++) {
+        for (let gy = 0; gy < meta.glyphH; gy++) if (d[((y + gy) * c.width + x + gx) * 4 + 3]) { w = gx + 1; break; }
+      }
+      if (w) this.glyphs[String.fromCharCode(meta.first + n)] = [x, y, w];
+    }
   }
 
   measure(text) {
     let w = 0;
-    for (const ch of text) {
-      const g = this.glyphs[ch] || this.glyphs[ch.toUpperCase()];
-      w += (g ? g[2] : this.spaceW) + this.spacing;
-    }
-    return Math.max(0, w - this.spacing);
+    for (const ch of text) w += (this.glyphs[ch] ? this.glyphs[ch][2] : this.spaceW) + this.gap;
+    return Math.max(0, w - this.gap);
   }
 
+  /** Eingefaerbte Kopie des Sheets (einmal je Farbe). */
   tintedImage(color) {
     if (!color) return this.image;
     let c = this.tinted.get(color);
@@ -110,17 +141,24 @@ export class ConsoleFont {
     return c;
   }
 
-  drawText(ctx, S, text, x, y, align = 'left', color = null, zoom = 1) {
-    const w = this.measure(text) * zoom;
-    let px = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+  /**
+   * Text mit Oberkante der Grossbuchstaben bei Art-y. align: 'left' | 'center' | 'right'.
+   * shrink: Font-Pixel um so viele Geraetepixel kleiner als ein Art-Pixel (S - shrink, mindestens 1),
+   * gerechnet direkt in Geraetepixeln, damit jedes Font-Pixel gleich gross und scharf bleibt.
+   */
+  drawText(ctx, S, text, x, y, align = 'left', color = null, shrink = 0) {
+    const P = Math.max(1, S - shrink);
+    const w = this.measure(text) * P;
+    let px = Math.round(x * S - (align === 'center' ? w / 2 : align === 'right' ? w : 0));
     const src = this.tintedImage(color);
+    const top = Math.round(y * S) - this.top * P;
     for (const ch of text) {
-      const g = this.glyphs[ch] || this.glyphs[ch.toUpperCase()];
+      const g = this.glyphs[ch];
       if (g) {
-        ctx.drawImage(src, g[0], g[1], g[2], g[3], Math.round(px * S), Math.round(y * S), Math.round(g[2] * zoom * S), Math.round(g[3] * zoom * S));
-        px += (g[2] + this.spacing) * zoom;
+        ctx.drawImage(src, g[0], g[1], g[2], this.glyphH, px, top, g[2] * P, this.glyphH * P);
+        px += (g[2] + this.gap) * P;
       } else {
-        px += (this.spaceW + this.spacing) * zoom;
+        px += (this.spaceW + this.gap) * P;
       }
     }
   }

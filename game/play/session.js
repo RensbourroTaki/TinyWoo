@@ -25,7 +25,7 @@ export const Phase = Object.freeze({
 export const START_LIVES = 3;
 export const INTRO_FRAMES = 110;
 export const READY_FRAMES = 330;   // LEVEL NN / Name in der Drehschrift mit langsamem Ausdrehen
-export const BALL_LOST_FRAMES = 100;
+export const BALL_LOST_FRAMES = 78;   // 1,3 s nach dem Ballverlust, dann Schlaeger + Ball direkt (ohne Intro/Ansage)
 export const EXITING_FRAMES = 80;
 export const MEGA_FRAMES = 600;
 export const MAX_ITEMS = 2;
@@ -123,7 +123,11 @@ export class GameSession {
     this.resetRound(true);
   }
 
-  /** Schlaeger in die Mitte, normaler Typ, neuer klebender Ball (Original-Rundenstart). */
+  /**
+   * Schlaeger in die Mitte, normaler Typ, neuer klebender Ball (Original-Rundenstart).
+   * newRound: Intro (Steine, Beam) und Ansage LEVEL NN / Name. Nach einem Leben-Verlust (false) geht es
+   * sofort weiter: Ball klebt auf dem Schlaeger, Abschuss per Feuer oder automatisch wie beim Rundenstart.
+   */
   resetRound(newRound) {
     const p = this.field.paddle;
     p.center = FIELD_CENTER;
@@ -134,12 +138,12 @@ export class GameSession {
     this.laser = 0;
     this.field.flatReflect = 0;
     this.field.specialMode = 0;
-    this.field.difficulty = this.round < 8 ? 1 : this.round < 20 ? 2 : 3;
+    this.field.difficulty = difficulty(this.round);
     this.field.startRound(startSpeed(this.round), minSpeed(this.round));
     this.paddleEntrySide = this.random() < 0.5 ? -1 : 1;
-    this.ballsHidden = true;
-    this.phase = Phase.INTRO;
-    this.phaseTimer = newRound ? INTRO_FRAMES : INTRO_FRAMES - 30;
+    this.ballsHidden = newRound;
+    this.phase = newRound ? Phase.INTRO : Phase.PLAYING;
+    this.phaseTimer = INTRO_FRAMES;
     this.emit('roundStart', { round: this.round, variant: this.variant, newRound });
   }
 
@@ -633,7 +637,11 @@ export class GameSession {
   }
 }
 
-/** Startgeschwindigkeit: Runde 1 wie das Original (5, im ersten Frame 6); spaeter langsam steigend. */
-export function startSpeed(round) { return Math.min(8, 5 + Math.floor(round / 4)); }
-/** Mindest-Speed nach Deckenkontakt, Runde 1 wie das Original (7). */
-export function minSpeed(round) { return Math.min(12, 7 + Math.floor(round / 3)); }
+// Tempo-Kurve ueber alle 32 Runden gestreckt (User 2026-10-07): Runde 32 = fruehere Runde 15
+// (Start 8, Minimum 11, Tabelle 2); die schnelle Speed-Up-Tabelle 3 wird nicht mehr benutzt.
+/** Startgeschwindigkeit: Runde 1 wie das Original (5, im ersten Frame 6); alle 8 Runden +1, Runde 25-32 = 8. */
+export function startSpeed(round) { return Math.min(8, 5 + Math.floor(round / 8)); }
+/** Mindest-Speed nach Deckenkontakt, Runde 1 wie das Original (7); alle 7 Runden +1, hoechstens 11. */
+export function minSpeed(round) { return Math.min(11, 7 + Math.floor(round / 7)); }
+/** Speed-Up-Tabelle (SPEED_UP_BOUNCES): Runde 1-16 = 1, ab Runde 17 = 2. */
+export function difficulty(round) { return round < 16 ? 1 : 2; }
