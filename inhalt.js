@@ -124,14 +124,19 @@ window.TW_INHALT = {
     header: {
       kicker: 'Arcade · A fan vision',
       titel: 'DAIGANOID',
-      zeile: 'Hand-pixelled in the 90s. Built for a Pocket PC. Finished in your browser.',
+      zeile: 'The Arkanoid fan project!',
+      unterzeile: 'Made with the deepest respect for TAITO, creators of the timeless original.',
     },
 
     highscoreTitel: 'Highscore',
     storyTitel: 'The story',
     story: [
-      { text: 'DAIGANOID is an old game project of mine, brought back to life. The pixel art is my original set from back in the day, the gameplay is modelled on Arkanoid, and this version was rebuilt step by step with AI assistance, directed by me. A level editor is planned, if everybody behaves.' },
-      { text: 'With all due respect to Taito, and to my all-time favourite: Arkanoid – Revenge of Doh.' },
+      { text: 'I brought my old Arkanoid fan project DAIGANOID back to life, because nothing stands in the way of my ideas anymore.' },
+      { text: 'The graphics and the font were pixelled around 2000. Back then, together with an old friend and programmer, I built a really nice, polished beta of the game for the Pocket PCs of the day, the iPAQ. But life changed for both of us, and it was never finished.' },
+      { text: 'I\'m especially proud of the 360-degree spinning letters of my bitmap font, which I pixelled and polished over quite a few nights.' },
+      { text: 'I hope you enjoy this version. Over time I plan to add bosses, a level editor and other features, but I mustn\'t forget the other games I still want to make ;)' },
+      { text: 'Have fun!' },
+      { text: 'And thank you, TAITO, for one of the best gameplay loops ever created!' },
     ],
   },
 

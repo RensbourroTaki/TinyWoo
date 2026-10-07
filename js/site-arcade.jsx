@@ -44,7 +44,10 @@ function ArcadeHeader({ compact }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 10 : 14, alignItems: 'flex-start' }}>
       {H.kicker && <Kicker>{H.kicker}</Kicker>}
       <h1 className="tw-heading" style={{ fontSize: 'var(--fs-hero)', color: 'var(--orange-400)', transform: 'rotate(-3deg)', transformOrigin: 'left', margin: '0 0 8px' }}>{H.titel || D.titel || 'Daiganoid'}</h1>
-      {H.zeile && <p style={{ margin: 0, fontSize: compact ? 16 : 'var(--fs-lg)', lineHeight: 1.5, color: 'var(--text-strong)', maxWidth: 720 }}>{H.zeile}</p>}
+      {(H.zeile || H.unterzeile) && <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {H.zeile && <p style={{ margin: 0, fontSize: compact ? 16 : 'var(--fs-lg)', lineHeight: 1.5, color: 'var(--text-strong)', maxWidth: 720 }}>{H.zeile}</p>}
+        {H.unterzeile && <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--text-muted)', maxWidth: 720 }}>{H.unterzeile}</p>}
+      </div>}
     </div>
   );
 }
