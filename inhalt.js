@@ -160,7 +160,7 @@ window.TW_INHALT = {
       { p: "Everything else is either made by me or is a purchased asset, which I mostly modify and/or adapt to fit the game visually and performance-wise. Or it's an asset from an artist whose work I simply love, because it fits the game better than what I would've made." },
       { p: "I hope you can see the quality in my games and the effort I put into each one, and that you don't call it slop right away, because that is exactly what I don't want to deliver – and never will!" },
       { p: "One more thing I want to add: I'd rather take my time fighting with the gameplay mechanics until they work the way I want them to than record and edit workflow videos for YouTube or Reddit, which was never my thing. Now this place is here to offer everyone a docking bay for fun and well-developed games." },
-      { schluss: 'I hope you have as much fun playing my games as I had making them – welcome aboard!' },
+      { schluss: 'I hope you have fun with my games.' },
     ],
     footer: '© 2026 Tiny Woo · Made by one guy with a sword',
   },
