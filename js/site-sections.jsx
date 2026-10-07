@@ -202,10 +202,10 @@ function GameRow({ g, flip, onNav }) {
       {(g.features || g.kicker) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '48px 64px', alignItems: 'center' }}>
         {g.features && <div style={{ flex: '1 1 420px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {g.featuresIntro && <p style={{ margin: '0 0 8px', fontSize: 20, lineHeight: 1.55 }}>{g.featuresIntro}</p>}
-          {g.featuresTitel && <Kicker>{g.featuresTitel}</Kicker>}
+          {g.featuresTitel && <h3 className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h2)', lineHeight: 1.05, transform: 'rotate(-2deg)', transformOrigin: 'left' }}>{g.featuresTitel}</h3>}
           <ul style={{ margin: 0, paddingLeft: 24, fontSize: 18, lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: 8 }}>{g.features.map(t => <li key={t}>{t}</li>)}</ul>
           {g.zwischenzeile && <p style={{ margin: '8px 0', fontSize: 22, lineHeight: 1.4, fontWeight: 700, color: 'var(--text-strong)' }}>{g.zwischenzeile}</p>}
-          {g.features2Titel && <Kicker>{g.features2Titel}</Kicker>}
+          {g.features2Titel && <h3 className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h2)', lineHeight: 1.05, transform: 'rotate(-2deg)', transformOrigin: 'left' }}>{g.features2Titel}</h3>}
           {g.features2 && <ul style={{ margin: 0, paddingLeft: 24, fontSize: 18, lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: 8 }}>{g.features2.map(t => <li key={t}>{t}</li>)}</ul>}
           {g.featuresSchluss && <p className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h3)', lineHeight: 1.15, color: 'var(--sun-400)', transform: 'rotate(-2deg)', transformOrigin: 'left' }}>{g.featuresSchluss}</p>}
         </div>}
