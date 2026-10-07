@@ -137,8 +137,8 @@ window.TW_INHALT = {
       { text: 'I hope you enjoy this version! Over time I plan to add bosses, a level editor and more, though I mustn\'t forget the other games I still want to make ;)' },
       { titel: 'Music', text: 'The menu theme "Out There" is by yd, and the highscore theme "Party Sector" is by Joth, both shared freely on OpenGameArt. They didn\'t ask for credit, but their tracks give DAIGANOID its mood, so: thank you!',
         links: [
-          { label: '"Out There" by yd', href: 'https://opengameart.org/content/space-music-out-there' },
-          { label: '"Party Sector" by Joth', href: 'https://opengameart.org/content/party-sector' },
+          { label: 'Main Menu track "Out There" by yd', href: 'https://opengameart.org/content/space-music-out-there' },
+          { label: 'Highscore track "Party Sector" by Joth', href: 'https://opengameart.org/content/party-sector' },
         ] },
       { text: 'Have fun!' },
     ],

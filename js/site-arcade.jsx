@@ -63,11 +63,13 @@ function StoryPanel() {
           <section key={k} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {p.titel && <h3 style={{ margin: 0, ...pixel(12, 'var(--sky-400)'), lineHeight: 1.4 }}>{p.titel}</h3>}
             <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: 'var(--text-body)' }}>{p.text}</p>
-            {p.links && p.links.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {p.links && p.links.length > 0 && <ul style={{ margin: 0, paddingLeft: 20, listStyle: 'disc', display: 'flex', flexDirection: 'column', gap: 4, color: 'var(--text-body)' }}>
               {p.links.map((l, j) => (
-                <a key={j} href={l.href} target="_blank" rel="noopener noreferrer" style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--sky-400)' }}>{l.label}</a>
+                <li key={j} style={{ fontSize: 15, lineHeight: 1.5 }}>
+                  <a href={l.href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--sky-400)' }}>{l.label}</a>
+                </li>
               ))}
-            </div>}
+            </ul>}
           </section>
         ))}
       </div>
