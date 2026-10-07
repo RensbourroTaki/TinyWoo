@@ -24,7 +24,7 @@ export const BALL_GLOW = { radius: 4.6, alpha: 0.42, color: [150, 235, 255], meg
 /** Schlaeger nach Leben-Verlust: Ausblenden (Frames) und ruhiges Einblenden beim Respawn mit klebendem Ball. */
 export const PADDLE_FADE = { out: 14, in: 24 };
 /** Ball-Trail: Laenge in Frames, Staerke, Punktradius (Art-Pixel), Abstand der Zwischenpunkte. */
-export const TRAIL = { len: 7, alpha: 0.3, radius: 2.4, step: 1.2 };
+export const TRAIL = { len: 14, alpha: 0.3, radius: 2.4, step: 1.2 };
 /**
  * Funken (Wand/Decke und Explosionen): 1 Art-Pixel, additiv, mit Schwerkraft, gluehen von Weiss ueber Gelb
  * und Orange nach Rot aus. Geschwindigkeiten in Art-Pixeln je Frame.
@@ -32,10 +32,15 @@ export const TRAIL = { len: 7, alpha: 0.3, radius: 2.4, step: 1.2 };
 export const SPARKS = {
   gravity: 0.07, drag: 0.985,
   wall: { count: [5, 9], speed: [0.5, 1.6], life: [18, 40] },
-  explosion: { count: [22, 32], speed: [0.7, 2.6], life: [26, 60], lift: 0.8 },
+  explosion: { count: [60, 90], speed: [0.8, 3.6], life: [30, 72], lift: 1.0, big: 0.3 },
   colors: [[255, 255, 255], [255, 236, 140], [255, 160, 50], [230, 60, 20]],
-  max: 400,
+  max: 900,
 };
+/**
+ * Lichtblitz ueber jeder Explosion (additiv): heisser Kern, grosser oranger Schein und ein Druckring.
+ * Radien in Art-Pixeln (mal Explosions-Skalierung), len in Frames.
+ */
+export const BOOM = { len: 24, core: 13, glow: 34, coreAlpha: 1, glowAlpha: 0.85, ring: [4, 30], ringAlpha: 0.7 };
 
 /** Weicher, runder Lichtpunkt (radiale Verlaufs-Textur) fuer additives Zeichnen. */
 function glowSprite([r, g, b]) {
@@ -82,6 +87,8 @@ export class GameView {
     this.trails = [];             // je Ball: letzte Mittelpunkte [{ x, y }] in Art-Pixeln, neueste zuletzt
     this.glowBall = glowSprite(BALL_GLOW.color);
     this.glowMega = glowSprite(BALL_GLOW.mega);
+    this.glowHot = glowSprite([255, 245, 215]);
+    this.glowFire = glowSprite([255, 140, 40]);
   }
 
   /** Funken an (x, y) ausstossen: Richtung (dx, dy) mit Streuung spread (Bogenmass), cfg aus SPARKS. */
@@ -91,7 +98,7 @@ export class GameView {
     const base = Math.atan2(dy, dx);
     for (let i = 0; i < n && this.sparks.length < SPARKS.max; i++) {
       const a = base + (Math.random() - 0.5) * spread, v = r(cfg.speed);
-      this.sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - (cfg.lift || 0) * Math.random(), t: 0, len: Math.round(r(cfg.life)) });
+      this.sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - (cfg.lift || 0) * Math.random(), t: 0, len: Math.round(r(cfg.life)), size: Math.random() < (cfg.big || 0) ? 2 : 1 });
     }
   }
 
@@ -279,6 +286,7 @@ export class GameView {
 
   explode(x, y, scale) {
     this.effects.push({ type: 'explosion', x, y, scale, t: 0, len: 24 });
+    this.effects.push({ type: 'boom', x, y, scale, t: 0, len: BOOM.len });
     const cfg = SPARKS.explosion;
     this.spawnSparks(x, y, { ...cfg, count: cfg.count.map((n) => n * scale) }, 0, -1, Math.PI * 2);
   }
@@ -509,6 +517,7 @@ export class GameView {
       const w = 24 * e.scale, h = 21 * e.scale;
       ctx.drawImage(I.explosion, 0, fr * 21, 24, 21, Math.round((e.x - w / 2) * S), Math.round((e.y - h / 2) * S), Math.round(w * S), Math.round(h * S));
     }
+    this.drawBooms(ctx, S);
     this.drawSparks(ctx, S);
     this.board.drawDynamic(ctx, bs);
     if (this.phaserFlash > 0) {
@@ -583,9 +592,35 @@ export class GameView {
       const c0 = C[i], c1 = C[i + 1];
       ctx.fillStyle = `rgb(${Math.round(c0[0] + (c1[0] - c0[0]) * w)},${Math.round(c0[1] + (c1[1] - c0[1]) * w)},${Math.round(c0[2] + (c1[2] - c0[2]) * w)})`;
       ctx.globalAlpha = 1 - u * u;
-      ctx.fillRect(Math.round(p.x * S), Math.round(p.y * S), S, S);
+      const z = p.size === 2 && u < 0.6 ? 2 : 1;   // grosse Funken schrumpfen beim Ausgluehen
+      ctx.fillRect(Math.round(p.x * S), Math.round(p.y * S), z * S, z * S);
     }
     ctx.restore();
+  }
+
+  /** Lichtblitz ueber den Explosionen: heisser Kern, oranger Schein, Druckring (alles additiv). */
+  drawBooms(ctx, S) {
+    let any = false;
+    for (const e of this.effects) {
+      if (e.type !== 'boom') continue;
+      if (!any) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; any = true; }
+      const u = e.t / e.len, k = 1 - u;
+      const cx = e.x * S, cy = e.y * S;
+      const rg = BOOM.glow * e.scale * (0.75 + 0.45 * Math.sqrt(u)) * S;
+      ctx.globalAlpha = BOOM.glowAlpha * k * k;
+      ctx.drawImage(this.glowFire, cx - rg, cy - rg, 2 * rg, 2 * rg);
+      const rc = BOOM.core * e.scale * (1 - 0.5 * u) * S;
+      ctx.globalAlpha = BOOM.coreAlpha * k * k * k;
+      ctx.drawImage(this.glowHot, cx - rc, cy - rc, 2 * rc, 2 * rc);
+      const rr = (BOOM.ring[0] + (BOOM.ring[1] - BOOM.ring[0]) * Math.sqrt(u)) * e.scale * S;
+      ctx.globalAlpha = BOOM.ringAlpha * k * k;
+      ctx.strokeStyle = 'rgb(255,190,110)';
+      ctx.lineWidth = Math.max(1, S * (1.5 - u));
+      ctx.beginPath();
+      ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (any) ctx.restore();
   }
 
   drawPaddle(ctx, S, session) {

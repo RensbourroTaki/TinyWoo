@@ -456,6 +456,9 @@ export class GameSession {
       en.x = nx;
       en.y = ny;
       if (en.y < -ENEMY_H) { this.enemies.splice(i, 1); continue; }
+      // haengt er noch in der Tuer fest (unsichtbar ueber der Decke), verschwindet er, damit ein neuer kommen kann
+      en.hidden = en.y - (ENEMY_H >> 1) > CEILING - 6 ? (en.hidden || 0) + 1 : 0;
+      if (en.hidden > 180) { this.enemies.splice(i, 1); continue; }
 
       // Schlaeger-Kontakt: Gegner zerplatzt
       const p = f.paddle;

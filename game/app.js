@@ -25,8 +25,20 @@ export const DEV_KEYS = true;
 const DEV_POS_MIN = 1 - ROUNDS, DEV_POS_MAX = ROUNDS;
 const MENU = ['START GAME', 'HIGHSCORE', 'OPTIONS', 'CREDITS'];
 const MENU_Y = [116, 142, 168, 194];   // Zeilen fuer die Menueschrift (3/4 Groesse bei 4x)
-/** Auswahl-Glow ueber dem gewaehlten Eintrag (additiv): Farbe, Blur in Art-Pixeln, Staerke, Puls. */
-const GLOW = { color: '255,190,90', blur: 5, alpha: 0.4, pulse: 0.35, speed: 0.08, fade: 0.2 };
+/**
+ * Auswahl-Glow ueber dem gewaehlten Eintrag (additiv): Farbe, runder Kern (Blur in Art-Pixeln, Staerke), Puls.
+ * Dazu ein anamorpher Linsen-Schein: die Schrift wird waagerecht um stretch verbreitert weichgezeichnet
+ * (lens = breiter Schein, streak = langer duenner Lichtstreifen; blur in Art-Pixeln senkrecht).
+ */
+const GLOW = {
+  color: '255,190,90', blur: 7, alpha: 0.6, pulse: 0.3, speed: 0.08, fade: 0.2,
+  lens: { stretch: 7, blur: 2.5, alpha: 1.1 },
+  streak: { stretch: 26, blur: 0.7, alpha: 0.6 },
+};
+/** Eigener Mauszeiger (menu/cursor.png): Pixelgroesse = Spielpixel; F8/F9 (nur DEV_KEYS) aendern sie um 1 Geraete-Pixel. */
+const CURSOR = { minus: 'F8', plus: 'F9' };
+/** Auto-Pause: so viele Frames darf die Maus waehrend des Spiels ausserhalb des Spiels sein. */
+const MOUSE_AWAY_FRAMES = 45;
 /** Hinweiszeile unter dem Menue (Pixelschrift): Text, Art-y, Blinktakt in Frames (an + aus), Font-Pixel S - shrink. */
 const HINT = { text: 'FIRE CLICK OR SPACE', y: 240, period: 60, shrink: 1 };
 const CREDITS = ['DAIGANOID', 'A TINY WOO GAME', '', 'GRAPHICS SOUND', 'AND DESIGN', 'TINY WOO', '', 'BALL PHYSICS FROM', 'ARKANOID 2 1987', '', 'PRESS FIRE'];
@@ -42,7 +54,8 @@ export function saveScore(entry) {
 }
 
 function loadOptions() {
-  const d = { sfx: true, music: true, scanlines: true, sens: 5, lock: true };
+  // mlock (frueher lock): Pointer-Lock ist jetzt standardmaessig aus, alte gespeicherte Werte gelten nicht mehr
+  const d = { sfx: true, music: true, scanlines: true, sens: 5, mlock: false };
   try { return Object.assign(d, JSON.parse(localStorage.getItem(OPTIONS_KEY) || '{}')); } catch (e) { return d; }
 }
 
@@ -84,6 +97,8 @@ export class DaiganoidApp {
     this.paused = false;
     this.god = false;           // God Mode (DEV_KEYS), bleibt ueber Level-Wechsel erhalten
     this.godKeyHeld = false;
+    this.cursorStep = 0;        // Zeigergroesse relativ zu S (F8/F9)
+    this.mouseInGame = false;   // Maus war seit Spielstart ueber dem Spiel (erst dann gibt es Auto-Pause)
     this.scores = typeof opts.scores === 'function' ? opts.scores : loadScores;
     this.hi = 0;
     this.syncHi();
@@ -110,8 +125,9 @@ export class DaiganoidApp {
       this.input = new GameInput(this.canvas, () => this.S);
       this.input.toLogicX = (artX) => 16 + (artX - 10) / 1.25;
       this.input.sensitivity = 0.4 + this.options.sens * 0.16;
-      this.input.wantLock = this.options.lock;
+      this.input.wantLock = this.options.mlock;
       this.input.arrowPaddle = !DEV_KEYS;
+      if (!this.assets.img.cursor) this.canvas.style.cursor = '';   // ohne Bild bleibt der normale Zeiger
     }
     document.addEventListener('visibilitychange', this.onVisibility);
     this.setState('intro');
@@ -246,6 +262,13 @@ export class DaiganoidApp {
     const clicks = this.input ? this.input.takeClicks() : [];
     const fire = this.input ? this.input.takeFire() : false;
     if (clicks.length || keys.length) this.audio.unlock();
+    if (DEV_KEYS) {
+      for (const k of keys) {
+        if (k === CURSOR.plus) this.cursorStep = Math.min(8, this.cursorStep + 1);
+        if (k === CURSOR.minus) this.cursorStep = Math.max(1 - this.S, this.cursorStep - 1);
+      }
+    }
+    if (this.input) this.input.lockReady = this.state === 'game' && !this.paused;
     switch (this.state) {
       case 'intro': this.tickIntro(keys, clicks); break;
       case 'menu': this.tickMenu(keys, clicks); break;
@@ -317,8 +340,11 @@ export class DaiganoidApp {
     }
   }
 
-  /** draw() noch einmal additiv mit weichem Schein zeichnen; k = Staerke 0..1. */
-  drawGlow(ctx, S, k, draw) {
+  /**
+   * draw(c) noch einmal additiv mit weichem Schein zeichnen; k = Staerke 0..1.
+   * y0..y1 = Art-Zeilen, in denen die Schrift liegt (fuer den Linsen-Schein).
+   */
+  drawGlow(ctx, S, k, draw, y0, y1) {
     if (k < 0.02) return;
     const p = 1 - GLOW.pulse + GLOW.pulse * Math.sin(this.lightTimer * GLOW.speed);
     ctx.save();
@@ -326,10 +352,53 @@ export class DaiganoidApp {
     ctx.shadowColor = `rgba(${GLOW.color},1)`;
     ctx.globalAlpha = GLOW.alpha * k * p;
     ctx.shadowBlur = GLOW.blur * S * (0.8 + 0.4 * p);
-    draw();
+    draw(ctx);
     ctx.shadowBlur = GLOW.blur * S * 0.35;
-    draw();
+    draw(ctx);
     ctx.restore();
+    this.drawLens(ctx, S, k * p, draw, y0, y1);
+  }
+
+  /**
+   * Anamorpher Linsen-Schein: Schrift in einen Puffer, einfaerben, waagerecht gestaucht weichzeichnen und
+   * wieder auf volle Breite gezogen additiv drueberlegen -> der Schein laeuft nach links und rechts aus.
+   */
+  drawLens(ctx, S, k, draw, y0, y1) {
+    const W = ART_W * S;
+    const top = Math.max(0, Math.floor((y0 - 8) * S));
+    const H = Math.min(ART_H * S, Math.ceil((y1 + 8) * S)) - top;
+    if (H <= 0) return;
+    if (!this.lensBuf) { this.lensBuf = document.createElement('canvas'); this.lensSmall = document.createElement('canvas'); }
+    const buf = this.lensBuf, small = this.lensSmall;
+    if (buf.width !== W || buf.height !== H) { buf.width = W; buf.height = H; }
+    const g = buf.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = 'source-over';
+    g.globalAlpha = 1;
+    g.clearRect(0, 0, W, H);
+    g.imageSmoothingEnabled = false;
+    g.translate(0, -top);
+    draw(g);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = `rgb(${GLOW.color})`;
+    g.fillRect(0, 0, W, H);
+    for (const L of [GLOW.lens, GLOW.streak]) {
+      const sw = Math.max(1, Math.round(W / L.stretch));
+      if (small.width !== sw || small.height !== H) { small.width = sw; small.height = H; }
+      const sc = small.getContext('2d');
+      sc.clearRect(0, 0, sw, H);
+      sc.imageSmoothingEnabled = true;
+      sc.filter = `blur(${(L.blur * S).toFixed(1)}px)`;
+      sc.drawImage(buf, 0, 0, W, H, 0, 0, sw, H);
+      sc.filter = 'none';
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.min(1, L.alpha * k);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(small, 0, 0, sw, H, 0, top, W, H);
+      ctx.restore();
+    }
   }
 
   tickMenu(keys, clicks) {
@@ -361,7 +430,7 @@ export class DaiganoidApp {
       ['MUSIC', o.music ? 'ON' : 'OFF'],
       ['SCANLINES', o.scanlines ? 'ON' : 'OFF'],
       ['MOUSE SPEED', String(o.sens)],
-      ['MOUSE LOCK', o.lock ? 'ON' : 'OFF'],
+      ['MOUSE LOCK', o.mlock ? 'ON' : 'OFF'],
       ['BACK', ''],
     ];
   }
@@ -392,7 +461,7 @@ export class DaiganoidApp {
       case 1: o.music = !o.music; this.audio.setMusicOn(o.music); break;
       case 2: o.scanlines = !o.scanlines; break;
       case 3: o.sens = Math.max(1, Math.min(10, o.sens + change)); this.input.sensitivity = 0.4 + o.sens * 0.16; break;
-      case 4: o.lock = !o.lock; this.input.wantLock = o.lock; if (!o.lock) this.input.releaseLock(); break;
+      case 4: o.mlock = !o.mlock; this.input.wantLock = o.mlock; if (!o.mlock) this.input.releaseLock(); break;
       case 5: if (activate) { this.audio.play('beep', 0.6, 1.2); this.leaveTo('menu'); return; } break;
       default: break;
     }
@@ -434,6 +503,7 @@ export class DaiganoidApp {
     this.applyRoundBackground();
     this.view.handleEvents(this.session);
     this.paused = false;
+    this.mouseInGame = false;
     this.setState('game');
     this.pushHud();
   }
@@ -449,7 +519,19 @@ export class DaiganoidApp {
       if (k === 'Escape' || k === 'KeyP') { this.pause(!this.paused); return; }
       if (DEV_KEYS && this.devKey(k)) return;
     }
-    if (this.paused) return;
+    const inp = this.input;
+    if (this.paused) {
+      if (fire && (inp.pointerInside || inp.touchActive)) this.pause(false);   // Klick ins Spiel spielt weiter
+      return;
+    }
+    // Maus verlaesst waehrend des Spiels das Spielfeld: nach kurzer Zeit automatisch Pause (Zeiger sichtbar)
+    if (inp.pointerInside || inp.locked) { this.mouseInGame = true; inp.outsideFrames = 0; }
+    else if (this.mouseInGame && !inp.touchActive && ++inp.outsideFrames > MOUSE_AWAY_FRAMES) {
+      this.mouseInGame = false;
+      inp.outsideFrames = 0;
+      this.pause(true);
+      return;
+    }
     const delta = this.input.paddleDelta(s.field.paddle.center);
     const roundBefore = s.round;
     s.step(delta, fire);
@@ -544,12 +626,26 @@ export class DaiganoidApp {
         ctx.fillStyle = 'rgba(0,0,20,0.6)';
         ctx.fillRect(0, 0, ART_W * S, ART_H * S);
         this.fonts.spin.drawText(ctx, S, 'PAUSED', 120, 120, 'center', this.menuZoom);
-        this.fonts.spin.drawText(ctx, S, 'P TO CONTINUE', 120, 190, 'center', this.menuZoom);
+        this.fonts.spin.drawText(ctx, S, 'CLICK TO PLAY', 120, 190, 'center', this.menuZoom);
       }
     } else {
       this.drawFront(ctx, S);
     }
+    this.drawCursor(ctx, S);
     this.drawScanlines(ctx, S);
+  }
+
+  /**
+   * Eigener Mauszeiger ueber dem Spiel: sichtbar ueberall ausser im laufenden Spiel (dort ist der Schlaeger
+   * die Maus). Da der Schlaeger der Maus 1:1 folgt, taucht der Zeiger nach Game Over/Pause genau dort wieder auf.
+   */
+  drawCursor(ctx, S) {
+    const inp = this.input, im = this.assets && this.assets.img.cursor;
+    if (!inp || !im || !inp.pointerInside || !inp.pointerArt || inp.locked) return;
+    if (this.state === 'loading' || (this.state === 'game' && !this.paused)) return;
+    const px = Math.max(1, S + this.cursorStep);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(im, Math.round(inp.pointerArt.x * S), Math.round(inp.pointerArt.y * S), im.width * px, im.height * px);
   }
 
   drawFront(ctx, S) {
@@ -574,7 +670,7 @@ export class DaiganoidApp {
 
     if (this.state === 'intro' || this.state === 'menu' || this.state === 'starting') {
       // Auswahl: additiver Glow ueber dem gewaehlten Eintrag (blendet beim Umschalten weich um)
-      if (this.state === 'menu') this.menuTexts.forEach((st, i) => this.drawGlow(ctx, S, this.glow[i] || 0, () => st.draw(ctx, S)));
+      if (this.state === 'menu') this.menuTexts.forEach((st, i) => this.drawGlow(ctx, S, this.glow[i] || 0, (c) => st.draw(c, S), MENU_Y[i], MENU_Y[i] + 23));
       // Hinweiszeile in der Pixelschrift, blinkt ab dem Erscheinen
       if (this.menuAlpha > 0 && this.state === 'menu' && this.t % HINT.period < HINT.period / 2) {
         ctx.globalAlpha = this.menuAlpha;
@@ -590,16 +686,16 @@ export class DaiganoidApp {
           this.valueSpin.t++;
           if (this.valueSpin.t >= spin.frames * 2) this.valueSpin = null; else frame = spin.front + (this.valueSpin.t >> 1);
         }
-        const drawRow = () => {
+        const drawRow = (c) => {
           if (r[1]) {
-            spin.drawText(ctx, S, r[0], 24, y, 'left', z);
-            spin.drawText(ctx, S, r[1], 216, y, 'right', z, frame);
+            spin.drawText(c, S, r[0], 24, y, 'left', z);
+            spin.drawText(c, S, r[1], 216, y, 'right', z, frame);
           } else {
-            spin.drawText(ctx, S, r[0], 120, y, 'center', z);
+            spin.drawText(c, S, r[0], 120, y, 'center', z);
           }
         };
-        drawRow();
-        this.drawGlow(ctx, S, this.glow[i] || 0, drawRow);
+        drawRow(ctx);
+        this.drawGlow(ctx, S, this.glow[i] || 0, drawRow, y, y + 20);
       });
     } else if (this.state === 'highscores') {
       let list = [];

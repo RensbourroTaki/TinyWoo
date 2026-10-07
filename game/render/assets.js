@@ -46,6 +46,7 @@ export const OPTIONAL_IMAGES = {
   paddleLaser: 'player/paddle-laser.png',    // Schlaeger mit Laser
   paddleCatch: 'player/paddle-catch.png',    // Magnet-Schlaeger
   laserShot: 'player/laser-shot.png',        // Laserschuss
+  cursor: 'menu/cursor.png',                 // 16x16 Mauszeiger ueber dem Spiel, Spitze oben links
 };
 
 /** Farbklasse 0..7 der normalen Steine -> Bild (Punkte 50..120 wie im Original). */

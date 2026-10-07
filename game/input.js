@@ -14,11 +14,14 @@ export class GameInput {
     this.keys = new Set();
     this.pressedKeys = [];             // Tastendruecke seit dem letzten Frame (fuer Menues)
     this.clicks = [];                  // Klicks/Taps in Art-Koordinaten seit dem letzten Frame
-    this.pointerArt = null;            // Zeigerposition in Art-Koordinaten (Hover)
+    this.pointerArt = null;            // Zeigerposition in Art-Koordinaten, nur solange die Maus ueber dem Spiel ist
+    this.pointerInside = false;        // Maus (nicht Touch) steht ueber dem Canvas
+    this.outsideFrames = 0;            // Frames, die die Maus schon ausserhalb des Canvas ist (Auto-Pause)
     this.keyVel = 0;
     this.arrowPaddle = true;           // Pfeil links/rechts steuern den Schlaeger (aus = nur A/D, z. B. Test-Tasten)
     this.locked = false;
-    this.wantLock = true;
+    this.wantLock = false;             // Option MOUSE LOCK
+    this.lockReady = false;            // von der App gesetzt: nur im laufenden Spiel darf gesperrt werden
     this.touchActive = false;
     this.toLogicX = (artX) => artX;    // wird vom Spiel gesetzt (Art -> Logik)
     this.bind();
@@ -26,26 +29,33 @@ export class GameInput {
 
   bind() {
     const c = this.canvas;
+    // Bewegung wird am Fenster verfolgt: so folgt der Schlaeger auch, wenn die Maus kurz ueber den Rand
+    // hinausschiesst, und der Zeiger steht beim Zurueckkommen genau dort, wo der Schlaeger ist.
     this.onMove = (e) => {
       if (document.pointerLockElement === c) {
         this.accum += (e.movementX / (this.getScale() * 1.25)) * this.sensitivity;
         this.absoluteX = null;
-      } else {
-        const a = this.artPos(e);
-        this.pointerArt = a;
-        this.absoluteX = this.toLogicX(a.x);
+        return;
       }
+      if (e.pointerType === 'touch' && e.target !== c) return;
+      const a = this.artPos(e);
+      const inside = a.x >= 0 && a.x < ART_W && a.y >= 0 && a.y < ART_H;
+      if (e.pointerType !== 'touch') this.pointerInside = inside;
+      this.pointerArt = inside ? a : null;
+      this.absoluteX = this.toLogicX(Math.max(0, Math.min(ART_W, a.x)));
     };
+    this.onLeave = () => { this.pointerInside = false; this.pointerArt = null; };
     this.onDown = (e) => {
       if (e.button !== undefined && e.button !== 0) return;
       const a = this.artPos(e);
       this.clicks.push(a);
+      if (e.pointerType !== 'touch') { this.pointerInside = true; this.pointerArt = a; }
       this.fireHeld = true;
       this.firePressed = true;
       if (e.pointerType === 'touch') {
         this.touchActive = true;
         this.absoluteX = this.toLogicX(a.x);
-      } else if (this.wantLock && document.pointerLockElement !== c && c.requestPointerLock) {
+      } else if (this.wantLock && this.lockReady && document.pointerLockElement !== c && c.requestPointerLock) {
         try { const p = c.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (err) { /* egal */ }
       }
     };
@@ -56,14 +66,16 @@ export class GameInput {
       this.keys.add(e.code);
       this.pressedKeys.push(e.code);
       if (e.code === 'Space' || e.code === 'ControlLeft' || e.code === 'Enter') { this.fireHeld = true; this.firePressed = true; }
-      if (['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
+      if (['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'F8', 'F9'].includes(e.code)) e.preventDefault();
     };
     this.onKeyUp = (e) => {
       this.keys.delete(e.code);
       if (e.code === 'Space' || e.code === 'ControlLeft' || e.code === 'Enter') this.fireHeld = false;
     };
-    c.addEventListener('pointermove', this.onMove);
+    window.addEventListener('pointermove', this.onMove);
+    c.addEventListener('pointerleave', this.onLeave);
     c.addEventListener('pointerdown', this.onDown);
+    c.style.cursor = 'none';            // ueber dem Spiel zeichnet die App den eigenen Zeiger (menu/cursor.png)
     window.addEventListener('pointerup', this.onUp);
     document.addEventListener('pointerlockchange', this.onLock);
     c.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -121,7 +133,8 @@ export class GameInput {
 
   destroy() {
     const c = this.canvas;
-    c.removeEventListener('pointermove', this.onMove);
+    window.removeEventListener('pointermove', this.onMove);
+    c.removeEventListener('pointerleave', this.onLeave);
     c.removeEventListener('pointerdown', this.onDown);
     window.removeEventListener('pointerup', this.onUp);
     document.removeEventListener('pointerlockchange', this.onLock);
