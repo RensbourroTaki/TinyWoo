@@ -201,8 +201,10 @@ function GameRow({ g, flip, onNav }) {
       </div>}
       {(g.features || g.kicker) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '48px 64px', alignItems: 'center' }}>
         {g.features && <div style={{ flex: '1 1 420px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {g.featuresIntro && <p style={{ margin: '0 0 8px', fontSize: 20, lineHeight: 1.55 }}>{g.featuresIntro}</p>}
           {g.featuresTitel && <Kicker>{g.featuresTitel}</Kicker>}
           <ul style={{ margin: 0, paddingLeft: 24, fontSize: 18, lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: 8 }}>{g.features.map(t => <li key={t}>{t}</li>)}</ul>
+          {g.featuresSchluss && <p className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h3)', lineHeight: 1.15, color: 'var(--sun-400)', transform: 'rotate(-2deg)', transformOrigin: 'left' }}>{g.featuresSchluss}</p>}
         </div>}
         {g.kicker && (Array.isArray(g.kicker)
           ? <div style={{ flex: '1 1 380px', minWidth: 0, background: 'var(--grad-sun)', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: 14, transform: `rotate(${-tilt * 1.3}deg)` }}>
