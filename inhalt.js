@@ -168,8 +168,6 @@ window.TW_INHALT = {
         'Some UI icons, so I can spend my pixel time where it matters',
       ] },
       { p: "Everything else I make myself, or it's a purchased asset I modify to fit the game visually and technically. Sometimes it's the work of an artist I simply love, because it fits better than anything I would have made." },
-      { h: 'Why this place exists' },
-      { p: "I'd rather spend my time wrestling with gameplay mechanics until they feel exactly right than making videos about it. Tiny Woo is my docking bay for fun, carefully made games." },
       { schluss: 'I hope you have fun with them.' },
     ],
     footer: '© 2026 Tiny Woo · Made by one guy with a sword',
