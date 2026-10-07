@@ -133,7 +133,6 @@ window.TW_INHALT = {
     storyTitel: 'The story',
     story: [
       { text: 'I\'ve brought my old Arkanoid fan project, DAIGANOID, back to life using the original assets I created around 2000. Back then, together with an old friend and programmer, I built a polished beta of the game for the iPAQ, one of the Pocket PCs of that era. But life took us both in different directions, and the game was never finished.' },
-      { text: 'I\'m especially proud of the 360-degree spinning letters of my bitmap font. I pixelled and polished them over quite a few late nights.' },
       { text: 'I hope you enjoy this version! Over time I plan to add bosses, a level editor and more, though I mustn\'t forget the other games I still want to make ;)' },
       { text: 'Have fun!' },
     ],
