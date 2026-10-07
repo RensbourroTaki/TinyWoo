@@ -689,11 +689,11 @@ export class GameSession {
   }
 }
 
-// Tempo-Kurve ueber alle 32 Runden gestreckt (User 2026-10-07): Runde 32 = fruehere Runde 15
-// (Start 8, Minimum 11, Tabelle 2); die schnelle Speed-Up-Tabelle 3 wird nicht mehr benutzt.
-/** Startgeschwindigkeit: Runde 1 wie das Original (5, im ersten Frame 6); alle 8 Runden +1, Runde 25-32 = 8. */
-export function startSpeed(round) { return Math.min(8, 5 + Math.floor(round / 8)); }
-/** Mindest-Speed nach Deckenkontakt, Runde 1 wie das Original (7); alle 7 Runden +1, hoechstens 11. */
-export function minSpeed(round) { return Math.min(11, 7 + Math.floor(round / 7)); }
-/** Speed-Up-Tabelle (SPEED_UP_BOUNCES): Runde 1-16 = 1, ab Runde 17 = 2. */
-export function difficulty(round) { return round < 16 ? 1 : 2; }
+// Kein Level-Tempo (User 2026-10-07): jede Runde beginnt wie Runde 1, schneller wird der Ball
+// nur ueber die Abpraller; die Schwierigkeit kommt allein aus dem Level-Design.
+/** Startgeschwindigkeit wie das Original Runde 1 (5, im ersten Frame 6). */
+export function startSpeed(round) { return 5; }
+/** Mindest-Speed nach Deckenkontakt wie das Original Runde 1 (7). */
+export function minSpeed(round) { return 7; }
+/** Speed-Up-Tabelle (SPEED_UP_BOUNCES): eigene Tabelle 5, langsamer als das ROM. */
+export function difficulty(round) { return 5; }

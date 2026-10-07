@@ -54,7 +54,7 @@ ASCII 32–126 (Raster 9×17, Zeichen 8×16 ab (1,1), Breite aus der letzten Tin
 
 Regler oben in `render/view.js`: `BALL_GLOW` (Ball-Glow, roter Rand des Mega-Balls `player/ball-item1.png`),
 `TRAIL` (Ball-Schweif), `SPARKS` (Funken bei Wand/Decke und Explosionen, additiv mit Schwerkraft).
-Auswahl-Glow im Menü/Optionen: `GLOW` in `app.js`. Tempo-Kurve: `startSpeed`/`minSpeed`/`difficulty` in `play/session.js`.
+Auswahl-Glow im Menü/Optionen: `GLOW` in `app.js`. Ball-Tempo: jede Runde wie Runde 1 (`startSpeed`/`minSpeed`/`difficulty` in `play/session.js`), schneller nur über Abpraller.
 
 ## Grafiken ersetzen
 
