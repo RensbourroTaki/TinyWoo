@@ -132,7 +132,7 @@ window.TW_INHALT = {
     highscoreTitel: 'Highscore',
     storyTitel: 'The story',
     story: [
-      { text: 'I\'ve brought my old Arkanoid fan project, DAIGANOID, back to life using the original assets I created around 2000. Back then, together with an old friend and programmer, I built a polished beta of the game for the iPAQ, one of the Pocket PCs of that era. But life took us both in different directions, and the game was never finished.' },
+      { text: 'Arkanoid is TAITO\'s masterpiece, and DAIGANOID is my love letter to it. I pixelled every graphic and the font around 2000, for a Pocket PC version a friend and I never got to finish. Twenty-five years later, with AI helping me on the code side, I finally gave these pixels the game they were made for. I put everything I love about the original into it, and I hope you can feel that.' },
       { text: 'I hope you enjoy this version! Over time I plan to add bosses, a level editor and more, though I mustn\'t forget the other games I still want to make ;)' },
       { text: 'Have fun!' },
     ],
