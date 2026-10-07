@@ -112,7 +112,8 @@ window.TW_INHALT = {
      Das Spiel selbst liegt in game/ und assets/daiganoid/ (siehe ANLEITUNG, Punkt 7).
      musikMenue / musikHighscore / musikSpiel: OGG nach assets/daiganoid/music/ hochladen und hier eintragen ('' = keine Musik).
      apiUrl: Adresse des Highscore-Servers (Cloudflare Worker, ANLEITUNG Punkt 8). '' = nur lokale Liste im Browser.
-     header: Kopf der Arcade-Seite. story: linke Spalte, ein Block = Zwischenueberschrift + Absatz (titel weglassen = nur Absatz). */
+     header: Kopf der Arcade-Seite. story: linke Spalte, ein Block = Zwischenueberschrift + Absatz (titel weglassen = nur Absatz),
+     optional links: [{ label, href }] = klickbare Links unter dem Absatz. */
   daiganoid: {
     titel: 'Daiganoid',
     text: 'A fan-made Arkanoid: 32 rounds, two exits per round, lasers, mega balls and a cube that wants your ball. Pixel-exact ball physics rebuilt from the 1987 arcade original.',
@@ -134,6 +135,11 @@ window.TW_INHALT = {
     story: [
       { text: 'Arkanoid is TAITO\'s masterpiece, and DAIGANOID is my love letter to it. I pixelled every graphic and the font around 2000, for a Pocket PC version a friend and I never got to finish. Twenty-five years later, with AI helping me on the code side, I finally gave these pixels the game they were made for. I put everything I love about the original into it, and I hope you can feel that.' },
       { text: 'I hope you enjoy this version! Over time I plan to add bosses, a level editor and more, though I mustn\'t forget the other games I still want to make ;)' },
+      { titel: 'Music', text: 'The menu theme "Out There" is by yd, and the highscore theme "Party Sector" is by Joth, both shared freely on OpenGameArt. They didn\'t ask for credit, but their tracks give DAIGANOID its mood, so: thank you!',
+        links: [
+          { label: '"Out There" by yd', href: 'https://opengameart.org/content/space-music-out-there' },
+          { label: '"Party Sector" by Joth', href: 'https://opengameart.org/content/party-sector' },
+        ] },
       { text: 'Have fun!' },
     ],
   },
