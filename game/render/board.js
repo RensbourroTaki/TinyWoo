@@ -1,6 +1,6 @@
 // Das Board (240x334 Art-Pixel = Groesse der Vollbild-Hintergruende): der Hintergrund fuellt den ganzen Schirm,
 // darueber haengt oben der Rahmen aus den Einzelteilen des Pocket-PC-Projekts (Rohre, Tueren mit Lichtern,
-// Laempchen); Phaser und Rohr-Endkappen ("Duesen") haengen im festen Abstand unter dem Rahmen.
+// Laempchen); Phaser und Rohr-Endkappen ("Duesen") haengen im festen Abstand unter dem Rahmen, der Phaser liegt obenauf.
 // Der Rahmen wirft einen harten Schatten (wie das Logo) auf Hintergrund und Steine.
 // Zeichenreihenfolge: drawBackground -> (Steine) -> drawShadow -> (Spielobjekte) -> drawFrame -> drawDynamic.
 import { BgShimmer } from './bgfx.js';
@@ -9,7 +9,7 @@ export const ART_W = 240;
 export const ART_H = 334;
 export const FRAME_BOTTOM = 10 + 291;  // Unterkante der Rohre (frame-top 10 hoch, Rohre 291 hoch)
 export const INNER = Object.freeze({ x: 10, y: 10, w: 220, h: 301 });   // Spielflaeche innerhalb der Rohre
-export const PHASER_Y = FRAME_BOTTOM + 7;   // Phaser-Glow 240x22
+export const PHASER_Y = FRAME_BOTTOM + 6;   // Phaser-Glow 240x22
 export const FOOT_Y = FRAME_BOTTOM + 10;    // Rohr-Endkappen 14x9
 export const DOOR_TOP = Object.freeze([{ x: 24, y: 1 }, { x: 187, y: 1 }]);           // 28x18
 export const DOOR_LEFT = Object.freeze({ x: 0, y: 281, w: 18, h: 17, lightX: 10, lightW: 8 });
@@ -176,13 +176,7 @@ export class Board {
    */
   drawDynamic(ctx, st) {
     const I = this.img;
-    // Phaser zuerst (liegt unter den Rohr-Enden), additiv = leuchtender Strahl ueber dem Hintergrund
-    if (st.phaserFrame >= 0) {
-      ctx.globalCompositeOperation = 'lighter';
-      this.frame(ctx, I.phaser, 22, st.phaserFrame, 0, PHASER_Y, st.phaserAlpha ?? 1);
-      ctx.globalCompositeOperation = 'source-over';
-    }
-    // Endkappen: oberer Frame = links, unterer Frame = rechts (statisch, liegen ueber dem Phaser)
+    // Endkappen: oberer Frame = links, unterer Frame = rechts (statisch, der Phaser liegt darueber)
     this.frame(ctx, I.frameFoot, 9, 0, 0, FOOT_Y);
     this.frame(ctx, I.frameFoot, 9, 1, ART_W - 14, FOOT_Y);
     // Tueren oben
@@ -197,6 +191,12 @@ export class Board {
     if (st.doorRight > 0) this.frame(ctx, I.doorRightLight, 17, st.doorRight, DOOR_RIGHT.lightX, DOOR_RIGHT.y);
     // Laempchen
     for (let i = 0; i < LIGHTS.length; i++) this.frame(ctx, I.greenlight, 3, st.lights[i] ? 1 : 0, LIGHTS[i][0], LIGHTS[i][1]);
+    // Phaser zuletzt (ueber Rahmen und Endkappen), additiv = leuchtender Strahl
+    if (st.phaserFrame >= 0) {
+      ctx.globalCompositeOperation = 'lighter';
+      this.frame(ctx, I.phaser, 22, st.phaserFrame, 0, PHASER_Y, st.phaserAlpha ?? 1);
+      ctx.globalCompositeOperation = 'source-over';
+    }
   }
 }
 

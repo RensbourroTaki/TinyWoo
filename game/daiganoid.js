@@ -6,8 +6,9 @@
 // Das Spiel zeichnet 240x334 Art-Pixel mit ganzzahliger Geraete-Skalierung (bis maxScale, Standard 4).
 import { DaiganoidApp, loadScores, saveScore } from './app.js';
 import { ART_H, ART_W } from './render/board.js';
+import { checkName, sanitizeName } from './filter/namefilter.js';
 
-export { loadScores, saveScore };
+export { loadScores, saveScore, checkName, sanitizeName };
 
 export async function mountDaiganoid(container, opts = {}) {
   const canvas = document.createElement('canvas');
@@ -57,6 +58,8 @@ export async function mountDaiganoid(container, opts = {}) {
     },
     showHighscores() { app.showHighscores(); },
     toMenu() { app.showHighscores(); },
+    /** Vom Wirt aufrufen, wenn sich die Liste hinter opts.scores geaendert hat (HI-Anzeige nachziehen). */
+    refreshScores() { app.syncHi(); },
     setOption(k, v) { app.options[k] = v; },
     destroy() {
       app.destroy();

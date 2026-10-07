@@ -110,12 +110,29 @@ window.TW_INHALT = {
 
   /* ---------- DAIGANOID (Arcade-Seite) ----------
      Das Spiel selbst liegt in game/ und assets/daiganoid/ (siehe ANLEITUNG, Punkt 7).
-     musikMenue / musikSpiel: OGG nach assets/daiganoid/music/ hochladen und hier eintragen ('' = keine Musik). */
+     musikMenue / musikSpiel: OGG nach assets/daiganoid/music/ hochladen und hier eintragen ('' = keine Musik).
+     apiUrl: Adresse des Highscore-Servers (Cloudflare Worker, ANLEITUNG Punkt 8). '' = nur lokale Liste im Browser.
+     header: Kopf der Arcade-Seite. story: linke Spalte, ein Block = Zwischenueberschrift + Absatz (titel weglassen = nur Absatz). */
   daiganoid: {
     titel: 'Daiganoid',
     text: 'A fan-made Arkanoid: 32 rounds, two exits per round, lasers, mega balls and a cube that wants your ball. Pixel-exact ball physics rebuilt from the 1987 arcade original.',
     musikMenue: '',          // z.B. 'assets/daiganoid/music/menu.ogg'
     musikSpiel: '',          // z.B. 'assets/daiganoid/music/game.ogg'
+
+    apiUrl: 'https://daiganoid-api.tinywoo.workers.dev',   // '' = aus (nur lokale Liste)
+
+    header: {
+      kicker: 'Arcade · A fan vision',
+      titel: 'DAIGANOID',
+      zeile: 'Hand-pixelled in the 90s. Built for a Pocket PC. Finished in your browser.',
+    },
+
+    highscoreTitel: 'Highscore',
+    storyTitel: 'The story',
+    story: [
+      { text: 'DAIGANOID is an old game project of mine, brought back to life. The pixel art is my original set from back in the day, the gameplay is modelled on Arkanoid, and this version was rebuilt step by step with AI assistance, directed by me. A level editor is planned, if everybody behaves.' },
+      { text: 'With all due respect to Taito, and to my all-time favourite: Arkanoid – Revenge of Doh.' },
+    ],
   },
 
   /* ---------- TEXTE ---------- */

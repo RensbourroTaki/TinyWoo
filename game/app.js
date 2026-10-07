@@ -16,6 +16,13 @@ import { GameAudio } from './audio.js';
 export const SCORES_KEY = 'tw-daiganoid-scores';
 export const OPTIONS_KEY = 'tw-daiganoid-options';
 const FRAME = 1 / 60;
+/**
+ * Test-Tasten im Spiel: Pfeil links/rechts = Level wechseln (Neustart), Pfeil hoch = God Mode an/aus.
+ * Solange an, steuern die Pfeiltasten nicht den Schlaeger (dann Maus oder A/D). false = abgedreht.
+ */
+export const DEV_KEYS = true;
+/** Level-Linie fuer DEV_KEYS: L32 .. L02 L01 | R01 R02 .. R32 (Position <= 0 links, > 0 rechts). */
+const DEV_POS_MIN = 1 - ROUNDS, DEV_POS_MAX = ROUNDS;
 const MENU = ['START GAME', 'HIGHSCORE', 'OPTIONS', 'CREDITS'];
 const MENU_Y = [116, 142, 168, 194];   // Zeilen fuer die Menueschrift (3/4 Groesse bei 4x)
 const CREDITS = ['DAIGANOID', 'A TINY WOO GAME', '', 'GRAPHICS SOUND', 'AND DESIGN', 'TINY WOO', '', 'BALL PHYSICS FROM', 'ARKANOID 2 1987', '', 'PRESS FIRE'];
@@ -38,7 +45,9 @@ function loadOptions() {
 export class DaiganoidApp {
   /**
    * @param canvas HTMLCanvasElement
-   * @param opts { assetBase, musicMenu, musicGame, teaser, hooks: { onHud, onGameOver, onState, onClick } }
+   * @param opts { assetBase, musicMenu, musicGame, teaser, scores, hooks: { onHud, onGameOver, onState, onClick } }
+   *   scores: optionale Funktion, die die anzuzeigende Highscore-Liste liefert (z. B. die gemeinsame Liste
+   *   vom Server); ohne sie wird die lokale Liste aus localStorage benutzt.
    */
   constructor(canvas, opts = {}) {
     this.canvas = canvas;
@@ -68,7 +77,11 @@ export class DaiganoidApp {
     this.bs = boardState();
     this.lightTimer = 0;
     this.paused = false;
-    this.hi = Math.max(0, ...loadScores().map((s) => s.score));
+    this.god = false;           // God Mode (DEV_KEYS), bleibt ueber Level-Wechsel erhalten
+    this.godKeyHeld = false;
+    this.scores = typeof opts.scores === 'function' ? opts.scores : loadScores;
+    this.hi = 0;
+    this.syncHi();
     this.scanPattern = null;
     this.logoY = -80;
     this.menuZoom = 0.75;       // Menueschrift: (S - 1) Geraetepixel je Font-Pixel, mindestens 1
@@ -93,6 +106,7 @@ export class DaiganoidApp {
       this.input.toLogicX = (artX) => 16 + (artX - 10) / 1.25;
       this.input.sensitivity = 0.4 + this.options.sens * 0.16;
       this.input.wantLock = this.options.lock;
+      this.input.arrowPaddle = !DEV_KEYS;
     }
     document.addEventListener('visibilitychange', this.onVisibility);
     this.setState('intro');
@@ -159,7 +173,7 @@ export class DaiganoidApp {
       this.board.build(this.S, 0);
       this.logoY = -80;
     }
-    if (s === 'menu') { this.logoY = 24; this.enterMenu(); }
+    if (s === 'menu') { this.logoY = 24; this.syncHi(); this.enterMenu(); }
     if (s === 'options') { this.logoY = 24; this.enterOptions(); }
     if (s === 'highscores') this.enterList('HIGHSCORE');
     if (s === 'credits') this.enterList('CREDITS');
@@ -378,12 +392,14 @@ export class DaiganoidApp {
     if (t >= 90) this.startGame();
   }
 
-  startGame() {
+  /** Neues Spiel ab Runde round (0-basiert), Variante variant (0 links, 1 rechts). */
+  startGame(round = 0, variant = 0) {
     this.session = new GameSession((Date.now() & 0xFFFFFF) | 1);
+    this.session.god = this.god;
     this.view = new GameView(this.assets, this.fonts, this.board, this.audio);
     this.view.bs = this.bs;
     this.view.zoom = this.menuZoom;
-    this.session.startGame();
+    this.session.startGame(round, variant);
     this.applyRoundBackground();
     this.view.handleEvents(this.session);
     this.paused = false;
@@ -397,8 +413,10 @@ export class DaiganoidApp {
 
   tickGame(keys, fire) {
     const s = this.session;
+    if (!this.input.keys.has('ArrowUp')) this.godKeyHeld = false;
     for (const k of keys) {
       if (k === 'Escape' || k === 'KeyP') { this.pause(!this.paused); return; }
+      if (DEV_KEYS && this.devKey(k)) return;
     }
     if (this.paused) return;
     const delta = this.input.paddleDelta(s.field.paddle.center);
@@ -412,6 +430,27 @@ export class DaiganoidApp {
       this.input.releaseLock();
       this.setState('gameover');
     }
+  }
+
+  /** Test-Tasten (DEV_KEYS). true = Spiel wurde neu gestartet (Rest des Frames auslassen). */
+  devKey(k) {
+    const s = this.session;
+    if (k === 'ArrowUp') {
+      if (this.godKeyHeld) return false;   // Tastenwiederholung beim Halten ignorieren
+      this.godKeyHeld = true;
+      this.god = !this.god;
+      s.god = this.god;
+      this.view.say(this.god ? 'GOD MODE ON' : 'GOD MODE OFF', 40, 170);
+      this.audio.play('beep', 0.7, this.god ? 1.5 : 0.8);
+      return false;
+    }
+    if (k !== 'ArrowLeft' && k !== 'ArrowRight') return false;
+    const pos = s.variant ? s.round + 1 : -s.round;
+    const next = Math.max(DEV_POS_MIN, Math.min(DEV_POS_MAX, pos + (k === 'ArrowLeft' ? -1 : 1)));
+    if (next === pos) return false;
+    this.paused = false;
+    this.startGame(next > 0 ? next - 1 : -next, next > 0 ? 1 : 0);
+    return true;
   }
 
   pause(on) {
@@ -428,9 +467,16 @@ export class DaiganoidApp {
     }
   }
 
+  /** HI-Wert aus der aktuellen Liste nachziehen (lokal oder vom Server). */
+  syncHi() {
+    let list = [];
+    try { list = this.scores() || []; } catch (e) { list = []; }
+    this.hi = Math.max(this.hi, 0, ...list.map((s) => Number(s.score) || 0));
+  }
+
   /** Vom Wirt nach der Namenseingabe aufgerufen. */
   showHighscores() {
-    this.hi = Math.max(this.hi, ...loadScores().map((s) => s.score));
+    this.syncHi();
     if (this.view) for (const a of this.view.announces) a.stop();
     this.boardAlpha = 1; this.menuAlpha = 1;
     this.bs.phaserFrame = 3;
@@ -532,7 +578,8 @@ export class DaiganoidApp {
         if (sel) spin.drawGlyph(ctx, S, '>', spin.front, 10, y, z);
       });
     } else if (this.state === 'highscores') {
-      const list = loadScores();
+      let list = [];
+      try { list = this.scores() || []; } catch (e) { list = []; }
       if (!list.length) spin.drawText(ctx, S, 'NO SCORES YET', 120, 140, 'center', z);
       list.slice(0, 10).forEach((e, i) => {
         const y = 52 + i * 20;

@@ -13,7 +13,7 @@ import { ITEMS, ITEM_H, ITEM_W, pickItem, resolveSurprise } from './items.js';
 
 export const Phase = Object.freeze({
   INTRO: 'intro',        // Steine erscheinen, Schlaeger fliegt ein
-  READY: 'ready',        // ROUND / READY / GO
+  READY: 'ready',        // LEVEL NN / Name
   PLAYING: 'playing',
   BALL_LOST: 'ballLost', // letzter Ball im Phaser
   EXIT: 'exit',          // Portale offen, Spieler waehlt links/rechts
@@ -24,7 +24,7 @@ export const Phase = Object.freeze({
 
 export const START_LIVES = 3;
 export const INTRO_FRAMES = 110;
-export const READY_FRAMES = 330;   // ROUND / READY / GO in der Drehschrift mit langsamem Ausdrehen
+export const READY_FRAMES = 330;   // LEVEL NN / Name in der Drehschrift mit langsamem Ausdrehen
 export const BALL_LOST_FRAMES = 100;
 export const EXITING_FRAMES = 80;
 export const MEGA_FRAMES = 600;
@@ -74,6 +74,7 @@ export class GameSession {
     this.brickAppearSeed = 0;
     this.paddleEntrySide = 1;  // Einflug von links (-1) oder rechts (+1)
     this.ballsHidden = true;   // Baelle noch nicht sichtbar (INTRO)
+    this.god = false;          // God Mode (Test): verlorene Baelle kosten kein Leben
   }
 
   /** Zufall [0,1) aus 24 Bits der Kern-Zufallsquelle (deterministisch pro Seed). */
@@ -87,9 +88,10 @@ export class GameSession {
 
   // ---------------------------------------------------------------- Ablauf
 
-  startGame() {
-    this.round = 0;
-    this.variant = 0;
+  /** Neues Spiel ab Runde round (0-basiert), Variante variant (0 links, 1 rechts); Normalfall Runde 1 links. */
+  startGame(round = 0, variant = 0) {
+    this.round = round;
+    this.variant = variant;
     this.score = 0;
     this.lives = START_LIVES;
     this.nextExtraLife = EXTRA_LIFE_FIRST;
@@ -185,7 +187,7 @@ export class GameSession {
 
       case Phase.BALL_LOST:
         if (--this.phaseTimer <= 0) {
-          this.lives--;
+          if (!this.god) this.lives--;   // God Mode: kein Leben verloren
           if (this.lives < 0) {
             this.phase = Phase.GAME_OVER;
             this.emit('gameOver', { score: this.score });

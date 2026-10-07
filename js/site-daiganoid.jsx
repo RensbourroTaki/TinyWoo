@@ -10,14 +10,32 @@ const loadGame = () => window.Daiganoid ? Promise.resolve(window.Daiganoid) : ne
 const pixel = (fs, color) => ({ fontFamily: 'var(--font-pixel)', fontSize: fs, letterSpacing: 'var(--tracking-pixel)', textTransform: 'uppercase', color, lineHeight: 1 });
 const frame = { position: 'relative', display: 'inline-block', minWidth: 240, minHeight: 334, borderRadius: 'var(--radius-xl)', border: '4px solid var(--ink)', boxShadow: 'var(--shadow-pop-lg)', background: '#000', overflow: 'hidden', lineHeight: 0 };
 
-/** Das Spiel auf der Arcade-Seite: Canvas, HUD, Vollbild, Namenseingabe nach Game Over. */
-function DaiganoidArcade() {
+// Namensfilter (game/filter/namefilter.js, ueber das Spielmodul). Ohne Modul: nur kuerzen.
+const filterCheck = (raw) => { const M = window.Daiganoid; return M && M.checkName ? M.checkName(raw) : { ok: true, name: String(raw || '').toUpperCase().slice(0, 10) }; };
+const REJECT = { spam: 'No links, no spam. Just a name.', reserved: 'Nice try. That name belongs to the house.', empty: 'Type a name first.' };
+const rejectText = (reason) => REJECT[reason] || "That name won't fly here. Pick another one.";
+const submitText = (r) => {
+  if (r.error === 'name') return rejectText(r.reason);
+  if (r.error === 'rate' || r.error === 'rate-daily') return 'Slow down. Try again in a moment.';
+  if (r.error === 'too-fast' || r.error === 'token') return 'That score could not be verified.';
+  return 'Saving failed. Try again.';
+};
+
+/** Das Spiel auf der Arcade-Seite: Canvas, HUD, Vollbild, Namenseingabe nach Game Over.
+ *  scores: Liste fuer die Highscore-Anzeige im Spiel; onSubmit(entry) speichert; onPlaying(bool) meldet "spielt gerade". */
+function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
   const host = React.useRef(null), wrap = React.useRef(null), game = React.useRef(null);
+  const scoresRef = React.useRef(scores || []);
   const [hud, setHud] = React.useState({ score: 0, round: 1, lives: 3, hi: 0, rounds: 32 });
   const [state, setState] = React.useState('loading');
   const [over, setOver] = React.useState(null);
   const [name, setName] = React.useState('');
   const [error, setError] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState('');
+
+  React.useEffect(() => { scoresRef.current = scores || []; if (game.current) game.current.refreshScores(); }, [scores]);
+  React.useEffect(() => { if (onPlaying) onPlaying(state === 'game'); }, [state]);
 
   React.useEffect(() => {
     let live = true;
@@ -31,10 +49,11 @@ function DaiganoidArcade() {
         fullscreenElement: wrap.current,
         availWidth: () => (wrap.current ? wrap.current.clientWidth : 240) - 16,
         availHeight: () => Math.max(480, window.innerHeight - 100),
+        scores: () => scoresRef.current,
         hooks: {
           onHud: setHud,
           onState: setState,
-          onGameOver: (r) => { setOver(r); setName(''); },
+          onGameOver: (r) => { setOver(r); setName(''); setSubmitError(''); },
         },
       });
     }).then((g) => { if (live) game.current = g; else if (g) g.destroy(); })
@@ -42,13 +61,19 @@ function DaiganoidArcade() {
     return () => { live = false; if (game.current) { game.current.destroy(); game.current = null; } };
   }, []);
 
-  const save = () => {
-    if (!game.current || !over) return;
-    loadGame().then((m) => {
-      m.saveScore({ name: (name || 'AAA').toUpperCase().slice(0, 10), score: over.score, round: over.round, date: Date.now() });
-      setOver(null);
-      game.current.showHighscores();
-    });
+  const check = over ? filterCheck(name || 'AAA') : null;
+  const nameError = check && name && !check.ok ? rejectText(check.reason) : '';
+
+  const save = async () => {
+    if (!game.current || !over || busy) return;
+    const c = filterCheck(name || 'AAA');
+    if (!c.ok) { setSubmitError(rejectText(c.reason)); return; }
+    setBusy(true); setSubmitError('');
+    const r = onSubmit ? await onSubmit({ name: c.name, score: over.score, round: over.round }) : { ok: true };
+    setBusy(false);
+    if (!r || !r.ok) { setSubmitError(submitText(r || {})); return; }
+    setOver(null);
+    game.current.showHighscores();
   };
   const skip = () => { setOver(null); if (game.current) game.current.showHighscores(); };
   const inGame = state === 'game' || state === 'gameover';
@@ -64,8 +89,8 @@ function DaiganoidArcade() {
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 40, lineHeight: 1, color: over.complete ? 'var(--lime-400)' : 'var(--orange-400)', WebkitTextStroke: '3px var(--ink)', paintOrder: 'stroke fill', textShadow: '0 4px 0 var(--ink)', transform: 'rotate(-3deg)' }}>{over.complete ? 'All clear!' : 'Game over'}</div>
               <div style={pixel(36, 'var(--gray-50)')}>{over.score}</div>
               <div style={pixel(12, 'var(--gray-300)')}>Round {over.round}</div>
-              <Input label="Enter your name" pixel maxLength={10} placeholder="AAA" value={name} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} />
-              <Button onClick={save} icon={<Icon name="trophy" size={20} />}>Save score</Button>
+              <Input label="Enter your name" pixel maxLength={10} placeholder="AAA" value={name} autoFocus error={nameError || submitError} onChange={(e) => { setName(e.target.value); setSubmitError(''); }} onKeyDown={(e) => e.key === 'Enter' && save()} />
+              <Button onClick={save} disabled={busy || !!nameError} icon={<Icon name="trophy" size={20} />}>{busy ? 'Saving…' : 'Save score'}</Button>
               <Button variant="ghost" size="sm" onClick={skip}>Skip</Button>
             </div>
           </div>}

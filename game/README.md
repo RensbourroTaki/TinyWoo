@@ -8,21 +8,22 @@ Teaser auf der Startseite). Grafiken und Sounds liegen in `assets/daiganoid/`.
 | Ordner | Inhalt |
 |---|---|
 | `core/` | Ball-/Schläger-/Stein-Logik von „Arkanoid – Revenge of Doh“, byte-genau portiert (`playfield.js`, `ballmotion.js`, `brickgrid.js`, `ball.js`, `paddle.js`, `tables.js`). 11 Spalten im Spiel, 13 für die Verifikation. |
-| `play/` | Eigenes Gameplay: `session.js` (Runden, Leben, Items, Laser, Gegner, Portale), `levels.js` (32 Runden × 2 Varianten, Textformat), `items.js`. |
+| `play/` | Eigenes Gameplay: `session.js` (Runden, Leben, Items, Laser, Gegner, Portale), `levels.js` (32 Runden × 2 Varianten, Textformat), `levelnames.js` (Namen je Runde links/rechts, Ansage `LEVEL NN` → Name), `items.js`. |
 | `render/` | Darstellung: `board.js` (Hintergrund, Rahmen + Schatten, Türen, Lichter, Phaser), `bgfx.js` (Masken-Schimmer), `view.js` (Steine, Schläger, Bälle, Effekte), `font.js` + `spintext.js` (Drehschrift, Konsolenschrift), `assets.js` (Ladeliste). |
 | `app.js` | Zustandsmaschine: Intro → Menü / Optionen / Highscore / Credits → Spiel → Game Over. |
 | `daiganoid.js` | Einstieg `mountDaiganoid(container, opts)`: Canvas, Skalierung (ganzzahlig, max. 4×), Vollbild. |
 | `input.js`, `audio.js` | Maus (Pointer-Lock = Spinner), Touch, Tastatur; WAV-Effekte, Musik. |
+| `filter/` | Namensfilter der Highscore-Liste (`namefilter.js`, Wortlisten `wordlist.js`, Tests `test.mjs`). Läuft identisch im Browser und im Highscore-Server `api/`. Doku in `filter/README.md`. |
 | `tools/verify.mjs` | Node: Kern gegen die MAME-Traces prüfen (`node game/tools/verify.mjs <trace.bin>...`). |
 | `tools/autopilot.mjs` | Node: Session ohne Browser durchspielen (Ausnahmen-Test). |
-| `test.html` | Testseite ohne React: `game/test.html?state=game&ticks=600` spult vor (lokaler Server nötig). |
+| `test.html` | Testseite ohne React: `game/test.html?state=game&ticks=600` spult vor (lokaler Server nötig), `&keys=ArrowLeft,ArrowUp` drückt Test-Tasten. |
 
 ## Koordinaten
 
 Logik in Original-Pixeln (Zelle 16×8, Y wächst nach oben). Anzeige: 1 Logik-Pixel = 1,25 Art-Pixel
 (Stein 20×10, Ball 5 px), Art-Pixel × S Gerätepixel (S = 2..4, ganzzahlig). Art-X = 10 + 1,25·(X−16),
 Art-Y = 301 − 1,25·Y. Schirm 240×334 (= Vollbild-Hintergrund), Rahmen oben angehängt, Spielfläche 220×301 bei
-(10,10), Phaser-Linie y 308 und Düsen y 311 (7 bzw. 10 px unter dem Rohrende 301), Portale y 281,
+(10,10), Phaser-Linie y 307 und Düsen y 311 (6 bzw. 10 px unter dem Rohrende 301; Phaser liegt über Rahmen und Düsen), Portale y 281,
 Schläger y 285. Im Daiganoid-Feld liegen Decke und Steinraster um `lift` = 8 höher als im Original
 (Decke Y 233), das Schläger-Band (Y 8..15) bleibt; der Original-Modus (13 Spalten) hat `lift` 0.
 
@@ -30,6 +31,11 @@ Schläger y 285. Im Daiganoid-Feld liegen Decke und Steinraster um `lift` = 8 h�
 
 Module brauchen einen Server (kein `file://`): im Repo `python -m http.server 8765`, dann
 `http://localhost:8765/#arcade` oder `http://localhost:8765/game/test.html`.
+
+Test-Tasten (`DEV_KEYS` oben in `app.js`, `false` = abgedreht): im Spiel Pfeil links/rechts = Level wechseln
+und neu starten, Linie `L32 … L02 L01 | R01 R02 … R32` (L = linkes, R = rechtes Portal, an den Enden Stopp);
+Pfeil hoch = God Mode an/aus (verlorene Bälle kosten kein Leben). Solange an, lenken die Pfeiltasten nicht,
+dann Maus oder A/D.
 
 ## Schrift
 

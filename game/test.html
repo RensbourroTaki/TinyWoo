@@ -26,6 +26,8 @@ if (q.get('state') === 'game') {
   app.boardAlpha = 1; app.menuAlpha = 1;
   app.startGame();
   if (q.get('paddle')) app.session.setPaddleType(parseInt(q.get('paddle'), 10));   // 2 gross, 8 klein, 3 Twin, 7 Schatten
+  // Test-Tasten (DEV_KEYS): ?keys=ArrowLeft,ArrowLeft,ArrowUp
+  for (const k of (q.get('keys') || '').split(',').filter(Boolean)) { app.devKey(k); app.godKeyHeld = false; }
 }
 if (q.get('state') === 'menu') { app.setState('menu'); app.boardAlpha = 1; app.menuAlpha = 1; app.bs.phaserFrame = 3; }
 if (q.get('state') === 'options') { app.setState('options'); app.boardAlpha = 1; app.menuAlpha = 1; }

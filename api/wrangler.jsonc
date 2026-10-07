@@ -1,0 +1,17 @@
+// Cloudflare-Worker-Konfiguration fuer den DAIGANOID Highscore-Server.
+// Deploy: in diesem Ordner `npx wrangler deploy` (siehe ANLEITUNG.txt, Punkt 8).
+{
+  "name": "daiganoid-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-06-01",
+  "observability": { "enabled": true },
+  "durable_objects": {
+    "bindings": [{ "name": "ARCADE", "class_name": "Arcade" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Arcade"] }],
+  "vars": {
+    // Von diesen Seiten darf der Browser den Server ansprechen (Komma-getrennt, * am Ende erlaubt).
+    "ALLOWED_ORIGINS": "https://rensbourrotaki.github.io,http://localhost:*,http://127.0.0.1:*"
+  }
+  // Geheimnisse (nicht hier eintragen!): `npx wrangler secret put ADMIN_KEY` und `npx wrangler secret put TOKEN_SECRET`
+}

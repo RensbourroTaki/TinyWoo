@@ -25,6 +25,8 @@ Falls eine alte index.html da ist: wird einfach überschrieben.
    assets/music/         OGGs für den Site-Player
    assets/daiganoid/     Grafiken + Sounds des Arcade-Spiels DAIGANOID (siehe Punkt 7)
    game/                 Der Spiel-Code von DAIGANOID (siehe game/README.md)
+   game/filter/          Namensfilter der Highscore-Liste (Wortlisten in wordlist.js, siehe Punkt 8)
+   api/                  Der Highscore-Server (Cloudflare Worker, siehe Punkt 8)
    fonts/                Schriften. Nicht anfassen.
    js/, tokens/, styles.css   Technik. Nicht anfassen.
 
@@ -55,7 +57,9 @@ C) 1–2 Minuten warten, Seite neu laden (Strg + F5).
    games           -> Games. featured: true = groß auf der Startseite.
                       trailer = YouTube-Link, presse = Fakten + Screenshots.
    presse          -> Press-Seite: Intro, Studio-Fakten, Downloads.
-   daiganoid       -> Arcade-Spiel: Titel, Text auf der Startseite, Musik (OGG-Pfade).
+   daiganoid       -> Arcade-Spiel: Titel, Text auf der Startseite, Musik (OGG-Pfade),
+                      apiUrl (Highscore-Server), header (Kopf der Arcade-Seite),
+                      story (Text links neben dem Spiel), highscoreTitel, storyTitel.
    texte           -> Überschrift, Texte, Laufband, Footer.
 
 Alles in inhalt.js ist kommentiert. Beispiele stehen direkt dabei.
@@ -75,8 +79,13 @@ Alles in inhalt.js ist kommentiert. Beispiele stehen direkt dabei.
 
 6. HIGHSCORES
 ------------
-   Werden im Browser jedes Besuchers gespeichert (jeder sieht seine eigenen).
-   Gemeinsame Liste für alle = kommt mit dem Admin/CMS später.
+   Die Liste rechts neben dem Spiel und die Liste im Spiel sind dieselbe: sie kommt vom
+   Highscore-Server (Punkt 8). Im Spiel stehen die Top 10, auf der Seite bis zu Top 100.
+   Eintragen geht nur nach einem echten Game Over. Namen: max. 10 Zeichen, A-Z 0-9 und . , ! ?
+   (mehr kann die Drehschrift nicht), und sie laufen durch den Wortfilter: Schimpfwörter,
+   Beleidigungen, Sex, Hass, Drogen, Links usw. werden gar nicht erst gespeichert.
+   Ist der Server nicht erreichbar (oder apiUrl in inhalt.js leer), sieht jeder nur seine
+   eigene, im Browser gespeicherte Liste.
 
 
 7. DAIGANOID (ARCADE-SEITE)
@@ -105,6 +114,38 @@ Alles in inhalt.js ist kommentiert. Beispiele stehen direkt dabei.
 
    Level: game/play/levels.js, 32 Runden mit je zwei Varianten (linkes/rechtes Portal),
    Textzeilen mit 11 Zeichen, Legende steht oben in der Datei.
+   Level-Namen (Ansage "LEVEL 01", dann der Name): game/play/levelnames.js, je 32 links und rechts.
+
+   Test-Tasten (Schalter DEV_KEYS oben in game/app.js, auf false stellen = aus):
+   Pfeil links/rechts = Level wechseln (Spiel startet neu), Pfeil hoch = God Mode an/aus.
+   Solange an, lenkt man mit Maus oder A/D statt mit den Pfeiltasten.
 
    Lokal testen (Module brauchen einen Server): im Ordner "python -m http.server 8765",
    dann http://localhost:8765/#arcade öffnen.
+
+
+8. HIGHSCORE-SERVER (CLOUDFLARE WORKER)
+--------------------------------------
+   Der Server ist ein kleines Programm bei Cloudflare (kostenlos), Code im Ordner api/.
+   Er speichert die gemeinsame Highscore-Liste, prüft jeden Namen mit dem Wortfilter,
+   bremst Spam (1 Eintrag je 15 s und IP) und zählt, wer gerade auf der Arcade-Seite ist
+   ("3 online · 1 playing" über der Liste).
+
+   Adresse: steht in inhalt.js unter daiganoid.apiUrl.
+   Admin-Schlüssel: E:\MY-PROJECTS_2019\TINY_WOO\daiganoid-admin-key.txt (NICHT ins Repo!)
+
+   Einträge ansehen und löschen (Adresse + Schlüssel einsetzen, im Browser öffnen):
+     ADRESSE/admin/scores?key=SCHLÜSSEL                  alle Einträge mit Nummer (id) und IP-Kennung
+     ADRESSE/admin/delete?key=SCHLÜSSEL&id=12            Eintrag Nr. 12 löschen
+     ADRESSE/admin/delete?key=SCHLÜSSEL&name=XYZ         alle Einträge mit diesem Namen löschen
+     ADRESSE/admin/delete?key=SCHLÜSSEL&ip=KENNUNG       alle Einträge dieser IP-Kennung löschen
+     ADRESSE/check?name=TESTNAME                         Filter ausprobieren (ohne Schlüssel)
+
+   Wortfilter erweitern: game/filter/wordlist.js (kommentiert, nach Gruppen sortiert). Danach
+   1. Website hochladen (Commit), damit die Eingabe im Browser das Wort kennt, und
+   2. den Server neu hochladen, damit er es auch kennt:
+        Konsole (PowerShell) im Ordner api/ öffnen:  npx wrangler deploy
+      (Beim ersten Mal auf einem neuen Rechner vorher:  npx wrangler login)
+
+   Erlaubte Seiten (CORS) stehen in api/wrangler.jsonc unter ALLOWED_ORIGINS. Zieht die Website
+   auf eine andere Adresse um, dort ergänzen und neu deployen.

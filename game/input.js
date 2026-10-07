@@ -16,6 +16,7 @@ export class GameInput {
     this.clicks = [];                  // Klicks/Taps in Art-Koordinaten seit dem letzten Frame
     this.pointerArt = null;            // Zeigerposition in Art-Koordinaten (Hover)
     this.keyVel = 0;
+    this.arrowPaddle = true;           // Pfeil links/rechts steuern den Schlaeger (aus = nur A/D, z. B. Test-Tasten)
     this.locked = false;
     this.wantLock = true;
     this.touchActive = false;
@@ -88,8 +89,8 @@ export class GameInput {
   paddleDelta(paddleCenter) {
     let d = 0;
     // Tastatur: beschleunigt bis 7 px/Frame
-    const left = this.keys.has('ArrowLeft') || this.keys.has('KeyA');
-    const right = this.keys.has('ArrowRight') || this.keys.has('KeyD');
+    const left = (this.arrowPaddle && this.keys.has('ArrowLeft')) || this.keys.has('KeyA');
+    const right = (this.arrowPaddle && this.keys.has('ArrowRight')) || this.keys.has('KeyD');
     if (left !== right) {
       this.keyVel = Math.min(7, this.keyVel + 0.6);
       d = Math.round(left ? -this.keyVel : this.keyVel);

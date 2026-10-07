@@ -183,17 +183,7 @@ function GamesPage({ onNav }) {
   );
 }
 
-function ArcadePage() {
-  return (
-    <section style={{ maxWidth: 'var(--container)', margin: '0 auto', padding: '48px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: 28 }}>
-      <H2 color="var(--orange-400)" style={{ fontSize: 'var(--fs-hero)' }}>Arcade</H2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <Kicker>Free to play · {D.titel || 'Daiganoid'}</Kicker>
-        <DaiganoidArcade />
-      </div>
-    </section>
-  );
-}
+// Die Arcade-Seite (ArcadePage) liegt in js/site-arcade.jsx.
 
 function AboutPage() {
   return (
@@ -258,5 +248,5 @@ function PressPage() {
   );
 }
 
-Object.assign(window, { FeaturedGame, ArcadeTeaser, Community, Footer, GamesPage, ArcadePage, AboutPage, PressPage });
+Object.assign(window, { FeaturedGame, ArcadeTeaser, Community, Footer, GamesPage, AboutPage, PressPage });
 })();

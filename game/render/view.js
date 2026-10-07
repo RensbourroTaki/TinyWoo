@@ -11,6 +11,7 @@ import { PaddleType } from '../core/paddle.js';
 import { MAX_BALLS } from '../core/playfield.js';
 import { Phase, INTRO_FRAMES, READY_FRAMES, EXITING_FRAMES, ENEMY_W, ENEMY_H } from '../play/session.js';
 import { COLUMNS } from '../play/levels.js';
+import { levelName } from '../play/levelnames.js';
 
 export const ax = (hw) => 10 + 1.25 * (hw - 16);
 export const ay = (hw) => 301 - 1.25 * hw;
@@ -61,8 +62,8 @@ export class GameView {
           this.startIntro(session, e.newRound);
           break;
         case 'ready':
-          this.say(`ROUND ${String(session.round + 1).padStart(2, '0')}`, 30, 128);
-          this.queue = [{ at: 120, text: 'READY', hold: 30 }, { at: 235, text: 'GO', hold: 40 }];
+          this.say(`LEVEL ${String(session.round + 1).padStart(2, '0')}`, 30, 128);
+          this.queue = [{ at: 150, text: levelName(session.round, session.variant), hold: 60 }];
           this.audio.play('beep');
           break;
         case 'go':
@@ -201,14 +202,14 @@ export class GameView {
   update(session) {
     this.tick++;
     const bs = this.bs;
-    // Ankuendigungs-Warteschlange (READY -> GO)
+    // Ankuendigungs-Warteschlange (LEVEL NN -> Name)
     if (this.queue && this.queue.length && session.phase === Phase.READY) {
       const elapsed = READY_FRAMES - session.phaseTimer;
       if (elapsed >= this.queue[0].at) {
         const q = this.queue.shift();
         for (const a of this.announces) a.stop();
         this.say(q.text, q.hold, 128);
-        this.audio.play('beep', 0.7, q.text === 'GO' ? 1.5 : 1.1);
+        this.audio.play('beep', 0.7, 1.1);
       }
     }
     for (const a of this.announces) a.update();
