@@ -47,6 +47,7 @@ export const OPTIONAL_IMAGES = {
   paddleCatch: 'player/paddle-catch.png',    // Magnet-Schlaeger
   laserShot: 'player/laser-shot.png',        // Laserschuss
   cursor: 'menu/cursor.png',                 // 16x16 Mauszeiger ueber dem Spiel, Spitze oben links
+  glow: 'menu/glow.png',                     // gebackener Auswahl-Glow je Menuetext (Atlas, Rechtecke in menu/glow.json)
 };
 
 /** Farbklasse 0..7 der normalen Steine -> Bild (Punkte 50..120 wie im Original). */
@@ -96,7 +97,7 @@ function loadImage(url, optional) {
 
 /**
  * Laedt alles. base = Pfad zu assets/daiganoid/ (mit Schraegstrich am Ende).
- * Liefert { img: {name: Image|null}, fonts: {spin, console}, backgrounds: [{ name, img, mask|null }] }.
+ * Liefert { img: {name: Image|null}, fonts: {spin, console}, backgrounds: [{ name, img, mask|null }], glow: json|null }.
  */
 export async function loadAssets(base, onProgress) {
   const img = {};
@@ -111,9 +112,11 @@ export async function loadAssets(base, onProgress) {
   // no-cache: nach einem Update darf keine alte fonts.json aus dem Browser-Cache zu neuem Code passen muessen
   const fontsJob = fetch(base + 'fonts/fonts.json', { cache: 'no-cache' }).then((r) => r.json()).then((j) => { tick(); return j; });
   const bgJob = loadBackgrounds(base).then((l) => { tick(); return l; });
+  const glowJob = fetch(base + 'menu/glow.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   await Promise.all(jobs);
   const fonts = await fontsJob;
   const backgrounds = await bgJob;
+  const glow = await glowJob;
   if (!backgrounds.length) throw new Error(`Bild fehlt: ${base}${BG_DIR}bg01.png`);
-  return { img, fonts, backgrounds };
+  return { img, fonts, backgrounds, glow };
 }

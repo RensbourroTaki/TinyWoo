@@ -26,15 +26,11 @@ const DEV_POS_MIN = 1 - ROUNDS, DEV_POS_MAX = ROUNDS;
 const MENU = ['START GAME', 'HIGHSCORE', 'OPTIONS', 'CREDITS'];
 const MENU_Y = [116, 142, 168, 194];   // Zeilen fuer die Menueschrift (3/4 Groesse bei 4x)
 /**
- * Auswahl-Glow ueber dem gewaehlten Eintrag (additiv): Farbe, runder Kern (Blur in Art-Pixeln, Staerke), Puls.
- * Dazu ein anamorpher Linsen-Schein: die Schrift wird waagerecht um stretch verbreitert weichgezeichnet
- * (lens = breiter Schein, streak = langer duenner Lichtstreifen; blur in Art-Pixeln senkrecht).
+ * Auswahl-Glow ueber dem gewaehlten Eintrag: fertig gebackenes Bild je Text (menu/glow.png + glow.json, runder
+ * Schein + anamorpher Smear), wird nur additiv drübergelegt, ohne Puls. Hier nur Staerke und Ueberblenden
+ * (fade je Frame). Farbe/Blur/Smear stecken im Bild (Bake-Skript bake_glow.py).
  */
-const GLOW = {
-  color: '255,190,90', blur: 7, alpha: 0.6, pulse: 0.3, speed: 0.08, fade: 0.2,
-  lens: { stretch: 7, blur: 2.5, alpha: 1.1 },
-  streak: { stretch: 26, blur: 0.7, alpha: 0.6 },
-};
+const GLOW = { alpha: 0.6, fade: 0.2 };
 /** Eigener Mauszeiger (menu/cursor.png): Pixelgroesse = Spielpixel; F8/F9 (nur DEV_KEYS) aendern sie um 1 Geraete-Pixel. */
 const CURSOR = { minus: 'F8', plus: 'F9' };
 /** Auto-Pause: so viele Frames darf die Maus waehrend des Spiels ausserhalb des Spiels sein. */
@@ -340,70 +336,28 @@ export class DaiganoidApp {
   }
 
   /**
-   * draw(c) noch einmal additiv mit weichem Schein zeichnen; k = Staerke 0..1.
-   * y0..y1 = Art-Zeilen, in denen die Schrift liegt (fuer den Linsen-Schein).
+   * Gebackenen Glow fuer text additiv ueber die Schrift legen; k = Staerke 0..1, (x, y) = Art-Position der
+   * Text-Oberkante links. Das Bild ist fuer Schrift-Pixel = ref gebacken und wird auf S - 1 skaliert (menuZoom).
    */
-  drawGlow(ctx, S, k, draw, y0, y1) {
-    if (k < 0.02) return;
-    const p = 1 - GLOW.pulse + GLOW.pulse * Math.sin(this.lightTimer * GLOW.speed);
+  drawGlow(ctx, S, k, text, x, y) {
+    const g = this.assets.glow, img = this.assets.img.glow;
+    const r = g && img && g.texts[text];
+    if (k < 0.02 || !r) return;
+    const f = Math.max(1, S - 1) / (g.ref * g.store);          // Atlas-Pixel -> Geraetepixel
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.shadowColor = `rgba(${GLOW.color},1)`;
-    ctx.globalAlpha = GLOW.alpha * k * p;
-    ctx.shadowBlur = GLOW.blur * S * (0.8 + 0.4 * p);
-    draw(ctx);
-    ctx.shadowBlur = GLOW.blur * S * 0.35;
-    draw(ctx);
+    ctx.globalAlpha = Math.min(1, k * GLOW.alpha);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(img, r[0], r[1], r[2], r[3], Math.round(x * S) + r[4] * f, Math.round(y * S) + r[5] * f, r[2] * f, r[3] * f);
     ctx.restore();
-    this.drawLens(ctx, S, k * p, draw, y0, y1);
-  }
-
-  /**
-   * Anamorpher Linsen-Schein: Schrift in einen Puffer, einfaerben, waagerecht gestaucht weichzeichnen und
-   * wieder auf volle Breite gezogen additiv drueberlegen -> der Schein laeuft nach links und rechts aus.
-   */
-  drawLens(ctx, S, k, draw, y0, y1) {
-    const W = ART_W * S;
-    const top = Math.max(0, Math.floor((y0 - 8) * S));
-    const H = Math.min(ART_H * S, Math.ceil((y1 + 8) * S)) - top;
-    if (H <= 0) return;
-    if (!this.lensBuf) { this.lensBuf = document.createElement('canvas'); this.lensSmall = document.createElement('canvas'); }
-    const buf = this.lensBuf, small = this.lensSmall;
-    if (buf.width !== W || buf.height !== H) { buf.width = W; buf.height = H; }
-    const g = buf.getContext('2d');
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.globalCompositeOperation = 'source-over';
-    g.globalAlpha = 1;
-    g.clearRect(0, 0, W, H);
-    g.imageSmoothingEnabled = false;
-    g.translate(0, -top);
-    draw(g);
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.globalCompositeOperation = 'source-in';
-    g.fillStyle = `rgb(${GLOW.color})`;
-    g.fillRect(0, 0, W, H);
-    for (const L of [GLOW.lens, GLOW.streak]) {
-      const sw = Math.max(1, Math.round(W / L.stretch));
-      if (small.width !== sw || small.height !== H) { small.width = sw; small.height = H; }
-      const sc = small.getContext('2d');
-      sc.clearRect(0, 0, sw, H);
-      sc.imageSmoothingEnabled = true;
-      sc.filter = `blur(${(L.blur * S).toFixed(1)}px)`;
-      sc.drawImage(buf, 0, 0, W, H, 0, 0, sw, H);
-      sc.filter = 'none';
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = Math.min(1, L.alpha * k);
-      ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(small, 0, 0, sw, H, 0, top, W, H);
-      ctx.restore();
-    }
   }
 
   tickMenu(keys, clicks) {
     this.idleLights();
     this.updateTexts();
-    this.updateGlow(MENU.length, this.pendingState ? -1 : this.menuIndex);
+    // Glow ist ein festes Bild -> erst einblenden, wenn alle Buchstaben stehen
+    const landed = this.menuTexts.every((st) => st.settled);
+    this.updateGlow(MENU.length, this.pendingState || !landed ? -1 : this.menuIndex);
     if (this.pendingState) return;
     const hover = this.input.pointerArt;
     const rowAt = (y) => { for (let i = 0; i < MENU.length; i++) if (y >= MENU_Y[i] - 4 && y < MENU_Y[i] + 23) return i; return -1; };
@@ -669,7 +623,7 @@ export class DaiganoidApp {
 
     if (this.state === 'intro' || this.state === 'menu' || this.state === 'starting') {
       // Auswahl: additiver Glow ueber dem gewaehlten Eintrag (blendet beim Umschalten weich um)
-      if (this.state === 'menu') this.menuTexts.forEach((st, i) => this.drawGlow(ctx, S, this.glow[i] || 0, (c) => st.draw(c, S), MENU_Y[i], MENU_Y[i] + 23));
+      if (this.state === 'menu') this.menuTexts.forEach((st, i) => this.drawGlow(ctx, S, this.glow[i] || 0, st.text, st.left, st.y));
       // Hinweiszeile in der Pixelschrift, blinkt ab dem Erscheinen
       if (this.menuAlpha > 0 && this.state === 'menu' && this.t % HINT.period < HINT.period / 2) {
         ctx.globalAlpha = this.menuAlpha;
@@ -685,16 +639,16 @@ export class DaiganoidApp {
           this.valueSpin.t++;
           if (this.valueSpin.t >= spin.frames * 2) this.valueSpin = null; else frame = spin.front + (this.valueSpin.t >> 1);
         }
-        const drawRow = (c) => {
-          if (r[1]) {
-            spin.drawText(c, S, r[0], 24, y, 'left', z);
-            spin.drawText(c, S, r[1], 216, y, 'right', z, frame);
-          } else {
-            spin.drawText(c, S, r[0], 120, y, 'center', z);
-          }
-        };
-        drawRow(ctx);
-        this.drawGlow(ctx, S, this.glow[i] || 0, drawRow, y, y + 20);
+        const k = this.glow[i] || 0;
+        if (r[1]) {
+          spin.drawText(ctx, S, r[0], 24, y, 'left', z);
+          spin.drawText(ctx, S, r[1], 216, y, 'right', z, frame);
+          this.drawGlow(ctx, S, k, r[0], 24, y);
+          this.drawGlow(ctx, S, k, r[1], 216 - spin.measure(r[1]) * z, y);
+        } else {
+          spin.drawText(ctx, S, r[0], 120, y, 'center', z);
+          this.drawGlow(ctx, S, k, r[0], 120 - spin.measure(r[0]) * z / 2, y);
+        }
       });
     } else if (this.state === 'highscores') {
       let list = [];
