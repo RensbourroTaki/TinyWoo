@@ -15,7 +15,7 @@ Teaser auf der Startseite). Grafiken und Sounds liegen in `assets/daiganoid/`.
 | `input.js`, `audio.js` | Maus (absolut: Schläger = Mauszeiger-X; Option MOUSE LOCK = Pointer-Lock wie ein Spinner, Standard aus), Touch, Tastatur; WAV-Effekte, Musik. Über dem Spiel wird `menu/cursor.png` als Zeiger gezeichnet (1:1 Spielpixel), im laufenden Spiel ist der Schläger die Maus; verlässt die Maus das Spiel ¾ s lang, pausiert es (Klick spielt weiter). |
 | `filter/` | Namensfilter der Highscore-Liste (`namefilter.js`, Wortlisten `wordlist.js`, Tests `test.mjs`). Läuft identisch im Browser und im Highscore-Server `api/`. Doku in `filter/README.md`. |
 | `tools/verify.mjs` | Node: Kern gegen die MAME-Traces prüfen (`node game/tools/verify.mjs <trace.bin>...`). |
-| `tools/checklevels.mjs` | Node: Level-Regeln statisch prüfen (Zeilen 0/1 frei, Motive mit Wandabstand, keine einzelnen Spezialsteine, Mover paarweise, 4–8 Items, kein Gold-Einschluss). Regeln stehen oben in `levels.js`. |
+| `tools/checklevels.mjs` | Node: Level-Regeln statisch prüfen (18 Zeilen, Zeilen 0/1 frei, Motive mit Wandabstand, keine einzelnen Spezialsteine, Mover paarweise: `m` waagerecht je Zeile, `v` senkrecht gespiegelt mit Schacht ≥ 3, 4–8 Items, kein Gold-Einschluss). Regeln stehen oben in `levels.js`. |
 | `tools/autopilot.mjs` | Node: Session ohne Browser durchspielen (Ausnahmen-Test). |
 | `test.html` | Testseite ohne React: `game/test.html?state=game&ticks=600` spult vor (lokaler Server nötig), `&keys=ArrowLeft,ArrowUp` drückt Test-Tasten. |
 

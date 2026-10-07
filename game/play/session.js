@@ -7,7 +7,7 @@
 import { MAX_BALLS, Playfield, StepResult, XorShiftRandomBit, fieldConfig } from '../core/playfield.js';
 import { PaddleType, paddleGeometryFor } from '../core/paddle.js';
 import { gridCellAt, horizontalReflectionOf, reflectHorizontal } from '../core/ballmotion.js';
-import { GOLD, KIND_CAPSULE, KIND_MASK, KIND_SPECIAL, ROWS, isMover } from '../core/brickgrid.js';
+import { GOLD, KIND_CAPSULE, KIND_MASK, KIND_SPECIAL, ROWS, isMover, isVerticalMover } from '../core/brickgrid.js';
 import { COLUMNS, ROUNDS, loadLevel } from './levels.js';
 import { ITEMS, ITEM_H, ITEM_W, LEVEL_ITEMS, pickItem, resolveSurprise } from './items.js';
 
@@ -40,6 +40,8 @@ export const EXTRA_LIFE_EVERY = 60000;
 export const ENEMY_W = 16, ENEMY_H = 19;   // Sprite 20x24 Art-Pixel / 1,25
 export const REGEN_FRAMES = 540;           // Doppelblau waechst nach 9 s nach
 export const MOVER_SLIDE = 24;             // Frames je Zelle des wandernden Goldsteins (50 Art-Pixel/s)
+export const MOVER_SLIDE_V = 18;           // Frames je Zeile des senkrechten Goldsteins (33 Art-Pixel/s, ruhiger)
+export const MOVER_TOP_ROW = 2;            // senkrechte Goldsteine fahren nie in die Gegner-Spur (Zeile 0/1)
 
 export const PADDLE_DROP = 4;              // Schlaeger-Ebene 4 Logik-Pixel (= 5 Art-Pixel) tiefer als im ROM
 
@@ -65,7 +67,7 @@ export class GameSession {
     this.shots = [];     // { x, y, age }
     this.enemies = [];   // { x, y (Mitte), vx, vy, age, drift }
     this.regens = [];    // { cell, value, timer }
-    this.movers = [];    // { row, col, dir, from, to, t } wandernde Goldsteine, t < 0 = steht
+    this.movers = [];    // { v, row, col, dir, from, to, t } wandernde Goldsteine (v = senkrecht), t < 0 = steht
     this.phase = Phase.GAME_OVER;
     this.phaseTimer = 0;
     this.round = 0;
@@ -117,8 +119,12 @@ export class GameSession {
     const cells = this.field.bricks.cells;
     for (let i = 0; i < cells.length; i++) {
       if (!isMover(cells[i])) continue;
-      const col = i % COLUMNS;
-      this.movers.push({ row: Math.floor(i / COLUMNS), col, dir: col < COLUMNS >> 1 ? 1 : -1, from: col, to: col, t: -1 });
+      const col = i % COLUMNS, row = Math.floor(i / COLUMNS);
+      const v = isVerticalMover(cells[i]);
+      // waagerecht: zur Mitte hin starten; senkrecht: obere Haelfte faehrt erst runter, untere erst rauf
+      const dir = v ? (row < (ROWS + MOVER_TOP_ROW) >> 1 ? 1 : -1) : (col < COLUMNS >> 1 ? 1 : -1);
+      const pos = v ? row : col;
+      this.movers.push({ v, row, col, dir, from: pos, to: pos, t: -1 });
     }
     // Fest vergebene Items: je eins in einem zufaelligen Item-Stein
     this.levelItems.clear();
@@ -577,56 +583,63 @@ export class GameSession {
 
   // ---------------------------------------------------------------- Wandernde Goldsteine
 
-  moverCanEnter(m, col) {
-    if (col < 0 || col >= COLUMNS) return false;
-    const cell = m.row * COLUMNS + col;
+  /** Zelle des Goldsteins m an Position p seiner Achse (Spalte bei waagerecht, Zeile bei senkrecht). */
+  moverCell(m, p) {
+    return m.v ? p * COLUMNS + m.col : m.row * COLUMNS + p;
+  }
+
+  moverCanEnter(m, p) {
+    if (p < (m.v ? MOVER_TOP_ROW : 0) || p >= (m.v ? ROWS : COLUMNS)) return false;
+    const cell = this.moverCell(m, p);
     return this.field.bricks.cells[cell] === 0 && !this.ballInCell(cell);
   }
 
   /**
-   * Gleitet Zelle fuer Zelle waagerecht. Steine, Rand oder ein Ball im Weg = Richtungswechsel.
+   * Gleitet Zelle fuer Zelle waagerecht (bzw. senkrecht). Steine, Rand oder ein Ball im Weg = Richtungswechsel.
    * Im Raster springt der Stein zur Haelfte des Gleitens; ist das Ziel dann belegt, gleitet er zurueck.
    */
   updateMovers() {
     const cells = this.field.bricks.cells;
-    const half = MOVER_SLIDE >> 1;
     for (const m of this.movers) {
+      const slide = m.v ? MOVER_SLIDE_V : MOVER_SLIDE;
+      const pos = m.v ? m.row : m.col;
       if (m.t < 0) {
-        if (!this.moverCanEnter(m, m.col + m.dir)) {
+        if (!this.moverCanEnter(m, pos + m.dir)) {
           m.dir = -m.dir;
-          if (!this.moverCanEnter(m, m.col + m.dir)) continue;
+          if (!this.moverCanEnter(m, pos + m.dir)) continue;
         }
-        m.from = m.col;
-        m.to = m.col + m.dir;
+        m.from = pos;
+        m.to = pos + m.dir;
         m.t = 0;
       }
       m.t++;
-      if (m.t === half && m.to !== m.col) {
+      if (m.t === slide >> 1 && m.to !== pos) {
         if (this.moverCanEnter(m, m.to)) {
-          const src = m.row * COLUMNS + m.col, dst = m.row * COLUMNS + m.to;
+          const src = this.moverCell(m, pos), dst = this.moverCell(m, m.to);
           cells[dst] = cells[src];
           cells[src] = 0;
-          m.col = m.to;
+          if (m.v) m.row = m.to; else m.col = m.to;
           this.emit('brickMoved', { from: src, to: dst });
         } else {
           // zurueckgleiten: Ziel und Herkunft tauschen, Fortschritt spiegeln
           m.dir = -m.dir;
           m.to = m.from;
-          m.from = m.col + -m.dir;
-          m.t = MOVER_SLIDE - m.t;
+          m.from = pos - m.dir;
+          m.t = slide - m.t;
         }
       }
-      if (m.t >= MOVER_SLIDE) m.t = -1;
+      if (m.t >= slide) m.t = -1;
     }
   }
 
-  /** Sichtbarer Versatz (in Zellen) des Goldsteins in Zelle cell waehrend des Gleitens, sonst 0. */
+  /** Sichtbarer Versatz (in Zellen, { dx, dy }) des Goldsteins in Zelle cell waehrend des Gleitens, sonst null. */
   moverOffset(cell) {
     for (const m of this.movers) {
       if (m.t < 0 || m.row * COLUMNS + m.col !== cell) continue;
-      return m.from + (m.to - m.from) * (m.t / MOVER_SLIDE) - m.col;
+      const d = m.from + (m.to - m.from) * (m.t / (m.v ? MOVER_SLIDE_V : MOVER_SLIDE)) - (m.v ? m.row : m.col);
+      return m.v ? { dx: 0, dy: d } : { dx: d, dy: 0 };
     }
-    return 0;
+    return null;
   }
 
   // ---------------------------------------------------------------- Kern-Ereignisse

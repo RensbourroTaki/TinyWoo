@@ -428,17 +428,19 @@ export class GameView {
     const intro = session.phase === Phase.INTRO && this.introBricks;
     const visible = (i) => cells[i] !== 0 && (!intro || this.introTimer >= this.introBricks[i]);
     // wandernde Goldsteine gleiten zwischen den Zellen: Versatz in Art-Pixeln
-    const slide = (i) => (session.movers.length ? 20 * session.moverOffset(i) : 0);
+    const offset = (i) => (session.movers.length ? session.moverOffset(i) : null);
+    const slide = (i) => { const o = offset(i); return o ? 20 * o.dx : 0; };
+    const lift = (i) => { const o = offset(i); return o ? 10 * o.dy : 0; };
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     for (let i = 0; i < cells.length; i++) {
       if (!visible(i)) continue;
       const col = i % COLUMNS, row = Math.floor(i / COLUMNS);
-      ctx.fillRect(Math.round((10 + 20 * col + 3 + slide(i)) * S), (11 + 10 * row + 3) * S, 20 * S, 10 * S);
+      ctx.fillRect(Math.round((10 + 20 * col + 3 + slide(i)) * S), Math.round((11 + 10 * row + 3 + lift(i)) * S), 20 * S, 10 * S);
     }
     for (let i = 0; i < cells.length; i++) {
       if (!visible(i)) continue;
       const col = i % COLUMNS, row = Math.floor(i / COLUMNS);
-      let x = 10 + 20 * col + slide(i), y = 11 + 10 * row;
+      let x = 10 + 20 * col + slide(i), y = 11 + 10 * row + lift(i);
       const shake = this.effects.find((e) => e.type === 'shake' && e.cell === i);
       if (shake) x += (shake.t & 1) ? 1 : -1;
       const im = I[brickImage(cells[i])];
@@ -448,7 +450,7 @@ export class GameView {
     for (const e of this.effects) {
       if (e.type !== 'destroy' && e.type !== 'flash' && e.type !== 'shine') continue;
       const col = e.cell % COLUMNS, row = Math.floor(e.cell / COLUMNS);
-      const x = Math.round((10 + 20 * col + slide(e.cell)) * S), y = (11 + 10 * row) * S;
+      const x = Math.round((10 + 20 * col + slide(e.cell)) * S), y = Math.round((11 + 10 * row + lift(e.cell)) * S);
       if (e.type === 'destroy' || (e.type === 'flash' && cells[e.cell] !== 0)) {
         const fr = Math.min(2, Math.floor(e.t / 3));
         ctx.drawImage(I.brickDestroyed, 0, fr * 10, 20, 10, x, y, 20 * S, 10 * S);

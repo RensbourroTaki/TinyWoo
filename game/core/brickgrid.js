@@ -36,7 +36,10 @@ export function goldBrick() {
 
 /** Wandernder Goldstein: verhaelt sich im Raster wie Gold, zaehlt nicht fuer den Levelabschluss. */
 export const MOVER = GOLD | REGENERATES | KIND_SPECIAL;
+/** Wie MOVER, faehrt aber senkrecht (Bit 3 als Markierung, Gold ignoriert die Trefferbits). */
+export const MOVER_V = MOVER | 0x08;
 export function isMover(v) { return (v & 0xC7) === MOVER; }
+export function isVerticalMover(v) { return isMover(v) && (v & 0x08) !== 0; }
 
 export function countsForLevel(v) {
   if ((v & NO_COLLISION) !== 0 || (v & KIND_MASK) === 0) return false;

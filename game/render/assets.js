@@ -22,7 +22,7 @@ export const IMAGES = {
   brickHard: 'blocks/grey.png',              // 2 Treffer, dann weg
   brickRegen: 'blocks/double-blue.png',      // 1 Treffer, waechst nach
   brickGold: 'blocks/gold.png',              // unzerstoerbar
-  brickMover: 'blocks/double-gold.png',      // unzerstoerbar, wandert waagerecht
+  brickMover: 'blocks/double-gold.png',      // unzerstoerbar, wandert waagerecht (m) oder senkrecht (v)
   brickDestroyed: 'blocks/destroyed.png',    // 3 Frames 20x10
   brickShine: 'blocks/shine.png',            // 6 Frames 20x10 (additiv)
   ball: 'player/ball.png',                   // 6x6
