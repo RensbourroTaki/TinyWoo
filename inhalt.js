@@ -104,7 +104,7 @@ window.TW_INHALT = {
         'Stats screen with your total progress chart, accuracy and best combos',
       ],
       featuresSchluss: 'Welcome to the crazy rocket campus!',
-      kicker: 'Every Steam player. One board. Top 20 in the main menu. Get your name up there.',
+      kicker: 'Compete worldwide with every Steam player on the in-game highscore list, with Steam names and avatars. YOU CAN\'T HIDE!',
       tags: ['PC', 'Arcade', 'Singleplayer'],
       status: 'In dev',
       link: '#',
