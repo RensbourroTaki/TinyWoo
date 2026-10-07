@@ -132,10 +132,9 @@ window.TW_INHALT = {
     highscoreTitel: 'Highscore',
     storyTitel: 'The story',
     story: [
-      { text: 'I brought my old Arkanoid fan project DAIGANOID back to life, because nothing stands in the way of my ideas anymore.' },
-      { text: 'The graphics and the font were pixelled around 2000. Back then, together with an old friend and programmer, I built a really nice, polished beta of the game for the Pocket PCs of the day, the iPAQ. But life changed for both of us, and it was never finished.' },
-      { text: 'I\'m especially proud of the 360-degree spinning letters of my bitmap font, which I pixelled and polished over quite a few nights.' },
-      { text: 'I hope you enjoy this version. Over time I plan to add bosses, a level editor and other features, but I mustn\'t forget the other games I still want to make ;)' },
+      { text: 'I\'ve brought my old Arkanoid fan project, DAIGANOID, back to life using the original assets I created around 2000. Back then, together with an old friend and programmer, I built a polished beta of the game for the iPAQ, one of the Pocket PCs of that era. But life took us both in different directions, and the game was never finished.' },
+      { text: 'I\'m especially proud of the 360-degree spinning letters of my bitmap font. I pixelled and polished them over quite a few late nights.' },
+      { text: 'I hope you enjoy this version! Over time I plan to add bosses, a level editor and more, though I mustn\'t forget the other games I still want to make ;)' },
       { text: 'Have fun!' },
       { text: 'And thank you, TAITO, for one of the best gameplay loops ever created!' },
     ],
