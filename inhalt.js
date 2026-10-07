@@ -156,7 +156,7 @@ window.TW_INHALT = {
     about: [
       { h: "Here's my story" },
       { p: "I started pixelling game assets on the Amiga at 13. Later I worked for local studios, moved into 3D, and studied at the Graphic Institute of Vienna, where I learned layout, typography and every trick of commercial design. But agency life never felt like home. Games always did." },
-      { p: "Over the years I learned the whole 3D pipeline, from modelling and texturing to rigging and hand-painted weights, and dug deep into how game systems and mechanics really work. In 2013 I launched Dynabot The Robo Marble on Kickstarter, but carrying almost everything alone burned me out, and I had to put it on ice." },
+      { p: "Over the years I learned the whole 3D pipeline to industry standards, from modelling and texturing to rigging and hand-painted weights, and dug deep into how game systems and mechanics really work. In 2013 I launched Dynabot The Robo Marble on Kickstarter, but carrying almost everything alone burned me out, and I had to put it on ice." },
       { p: "Since then I've focused on what makes games feel good: optimization, gameplay dynamics and the technical solutions behind them." },
       { h: 'Where AI comes in' },
       { p: "AI finally lets me build the games I've been chasing for decades. I bring the experience and the design decisions, and I direct the AI step by step through every module, the way I want it built. Here's what I use it for:" },
