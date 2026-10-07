@@ -625,7 +625,7 @@ export class DaiganoidApp {
         ctx.fillStyle = 'rgba(0,0,20,0.6)';
         ctx.fillRect(0, 0, ART_W * S, ART_H * S);
         this.fonts.spin.drawText(ctx, S, 'PAUSED', 120, 120, 'center', this.menuZoom);
-        if (this.t % HINT.period < HINT.period / 2) this.fonts.spin.drawText(ctx, S, 'CLICK TO PLAY', 120, 190, 'center', this.menuZoom);
+        if (this.t % HINT.period < HINT.period / 2) this.fonts.bold.drawText(ctx, S, 'CLICK TO PLAY', 120, 190, 'center', null, HINT.shrink);
       }
     } else {
       this.drawFront(ctx, S);
