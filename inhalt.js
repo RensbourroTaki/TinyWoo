@@ -73,8 +73,32 @@ window.TW_INHALT = {
     {
       title: 'Rocket Trump',
       image: 'assets/games/rocket-trump-menu.jpg',
-      tagline: 'Catch rockets, hire the Tiger Gang, top the board.',
+      tagline: 'Steer the rocket. Flip the president. Own the leaderboard.',
       text: 'Catch rockets, stack coins, hire the Tiger Gang and climb the highscore. Chaotic jungle-base arcade action with a very short fuse.',
+      // Games-Seite: tagline = Unterzeile, beschreibung = Absaetze, ablauf = nummerierte Kaertchen [Titel, Text],
+      // kicker = gelber Kasten [Titel, Text], featuresTitel + features = Liste, hinweis = kleine Zeile unten. (text = kurz, fuer die Startseite)
+      beschreibung: [
+        'Trump is lying in the dirt. Your rocket fixes that.',
+        'Every combo hit sends him higher, backflip included. Hit him on the ground and the combo\'s gone.',
+      ],
+      ablaufTitel: 'How a run works',
+      ablauf: [
+        ['Balloons',  'Shoot them, bank seconds.'],
+        ['Shield',    'Crack it 3 times before his patience runs out.'],
+        ['Knockdown', 'One clean hit. Now the clock is ticking.'],
+        ['Combo',     'Keep him in the air. Higher means more points. Up at the very top: +30 seconds. Go get it.'],
+      ],
+      kicker: ['One leaderboard. Every Steam player.', 'Your name, your avatar, your best run. Who\'s the best Rocketeer on Steam?'],
+      featuresTitel: 'Also in the jungle',
+      features: [
+        'UFOs drop mortars: 3 rockets per shot',
+        'The snail fires up the balloon cannon again, mid-run',
+        'Hire mercenaries for a round',
+        'Upgrade your rockets: size, punch, blast radius',
+        'Pets that watch you play',
+        'Play well and Putin flies in. He judges you. Maybe he stays the night.',
+      ],
+      hinweis: 'A meme game. No politics. Just two very funny characters.',
       tags: ['PC', 'Arcade', 'Singleplayer'],
       status: 'In dev',
       link: '#',

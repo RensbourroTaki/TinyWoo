@@ -144,25 +144,58 @@ function Footer({ onNav }) {
   );
 }
 
+// Grosses Panel: Bild ueber volle Breite, darunter Text (links) + Fakten/Buttons (rechts).
 function GameRow({ g, flip, onNav }) {
-  const tilt = flip ? 2 : -2;
+  const tilt = flip ? 1.5 : -1.5;
+  const absaetze = g.beschreibung || [g.text || g.tagline];
+  const fakten = (g.presse && g.presse.fakten || []).filter(([k]) => k !== 'Price');
   return (
-    <SlantSection tone={flip ? 'raised' : 'deep'} angle={flip ? 3 : -3} edge={flip ? 'orange' : 'sun'} innerStyle={{ display: 'flex', flexDirection: flip ? 'row-reverse' : 'row', flexWrap: 'wrap', gap: 48, alignItems: 'center' }}>
-      <div style={{ position: 'relative', flex: '3 1 480px', minWidth: 0 }}>
+    <SlantSection tone={flip ? 'raised' : 'deep'} angle={flip ? 3 : -3} edge={flip ? 'orange' : 'sun'} style={{ padding: 'var(--space-10) 0' }} innerStyle={{ maxWidth: 1320, display: 'flex', flexDirection: 'column', gap: 72 }}>
+      <div style={{ position: 'relative' }}>
         {ytId(g.trailer)
           ? <Trailer url={g.trailer} title={g.title} style={{ transform: `rotate(${tilt}deg)` }} />
-          : <img src={g.image} alt={g.title} style={{ width: '100%', display: 'block', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 'var(--radius-xl)', border: '5px solid var(--ink)', boxShadow: 'var(--shadow-pop-lg), var(--shadow-float)', transform: `rotate(${tilt}deg)` }} />}
-        {g.status && <div style={{ position: 'absolute', top: -14, [flip ? 'left' : 'right']: 20, transform: `rotate(${-tilt * 4}deg)` }}><Badge tone="cherry">{g.status}</Badge></div>}
+          : <img src={g.image} alt={g.title} style={{ width: '100%', display: 'block', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 'var(--radius-xl)', border: '6px solid var(--ink)', boxShadow: 'var(--shadow-pop-lg), var(--shadow-float)', transform: `rotate(${tilt}deg)` }} />}
+        {g.status && <div style={{ position: 'absolute', top: -22, [flip ? 'left' : 'right']: 36, transform: `rotate(${-tilt * 5}deg) scale(1.5)`, transformOrigin: flip ? 'left top' : 'right top' }}><Badge tone="cherry">{g.status}</Badge></div>}
       </div>
-      <div style={{ flex: '2 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <H2>{g.title}</H2>
-        <p style={{ margin: 0, fontSize: 18, lineHeight: 1.55 }}>{g.text || g.tagline}</p>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{(g.tags || []).map(t => <Badge key={t} tone="outline">{t}</Badge>)}</div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {g.link && <Button icon={<Icon name="steam" brand size={20} />} href={g.link}>{g.linkText || 'Play'}</Button>}
-          <Button variant="ghost" icon={<Icon name="newspaper" size={20} />} onClick={() => onNav('press')}>Press kit</Button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px 64px', alignItems: 'flex-start' }}>
+        <div style={{ flex: '2 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <H2>{g.title}</H2>
+          {g.tagline && <p className="tw-heading" style={{ margin: 0, fontSize: 'var(--fs-h3, 24px)', lineHeight: 1.25, color: 'var(--sun-400)' }}>{g.tagline}</p>}
+          {absaetze.map((t, i) => <p key={i} style={{ margin: 0, fontSize: 20, lineHeight: 1.55, color: i === 0 ? 'var(--text-strong)' : undefined, fontWeight: i === 0 ? 700 : undefined }}>{t}</p>)}
+        </div>
+        <div style={{ ...card, flex: '1 1 320px', minWidth: 0, gap: 22 }}>
+          <Kicker>At a glance</Kicker>
+          {fakten.length > 0 && <FactList rows={fakten} />}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{(g.tags || []).map(t => <Badge key={t} tone="outline">{t}</Badge>)}</div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {g.link && <Button icon={<Icon name="steam" brand size={20} />} href={g.link}>{g.linkText || 'Play'}</Button>}
+            <Button variant="ghost" icon={<Icon name="newspaper" size={20} />} onClick={() => onNav('press')}>Press kit</Button>
+          </div>
         </div>
       </div>
+      {g.ablauf && <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {g.ablaufTitel && <Kicker>{g.ablaufTitel}</Kicker>}
+        <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,230px),1fr))', gap: 20 }}>
+          {g.ablauf.map(([titel, t], i) => (
+            <li key={titel} style={{ ...card, gap: 10, transform: `rotate(${i % 2 ? 1 : -1}deg)` }}>
+              <span className="tw-pixel" style={{ fontSize: 28, color: 'var(--sun-400)' }}>{i + 1}</span>
+              <span className="tw-heading" style={{ fontSize: 'var(--fs-h4)', color: 'var(--text-strong)' }}>{titel}</span>
+              <span style={{ fontSize: 17, lineHeight: 1.5 }}>{t}</span>
+            </li>
+          ))}
+        </ol>
+      </div>}
+      {(g.features || g.kicker) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '48px 64px', alignItems: 'center' }}>
+        {g.features && <div style={{ flex: '1 1 420px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {g.featuresTitel && <Kicker>{g.featuresTitel}</Kicker>}
+          <ul style={{ margin: 0, paddingLeft: 24, fontSize: 18, lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: 8 }}>{g.features.map(t => <li key={t}>{t}</li>)}</ul>
+        </div>}
+        {g.kicker && <div style={{ flex: '1 1 380px', minWidth: 0, background: 'var(--grad-sun)', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: 14, transform: `rotate(${-tilt * 1.3}deg)` }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Icon name="steam" brand size={36} /><span className="tw-heading" style={{ fontSize: 'var(--fs-h3)', lineHeight: 1.1 }}>{g.kicker[0]}</span></span>
+          <span style={{ fontSize: 19, lineHeight: 1.5, fontWeight: 700 }}>{g.kicker[1]}</span>
+        </div>}
+      </div>}
+      {g.hinweis && <p className="tw-pixel" style={{ margin: 0, fontSize: 12, color: 'var(--gray-400)', textAlign: 'center' }}>{g.hinweis}</p>}
     </SlantSection>
   );
 }
