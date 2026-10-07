@@ -2,9 +2,10 @@
 // 11 Spalten x 18 Zeilen, Zeile 0 oben. Pixel-Art-Motive (Stein 20x10 = doppelt so breit wie hoch),
 // Runde 1 links = Original. Frei editierbar; gen_levels.py nicht mehr verwenden (ueberschreibt die Motive).
 // Legende: . leer | 0-7 Stein Farbe (white orange tuerk green red blue pink yellow, 50..120 Punkte)
-//          A-H Stein Farbe 0-7 mit Item | s Silber 2 Treffer | S Silber 3 Treffer
-//          r Silber 1 Treffer, waechst nach | g Gold (nur mit Mega-Ball zerstoerbar)
-import { goldBrick, normalBrick, silverBrick } from '../core/brickgrid.js';
+//          A-H Stein Farbe 0-7 mit Item | s (und alt S) Grau, 2 Treffer, dann fuer immer weg
+//          r Doppelblau, 1 Treffer, waechst nach (zaehlt nicht) | g Gold, unzerstoerbar (zaehlt nicht)
+//          m Doppelgold, unzerstoerbar, wandert waagerecht und prallt an Steinen und Rand ab (zaehlt nicht)
+import { MOVER, goldBrick, normalBrick, silverBrick } from '../core/brickgrid.js';
 
 export const COLUMNS = 11;
 export const ROUNDS = 32;
@@ -155,7 +156,7 @@ export const LEVELS = [
       '.....0.....',
       '...........',
       '...........',
-      '...........',
+      'm..........',
       '...........',
       '...........',
       '...........',
@@ -218,7 +219,7 @@ export const LEVELS = [
       '.0.......0.',
       '...........',
       '...........',
-      '...........',
+      '..........m',
       '...........',
       '...........',
       '...........',
@@ -390,7 +391,7 @@ export const LEVELS = [
       '..22.s.22..',
       '...........',
       '...........',
-      '...........',
+      '.....m.....',
       '...........',
       '...........',
       '...........',
@@ -476,7 +477,7 @@ export const LEVELS = [
       '.....s.....',
       '...........',
       '...........',
-      '...........',
+      'm..........',
       '...........',
       '...........',
       '...........',
@@ -733,7 +734,7 @@ export const LEVELS = [
       '00A00000000',
       '...........',
       '...........',
-      '...........',
+      'm..........',
       '...........',
       '...........',
       '...........',
@@ -992,7 +993,7 @@ export const LEVELS = [
       '5755555555F',
       '...........',
       '...........',
-      '...........',
+      'm.........m',
       '...........',
       '...........',
       '...........',
@@ -1013,9 +1014,9 @@ export const LEVELS = [
       '.00.....0A.',
       '...........',
       '...........',
+      'm..........',
       '...........',
-      '...........',
-      '...........',
+      '..........m',
       '...........',
       '...........',
       '...........',
@@ -1144,7 +1145,7 @@ export const LEVELS = [
       '....As0....',
       '...........',
       '...........',
-      '...........',
+      '.....m.....',
       '...........',
       '...........',
       '...........',
@@ -1293,7 +1294,7 @@ export const LEVELS = [
       '..sssssss..',
       '...........',
       '...........',
-      '...........',
+      'm.........m',
       '...........',
       '...........',
       '...........',
@@ -1315,7 +1316,7 @@ export const LEVELS = [
       '....SSS....',
       '...........',
       '...........',
-      '...........',
+      'm..........',
       '...........',
       '...........',
       '...........',
@@ -1335,7 +1336,7 @@ export const LEVELS = [
       'sssss.sssss',
       '...........',
       '...........',
-      '...........',
+      '..........m',
       '...........',
       '...........',
       '...........',
@@ -1392,10 +1393,11 @@ export function parseBrick(ch) {
   if (ch >= '0' && ch <= '7') return normalBrick(ch.charCodeAt(0) - 48, false);
   if (ch >= 'A' && ch <= 'H') return normalBrick(ch.charCodeAt(0) - 65, true);
   switch (ch) {
-    case 's': return silverBrick(1, false);
-    case 'S': return silverBrick(2, false);
+    case 's':
+    case 'S': return silverBrick(1, false);
     case 'r': return silverBrick(0, true);
     case 'g': return goldBrick();
+    case 'm': return MOVER;
     default: return 0;
   }
 }

@@ -6,7 +6,8 @@
 //   Bit 2     keine Kollision (Zelle wird uebersprungen)
 //   Bit 3..5  normal: Farbe/Punkteklasse; Sonder: verbleibende Zusatztreffer (Silber)
 //   Bit 6     Sonder: waechst nach dem Zerstoeren nach
-//   Bit 7     Sonder: Gold (unzerstoerbar, ausser Durchschlag-Ball)
+//   Bit 7     Sonder: Gold (unzerstoerbar, ausser Durchschlag-Ball; mit Playfield.solidGold auch fuer den)
+//   Bit 6 + 7 Sonder: wandernder Goldstein (eigenes Gameplay, die Bewegung macht play/session.js)
 
 export const ROWS = 18;
 export const KIND_MASK = 0x03;
@@ -32,6 +33,10 @@ export function silverBrick(extraHits, regenerates) {
 export function goldBrick() {
   return GOLD | KIND_SPECIAL;
 }
+
+/** Wandernder Goldstein: verhaelt sich im Raster wie Gold, zaehlt nicht fuer den Levelabschluss. */
+export const MOVER = GOLD | REGENERATES | KIND_SPECIAL;
+export function isMover(v) { return (v & 0xC7) === MOVER; }
 
 export function countsForLevel(v) {
   if ((v & NO_COLLISION) !== 0 || (v & KIND_MASK) === 0) return false;

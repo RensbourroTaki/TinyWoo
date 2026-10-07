@@ -7,7 +7,7 @@
 import { MAX_BALLS, Playfield, StepResult, XorShiftRandomBit, fieldConfig } from '../core/playfield.js';
 import { PaddleType, paddleGeometryFor } from '../core/paddle.js';
 import { gridCellAt, horizontalReflectionOf, reflectHorizontal } from '../core/ballmotion.js';
-import { GOLD, KIND_MASK, KIND_SPECIAL, ROWS } from '../core/brickgrid.js';
+import { GOLD, KIND_MASK, KIND_SPECIAL, ROWS, isMover } from '../core/brickgrid.js';
 import { COLUMNS, ROUNDS, loadLevel } from './levels.js';
 import { ITEMS, ITEM_H, ITEM_W, pickItem, resolveSurprise } from './items.js';
 
@@ -35,6 +35,8 @@ export const ITEM_SPEED_16 = 11;       // 50 Art-Pixel/s = 40 Logik-Pixel/s = 0.
 export const EXTRA_LIFE_FIRST = 20000;
 export const EXTRA_LIFE_EVERY = 60000;
 export const ENEMY_W = 16, ENEMY_H = 19;   // Sprite 20x24 Art-Pixel / 1,25
+export const REGEN_FRAMES = 540;           // Doppelblau waechst nach 9 s nach
+export const MOVER_SLIDE = 24;             // Frames je Zelle des wandernden Goldsteins (50 Art-Pixel/s)
 
 export const FIELD_LEFT = 0x10;
 export const FIELD_RIGHT = 0x10 + 16 * COLUMNS;   // 192 = erste Position rechts vom Raster
@@ -50,12 +52,14 @@ export class GameSession {
     this.field.random = new XorShiftRandomBit(this.seed);
     this.field.listener = this;
     this.field.difficulty = 1;
+    this.field.solidGold = true;   // Gold ist auch fuer den Mega-Ball unzerstoerbar
 
     this.events = [];
     this.items = [];     // { key, x (Mitte), y16 (Unterkante in 1/16), age }
     this.shots = [];     // { x, y, age }
     this.enemies = [];   // { x, y (Mitte), vx, vy, age, drift }
     this.regens = [];    // { cell, value, timer }
+    this.movers = [];    // { row, col, dir, from, to, t } wandernde Goldsteine, t < 0 = steht
     this.phase = Phase.GAME_OVER;
     this.phaseTimer = 0;
     this.round = 0;
@@ -101,6 +105,13 @@ export class GameSession {
   loadRound() {
     loadLevel(this.round, this.variant, this.field.bricks);
     this.regens.length = 0;
+    this.movers.length = 0;
+    const cells = this.field.bricks.cells;
+    for (let i = 0; i < cells.length; i++) {
+      if (!isMover(cells[i])) continue;
+      const col = i % COLUMNS;
+      this.movers.push({ row: Math.floor(i / COLUMNS), col, dir: col < COLUMNS >> 1 ? 1 : -1, from: col, to: col, t: -1 });
+    }
     this.items.length = 0;
     this.shots.length = 0;
     this.enemies.length = 0;
@@ -166,6 +177,7 @@ export class GameSession {
         this.updateShots();
         this.updateEnemies();
         this.updateRegens();
+        this.updateMovers();
         if (this.pierceFrames > 0 && --this.pierceFrames === 0) {
           f.pierceBall = 0;
           this.emit('megaEnd');
@@ -497,14 +509,82 @@ export class GameSession {
     for (let i = this.regens.length - 1; i >= 0; i--) {
       const e = this.regens[i];
       if (--e.timer > 0) continue;
-      if (this.field.bricks.cells[e.cell] === 0) {
+      if (this.field.bricks.cells[e.cell] === 0 && !this.ballInCell(e.cell)) {
         this.field.bricks.cells[e.cell] = e.value;
         this.regens.splice(i, 1);
         this.emit('brickRegrown', { cell: e.cell, value: e.value });
       } else {
-        e.timer = 60;
+        e.timer = 30;
       }
     }
+  }
+
+  /** Beruehrt ein Ball (mit 1 px Rand) die Zelle? Dann darf dort kein Stein entstehen. */
+  ballInCell(cell) {
+    const f = this.field;
+    for (let i = 0; i < MAX_BALLS; i++) {
+      if (!f.isActive(i)) continue;
+      const b = f.balls[i];
+      // Ballkasten x-3..x+1, y-3..y+1 ist kleiner als eine Zelle: jede Ueberlappung trifft eine Ecke
+      for (const [px, py] of [[b.x - 4, b.y - 4], [b.x + 2, b.y - 4], [b.x - 4, b.y + 2], [b.x + 2, b.y + 2]]) {
+        if (gridCellAt(px & 0xFF, py & 0xFF, COLUMNS, LIFT) === cell) return true;
+      }
+    }
+    return false;
+  }
+
+  // ---------------------------------------------------------------- Wandernde Goldsteine
+
+  moverCanEnter(m, col) {
+    if (col < 0 || col >= COLUMNS) return false;
+    const cell = m.row * COLUMNS + col;
+    return this.field.bricks.cells[cell] === 0 && !this.ballInCell(cell);
+  }
+
+  /**
+   * Gleitet Zelle fuer Zelle waagerecht. Steine, Rand oder ein Ball im Weg = Richtungswechsel.
+   * Im Raster springt der Stein zur Haelfte des Gleitens; ist das Ziel dann belegt, gleitet er zurueck.
+   */
+  updateMovers() {
+    const cells = this.field.bricks.cells;
+    const half = MOVER_SLIDE >> 1;
+    for (const m of this.movers) {
+      if (m.t < 0) {
+        if (!this.moverCanEnter(m, m.col + m.dir)) {
+          m.dir = -m.dir;
+          if (!this.moverCanEnter(m, m.col + m.dir)) continue;
+        }
+        m.from = m.col;
+        m.to = m.col + m.dir;
+        m.t = 0;
+      }
+      m.t++;
+      if (m.t === half && m.to !== m.col) {
+        if (this.moverCanEnter(m, m.to)) {
+          const src = m.row * COLUMNS + m.col, dst = m.row * COLUMNS + m.to;
+          cells[dst] = cells[src];
+          cells[src] = 0;
+          m.col = m.to;
+          this.emit('brickMoved', { from: src, to: dst });
+        } else {
+          // zurueckgleiten: Ziel und Herkunft tauschen, Fortschritt spiegeln
+          m.dir = -m.dir;
+          m.to = m.from;
+          m.from = m.col + -m.dir;
+          m.t = MOVER_SLIDE - m.t;
+        }
+      }
+      if (m.t >= MOVER_SLIDE) m.t = -1;
+    }
+  }
+
+  /** Sichtbarer Versatz (in Zellen) des Goldsteins in Zelle cell waehrend des Gleitens, sonst 0. */
+  moverOffset(cell) {
+    for (const m of this.movers) {
+      if (m.t < 0 || m.row * COLUMNS + m.col !== cell) continue;
+      return m.from + (m.to - m.from) * (m.t / MOVER_SLIDE) - m.col;
+    }
+    return 0;
   }
 
   // ---------------------------------------------------------------- Kern-Ereignisse
@@ -547,7 +627,7 @@ export class GameSession {
     } else {
       this.addScore((((value >> 3) & 7) + 5) * 10);
     }
-    if (regenerates) this.regens.push({ cell, value, timer: 600 + 60 * Math.min(this.round, 8) });
+    if (regenerates) this.regens.push({ cell, value, timer: REGEN_FRAMES });
     this.emit('brickDestroyed', { ball, cell, value, regenerates });
     if (capsule && this.phase === Phase.PLAYING) this.spawnItem(cell);
   }

@@ -6,7 +6,7 @@
 import { INNER, PHASER_Y, boardState, flickerPhaser } from './board.js';
 import { BRICK_COLORS } from './assets.js';
 import { SpinText } from './spintext.js';
-import { GOLD, HITS_MASK, KIND_MASK, KIND_SPECIAL, REGENERATES, ROWS } from '../core/brickgrid.js';
+import { GOLD, KIND_MASK, KIND_SPECIAL, REGENERATES, ROWS } from '../core/brickgrid.js';
 import { PaddleType } from '../core/paddle.js';
 import { MAX_BALLS } from '../core/playfield.js';
 import { Phase, INTRO_FRAMES, READY_FRAMES, EXITING_FRAMES, ENEMY_W, ENEMY_H } from '../play/session.js';
@@ -78,7 +78,11 @@ export class GameView {
         case 'ceiling': this.audio.play('wall', 0.7, 1.1); break;
         case 'brickHit':
           this.audio.play('brick', 0.9, e.gold ? 0.6 : 0.85);
-          this.effects.push({ type: 'shake', cell: e.cell, t: 0, len: 6 });
+          // Gold blinkt mit dem Zerstoer-Effekt auf und bleibt stehen, alles andere wackelt
+          this.effects.push(e.gold ? { type: 'flash', cell: e.cell, t: 0, len: 9 } : { type: 'shake', cell: e.cell, t: 0, len: 6 });
+          break;
+        case 'brickMoved':
+          for (const fx of this.effects) if (fx.cell === e.from) fx.cell = e.to;
           break;
         case 'brickDestroyed':
           this.audio.play('brick', 1, 1 + ((e.value >> 3) & 7) * 0.04);
@@ -304,16 +308,18 @@ export class GameView {
     const cells = f.bricks.cells;
     const intro = session.phase === Phase.INTRO && this.introBricks;
     const visible = (i) => cells[i] !== 0 && (!intro || this.introTimer >= this.introBricks[i]);
+    // wandernde Goldsteine gleiten zwischen den Zellen: Versatz in Art-Pixeln
+    const slide = (i) => (session.movers.length ? 20 * session.moverOffset(i) : 0);
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     for (let i = 0; i < cells.length; i++) {
       if (!visible(i)) continue;
       const col = i % COLUMNS, row = Math.floor(i / COLUMNS);
-      ctx.fillRect((10 + 20 * col + 3) * S, (11 + 10 * row + 3) * S, 20 * S, 10 * S);
+      ctx.fillRect(Math.round((10 + 20 * col + 3 + slide(i)) * S), (11 + 10 * row + 3) * S, 20 * S, 10 * S);
     }
     for (let i = 0; i < cells.length; i++) {
       if (!visible(i)) continue;
       const col = i % COLUMNS, row = Math.floor(i / COLUMNS);
-      let x = 10 + 20 * col, y = 11 + 10 * row;
+      let x = 10 + 20 * col + slide(i), y = 11 + 10 * row;
       const shake = this.effects.find((e) => e.type === 'shake' && e.cell === i);
       if (shake) x += (shake.t & 1) ? 1 : -1;
       const im = I[brickImage(cells[i])];
@@ -321,17 +327,17 @@ export class GameView {
     }
     // Effekte auf Zellen
     for (const e of this.effects) {
-      if (e.type !== 'destroy' && e.type !== 'shine') continue;
+      if (e.type !== 'destroy' && e.type !== 'flash' && e.type !== 'shine') continue;
       const col = e.cell % COLUMNS, row = Math.floor(e.cell / COLUMNS);
-      const x = 10 + 20 * col, y = 11 + 10 * row;
-      if (e.type === 'destroy') {
+      const x = Math.round((10 + 20 * col + slide(e.cell)) * S), y = (11 + 10 * row) * S;
+      if (e.type === 'destroy' || (e.type === 'flash' && cells[e.cell] !== 0)) {
         const fr = Math.min(2, Math.floor(e.t / 3));
-        ctx.drawImage(I.brickDestroyed, 0, fr * 10, 20, 10, x * S, y * S, 20 * S, 10 * S);
-      } else if (cells[e.cell] !== 0) {
+        ctx.drawImage(I.brickDestroyed, 0, fr * 10, 20, 10, x, y, 20 * S, 10 * S);
+      } else if (e.type === 'shine' && cells[e.cell] !== 0) {
         const fr = Math.min(5, Math.floor(e.t / 2));
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 0.7;
-        ctx.drawImage(I.brickShine, 0, fr * 10, 20, 10, x * S, y * S, 20 * S, 10 * S);
+        ctx.drawImage(I.brickShine, 0, fr * 10, 20, 10, x, y, 20 * S, 10 * S);
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
       }
@@ -473,9 +479,9 @@ export class GameView {
 /** Stein-Byte -> Bildname. */
 export function brickImage(v) {
   if ((v & KIND_MASK) !== KIND_SPECIAL) return BRICK_COLORS[(v >> 3) & 7];
-  if (v & GOLD) return 'brickGoldHard';
-  if (v & REGENERATES) return 'brickViolet';
-  return (v & HITS_MASK) >= 16 ? 'brickGrey' : 'brickSilver';
+  if (v & GOLD) return (v & REGENERATES) ? 'brickMover' : 'brickGold';
+  if (v & REGENERATES) return 'brickRegen';
+  return 'brickHard';
 }
 
 export function itemImage(key) {

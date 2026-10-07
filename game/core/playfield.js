@@ -8,7 +8,7 @@
 // Zeile hoeher, Schlaeger-Band unveraendert). Alles andere bleibt byte-genau.
 import { Ball } from './ball.js';
 import { Paddle, PaddleType } from './paddle.js';
-import { BrickGrid, blocksAsNeighbor } from './brickgrid.js';
+import { BrickGrid, GOLD, KIND_MASK, KIND_SPECIAL, blocksAsNeighbor } from './brickgrid.js';
 import {
   deriveSignsAndComponents, gridCellAt, reflectCorner, reflectHorizontal, reflectVertical, stepComponent,
 } from './ballmotion.js';
@@ -68,6 +68,7 @@ export class Playfield {
     this.bricks = new BrickGrid(this.columns);
 
     this.pierceBall = 0;        // $E731: Durchschlag-Ball
+    this.solidGold = false;     // eigenes Gameplay (nicht im ROM): Gold haelt auch dem Durchschlag-Ball stand, Ball prallt ab
     this.minSpeed = 0;          // $E7E0: Mindest-Speed nach Deckenkontakt
     this.difficulty = 0;        // $E7E5: Abpraller-Tabelle 0..3
     this.specialMode = 0;       // $E5F7: Sondermodus (Baelle werden nachgefuellt, Tabelle 4)
@@ -373,7 +374,7 @@ export class Playfield {
    * Bit0 = Y-Grenze ueberquert. true = Position wurde hier gesetzt (Treffer), false = kein Stein.
    */
   collideBricks(index, b, cell, crossed, dx, dy, xUp, yUp) {
-    const pierce = this.pierceBall !== 0;
+    let pierce = this.pierceBall !== 0;
     const grid = this.bricks;
     const L = this.listener;
     if (crossed === 3) {
@@ -382,6 +383,7 @@ export class Playfield {
       const nx = (cell + this.cornerNeighbors[q * 2]) & 0xFF;       // nur X ueberquert
       const ny = (cell + this.cornerNeighbors[q * 2 + 1]) & 0xFF;   // nur Y ueberquert
       const nxValid = nx < this.cellCount, nyValid = ny < this.cellCount;
+      if (pierce && this.solidGold && (this.isGold(cell) || this.isGold(nx) || this.isGold(ny))) pierce = false;
       let e = 0;
       if (nxValid && blocksAsNeighbor(grid.cells[nx])) e |= 2;
       if (nyValid && blocksAsNeighbor(grid.cells[ny])) e |= 1;
@@ -416,11 +418,19 @@ export class Playfield {
       return true;
     }
 
+    if (pierce && this.solidGold && this.isGold(cell)) pierce = false;
     if (!grid.hit(cell, pierce, index, L)) return false;
     if (pierce) return true;   // $39F5: Ball bleibt in diesem Frame stehen
     if ((crossed & 1) !== 0) hitFromBelowOrAbove(b, dx, dy, yUp);
     else hitFromSide(b, dx, dy, xUp);
     return true;
+  }
+
+  /** Zelle enthaelt einen Goldstein (nur fuer solidGold). */
+  isGold(cell) {
+    if (cell >= this.cellCount) return false;
+    const v = this.bricks.cells[cell];
+    return (v & KIND_MASK) === KIND_SPECIAL && (v & GOLD) !== 0;
   }
 
   // ---------------------------------------------------------------- Ball, Teil b ($5C1D)

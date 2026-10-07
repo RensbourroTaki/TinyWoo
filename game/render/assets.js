@@ -18,9 +18,11 @@ export const IMAGES = {
   // Steine (der Schatten des Rahmens wird zur Laufzeit gezeichnet, siehe Board.drawShadow)
   brickWhite: 'blocks/white.png', brickOrange: 'blocks/orange.png', brickTuerk: 'blocks/tuerk.png',
   brickGreen: 'blocks/green.png', brickRed: 'blocks/red.png', brickBlue: 'blocks/blue.png',
-  brickPink: 'blocks/pink.png', brickYellow: 'blocks/yellow.png', brickGrey: 'blocks/grey.png',
-  brickViolet: 'blocks/violet.png', brickGold: 'blocks/gold.png',
-  brickSilver: 'blocks/double-blue.png', brickGoldHard: 'blocks/double-gold.png',
+  brickPink: 'blocks/pink.png', brickYellow: 'blocks/yellow.png',
+  brickHard: 'blocks/grey.png',              // 2 Treffer, dann weg
+  brickRegen: 'blocks/double-blue.png',      // 1 Treffer, waechst nach
+  brickGold: 'blocks/gold.png',              // unzerstoerbar
+  brickMover: 'blocks/double-gold.png',      // unzerstoerbar, wandert waagerecht
   brickDestroyed: 'blocks/destroyed.png',    // 3 Frames 20x10
   brickShine: 'blocks/shine.png',            // 6 Frames 20x10 (additiv)
   ball: 'player/ball.png',                   // 6x6
