@@ -101,6 +101,7 @@ window.TW_INHALT = {
         'Ticker with the top 20 players in the main menu',
         'Rocket and mercenary upgrades',
         'Pet shop',
+        'Audio player: unlock new in-game tracks and pick your own track for each in-game event',
         'Stats screen with your total progress chart, accuracy and best combos',
       ],
       featuresSchluss: 'Welcome to the crazy rocket campus!',
