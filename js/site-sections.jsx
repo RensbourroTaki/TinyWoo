@@ -161,7 +161,7 @@ function GameRow({ g, flip, onNav }) {
         <div style={{ flex: '2 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
           <H2>{g.title}</H2>
           {g.tagline && <p className="tw-heading" style={{ margin: 0, fontSize: 'var(--fs-h3, 24px)', lineHeight: 1.25, color: 'var(--sun-400)' }}>{g.tagline}</p>}
-          {absaetze.map((t, i) => <p key={i} style={{ margin: 0, fontSize: 20, lineHeight: 1.55, color: i === 0 ? 'var(--text-strong)' : undefined, fontWeight: i === 0 ? 700 : undefined }}>{t}</p>)}
+          {absaetze.map((t, i) => <p key={i} style={{ margin: 0, fontSize: i === 0 ? 24 : 20, lineHeight: 1.5, whiteSpace: 'pre-line', color: i === 0 ? 'var(--text-strong)' : undefined, fontWeight: i === 0 ? 700 : undefined }}>{t}</p>)}
         </div>
         <div style={{ ...card, flex: '1 1 320px', minWidth: 0, gap: 22 }}>
           <Kicker>At a glance</Kicker>
@@ -173,16 +173,30 @@ function GameRow({ g, flip, onNav }) {
           </div>
         </div>
       </div>
+      {g.cast && <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {g.castTitel && <Kicker>{g.castTitel}</Kicker>}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 24 }}>
+          {g.cast.map(([name, t], i) => (
+            <div key={name} style={{ ...card, gap: 12, transform: `rotate(${i % 2 ? 1.2 : -1.2}deg)` }}>
+              <span className="tw-heading" style={{ fontSize: 'var(--fs-h3)', lineHeight: 1.05, color: 'var(--sun-400)' }}>{name}</span>
+              <span style={{ fontSize: 18, lineHeight: 1.5, whiteSpace: 'pre-line' }}>{t}</span>
+            </div>
+          ))}
+        </div>
+      </div>}
       {g.ablauf && <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {g.ablaufTitel && <Kicker>{g.ablaufTitel}</Kicker>}
         <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,230px),1fr))', gap: 20 }}>
-          {g.ablauf.map(([titel, t], i) => (
-            <li key={titel} style={{ ...card, gap: 10, transform: `rotate(${i % 2 ? 1 : -1}deg)` }}>
-              <span className="tw-pixel" style={{ fontSize: 28, color: 'var(--sun-400)' }}>{i + 1}</span>
-              <span className="tw-heading" style={{ fontSize: 'var(--fs-h4)', color: 'var(--text-strong)' }}>{titel}</span>
-              <span style={{ fontSize: 17, lineHeight: 1.5 }}>{t}</span>
-            </li>
-          ))}
+          {g.ablauf.map((schritt, i) => {
+            const [titel, t] = Array.isArray(schritt) ? schritt : [null, schritt];
+            return (
+              <li key={i} style={{ ...card, gap: 10, transform: `rotate(${i % 2 ? 1 : -1}deg)` }}>
+                <span className="tw-pixel" style={{ fontSize: 28, color: 'var(--sun-400)' }}>{i + 1}</span>
+                {titel && <span className="tw-heading" style={{ fontSize: 'var(--fs-h4)', color: 'var(--text-strong)' }}>{titel}</span>}
+                <span style={{ fontSize: 18, lineHeight: 1.5 }}>{t}</span>
+              </li>
+            );
+          })}
         </ol>
       </div>}
       {(g.features || g.kicker) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '48px 64px', alignItems: 'center' }}>
