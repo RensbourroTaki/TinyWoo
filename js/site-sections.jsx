@@ -9,6 +9,138 @@ const Kicker = ({ children }) => <span className="tw-pixel" style={{ fontSize: 1
 const card = { background: 'var(--surface-card)', border: '4px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop)', padding: 24, display: 'flex', flexDirection: 'column', gap: 18 };
 const grid2 = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', gap: 28, alignItems: 'start' };
 
+// Buchstaben-Explosion fuer Ueberschriften/Texte der Games-Seite ausserhalb der Kaesten (Maus drueckt weg, Klick/Tap sprengt).
+const BLAST_ON = true;          // false = aus
+const BLAST_REDUCED = false;    // true = aus, wenn das System "weniger Bewegung" meldet (z.B. Windows-Animationen aus)
+const blastOff = () => !BLAST_ON || (BLAST_REDUCED && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const SR_ONLY = { position: 'absolute', width: 1, height: 1, margin: -1, padding: 0, border: 0, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' };
+
+/** Ein gemeinsamer rAF-Loop fuer alle Blast-Texte. Jeder Buchstabe federt zu seinem Ziel (vom Zeiger weggedrueckt,
+ *  angehoben, verdreht); der Loop laeuft nur, solange sich etwas bewegt. Positionen in Seitenkoordinaten, beim Betreten gemessen. */
+const blast = (() => {
+  const groups = new Set();
+  let raf = 0, last = 0, listening = false;
+  const reach = (g) => Math.max(100, g.size * 3.2);
+  const push = (g) => Math.max(10, g.size * 0.55) * g.power;
+
+  const tick = (now) => {
+    const steps = Math.max(1, Math.min(4, Math.round((now - last) / 16.7)));
+    last = now;
+    let any = false;
+    for (const g of groups) {
+      if (!g.awake) continue;
+      let moving = g.active;
+      const R = reach(g), P = push(g);
+      for (const L of g.letters) {
+        let tx = 0, ty = 0, tr = 0, ts = 1;
+        if (g.active) {
+          const dx = L.cx - g.px, dy = L.cy - g.py, d = Math.hypot(dx, dy) || 1, f = Math.max(0, 1 - d / R) ** 2;
+          if (f > 0) { tx = dx / d * f * P; ty = dy / d * f * P - f * P * 0.5; tr = L.spin * f * 40 * g.power; ts = 1 + f * 0.25 * g.power; }
+        }
+        for (let i = 0; i < steps; i++) {
+          L.vx = (L.vx + (tx - L.x) * 0.09) * 0.8; L.x += L.vx;
+          L.vy = (L.vy + (ty - L.y) * 0.09) * 0.8; L.y += L.vy;
+          L.vr = (L.vr + (tr - L.r) * 0.09) * 0.8; L.r += L.vr;
+          L.vs = (L.vs + (ts - L.s) * 0.09) * 0.8; L.s += L.vs;
+        }
+        const e = Math.abs(L.vx) + Math.abs(L.vy) + Math.abs(L.vr) * 0.1 + Math.abs(L.vs) * 10
+          + Math.abs(tx - L.x) + Math.abs(ty - L.y) + Math.abs(tr - L.r) * 0.1 + Math.abs(ts - L.s) * 10;
+        if (e < 0.05) { L.x = tx; L.y = ty; L.r = tr; L.s = ts; L.vx = L.vy = L.vr = L.vs = 0; } else moving = true;
+        const t = (L.x || L.y || L.r || L.s !== 1) ? `translate(${L.x.toFixed(1)}px,${L.y.toFixed(1)}px) rotate(${L.r.toFixed(1)}deg) scale(${L.s.toFixed(3)})` : '';
+        if (t !== L.t) { L.t = t; L.el.style.transform = t; }
+      }
+      g.awake = moving;
+      if (moving) any = true;
+    }
+    raf = any ? requestAnimationFrame(tick) : 0;
+  };
+  const wake = (g) => { g.awake = true; if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); } };
+
+  // Ruhelage messen (aktuelle Verschiebung abziehen; Drehen/Skalieren um die Mitte verschiebt die Mitte nicht).
+  const measure = (g) => {
+    const sx = window.scrollX, sy = window.scrollY;
+    g.size = parseFloat(getComputedStyle(g.el).fontSize) || 16;
+    for (const L of g.letters) { const b = L.el.getBoundingClientRect(); L.cx = b.left + b.width / 2 + sx - L.x; L.cy = b.top + b.height / 2 + sy - L.y; }
+    const b = g.el.getBoundingClientRect();
+    g.box = { l: b.left + sx, t: b.top + sy, r: b.right + sx, b: b.bottom + sy };
+  };
+  const calm = (g) => { if (g.active) { g.active = false; wake(g); } };
+  const calmAll = () => { groups.forEach(calm); listen(false); };
+  function onMove(e) {
+    let still = false;
+    for (const g of groups) {
+      if (!g.active) continue;
+      const R = reach(g), B = g.box;
+      if (e.pageX < B.l - R || e.pageX > B.r + R || e.pageY < B.t - R || e.pageY > B.b + R) { calm(g); continue; }
+      g.px = e.pageX; g.py = e.pageY; still = true; wake(g);
+    }
+    if (!still) listen(false);
+  }
+  function listen(on) {
+    if (on === listening) return;
+    listening = on;
+    const f = on ? 'addEventListener' : 'removeEventListener';
+    window[f]('pointermove', onMove, { passive: true });
+    document.documentElement[f]('mouseleave', calmAll);
+  }
+  const enter = (g, e) => {
+    if (!g.active) { measure(g); g.active = true; }
+    g.px = e.pageX; g.py = e.pageY;
+    listen(true); wake(g);
+  };
+  const explode = (g, e) => {
+    enter(g, e);
+    const P = push(g);
+    for (const L of g.letters) {
+      const dx = L.cx - g.px, dy = L.cy - g.py, d = Math.hypot(dx, dy) || 1, f = 1 / (1 + d / (g.size * 2));
+      const k = P * 0.7 * f * (0.6 + Math.random() * 0.8);
+      L.vx += dx / d * k; L.vy += dy / d * k - P * 0.3 * f;
+      L.vr += (Math.random() - 0.5) * 50 * g.power * f; L.vs += 0.08 * g.power * f;
+    }
+  };
+  const add = (el, power) => {
+    const g = { el, power, active: false, awake: false, px: 0, py: 0, size: 16, box: null,
+      letters: [...el.querySelectorAll('[data-l]')].map((n) => ({ el: n, x: 0, y: 0, r: 0, s: 1, vx: 0, vy: 0, vr: 0, vs: 0, cx: 0, cy: 0, t: '', spin: (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.5) })) };
+    const onEnter = (e) => enter(g, e);
+    const onDown = (e) => explode(g, e);
+    const onUp = (e) => { if (e.pointerType !== 'mouse') calm(g); };       // Finger weg: Buchstaben zurueckfedern lassen
+    el.addEventListener('pointerenter', onEnter);
+    el.addEventListener('pointerdown', onDown);
+    el.addEventListener('pointerup', onUp);
+    el.addEventListener('pointercancel', onUp);
+    groups.add(g);
+    return () => {
+      groups.delete(g);
+      el.removeEventListener('pointerenter', onEnter);
+      el.removeEventListener('pointerdown', onDown);
+      el.removeEventListener('pointerup', onUp);
+      el.removeEventListener('pointercancel', onUp);
+      if (![...groups].some((o) => o.active)) listen(false);
+    };
+  };
+  return { add };
+})();
+
+/** Text, dessen Buchstaben einzeln auf den Zeiger reagieren. Woerter bleiben am Stueck (kein neuer Umbruch),
+ *  \n = neue Zeile, Screenreader lesen den Klartext. power: Staerke (1 = voll). */
+function Blast({ text, power = 1 }) {
+  const ref = React.useRef(null);
+  const off = React.useMemo(blastOff, []);
+  React.useEffect(() => (off || !ref.current ? undefined : blast.add(ref.current, power)), [text, power, off]);
+  if (off || !text) return text || null;
+  const word = (w, i) => (
+    <React.Fragment key={i}>{i > 0 && ' '}<span style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
+      {[...w].map((c, j) => <span key={j} data-l="" style={{ display: 'inline-block' }}>{c}</span>)}
+    </span></React.Fragment>
+  );
+  return (
+    <span ref={ref} style={{ cursor: 'default' }}>
+      <span style={SR_ONLY}>{text}</span>
+      <span aria-hidden="true">{String(text).split('\n').map((line, n) => <React.Fragment key={n}>{n > 0 && <br />}{line.split(' ').map(word)}</React.Fragment>)}</span>
+    </span>
+  );
+}
+
 const mailAddr = (I.links.email || []).join('@');
 
 function EmailButton() {
@@ -159,9 +291,9 @@ function GameRow({ g, flip, onNav }) {
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px 64px', alignItems: 'flex-start' }}>
         <div style={{ flex: '2 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <H2>{g.title}</H2>
-          {g.tagline && <p className="tw-heading" style={{ margin: 0, fontSize: 'var(--fs-h3, 24px)', lineHeight: 1.25, color: 'var(--sun-400)' }}>{g.tagline}</p>}
-          {absaetze.map((t, i) => <p key={i} style={{ margin: 0, fontSize: i === 0 ? 24 : 20, lineHeight: 1.5, whiteSpace: 'pre-line', color: i === 0 ? 'var(--text-strong)' : undefined, fontWeight: i === 0 ? 700 : undefined }}>{t}</p>)}
+          <H2><Blast text={g.title} /></H2>
+          {g.tagline && <p className="tw-heading" style={{ margin: 0, fontSize: 'var(--fs-h3, 24px)', lineHeight: 1.25, color: 'var(--sun-400)' }}><Blast text={g.tagline} /></p>}
+          {absaetze.map((t, i) => <p key={i} style={{ margin: 0, fontSize: i === 0 ? 24 : 20, lineHeight: 1.5, whiteSpace: 'pre-line', color: i === 0 ? 'var(--text-strong)' : undefined, fontWeight: i === 0 ? 700 : undefined }}><Blast text={t} power={0.7} /></p>)}
         </div>
         <div style={{ ...card, flex: '1 1 320px', minWidth: 0, gap: 22 }}>
           <Kicker>At a glance</Kicker>
@@ -174,7 +306,7 @@ function GameRow({ g, flip, onNav }) {
         </div>
       </div>
       {g.cast && <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {g.castTitel && <Kicker>{g.castTitel}</Kicker>}
+        {g.castTitel && <Kicker><Blast text={g.castTitel} power={0.8} /></Kicker>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 24 }}>
           {g.cast.map(([name, t], i) => (
             <div key={name} style={{ ...card, gap: 12, transform: `rotate(${i % 2 ? 1.2 : -1.2}deg)` }}>
@@ -185,7 +317,7 @@ function GameRow({ g, flip, onNav }) {
         </div>
       </div>}
       {g.ablauf && <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {g.ablaufTitel && <Kicker>{g.ablaufTitel}</Kicker>}
+        {g.ablaufTitel && <Kicker><Blast text={g.ablaufTitel} power={0.8} /></Kicker>}
         <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,230px),1fr))', gap: 20 }}>
           {g.ablauf.map((schritt, i) => {
             const [titel, t] = Array.isArray(schritt) ? schritt : [null, schritt];
@@ -201,13 +333,13 @@ function GameRow({ g, flip, onNav }) {
       </div>}
       {(g.features || g.kicker) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '48px 64px', alignItems: 'center' }}>
         {g.features && <div style={{ flex: '1 1 420px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {g.featuresIntro && <p style={{ margin: '0 0 8px', fontSize: 20, lineHeight: 1.55 }}>{g.featuresIntro}</p>}
-          {g.featuresTitel && <h3 className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h2)', lineHeight: 1.05, transform: 'rotate(-2deg)', transformOrigin: 'left' }}>{g.featuresTitel}</h3>}
-          <ul style={{ margin: 0, paddingLeft: 24, fontSize: 18, lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: 8 }}>{g.features.map(t => <li key={t}>{t}</li>)}</ul>
-          {g.zwischenzeile && <p style={{ margin: '8px 0', fontSize: 22, lineHeight: 1.4, fontWeight: 700, color: 'var(--text-strong)' }}>{g.zwischenzeile}</p>}
-          {g.features2Titel && <h3 className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h2)', lineHeight: 1.05, transform: 'rotate(-2deg)', transformOrigin: 'left' }}>{g.features2Titel}</h3>}
-          {g.features2 && <ul style={{ margin: 0, paddingLeft: 24, fontSize: 18, lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: 8 }}>{g.features2.map(t => <li key={t}>{t}</li>)}</ul>}
-          {g.featuresSchluss && <p className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h3)', lineHeight: 1.15, color: 'var(--sun-400)', transform: 'rotate(-2deg)', transformOrigin: 'left' }}>{g.featuresSchluss}</p>}
+          {g.featuresIntro && <p style={{ margin: '0 0 8px', fontSize: 20, lineHeight: 1.55 }}><Blast text={g.featuresIntro} power={0.7} /></p>}
+          {g.featuresTitel && <h3 className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h2)', lineHeight: 1.05, transform: 'rotate(-2deg)', transformOrigin: 'left' }}><Blast text={g.featuresTitel} /></h3>}
+          <ul style={{ margin: 0, paddingLeft: 24, fontSize: 18, lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: 8 }}>{g.features.map(t => <li key={t}><Blast text={t} power={0.7} /></li>)}</ul>
+          {g.zwischenzeile && <p style={{ margin: '8px 0', fontSize: 22, lineHeight: 1.4, fontWeight: 700, color: 'var(--text-strong)' }}><Blast text={g.zwischenzeile} power={0.8} /></p>}
+          {g.features2Titel && <h3 className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h2)', lineHeight: 1.05, transform: 'rotate(-2deg)', transformOrigin: 'left' }}><Blast text={g.features2Titel} /></h3>}
+          {g.features2 && <ul style={{ margin: 0, paddingLeft: 24, fontSize: 18, lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: 8 }}>{g.features2.map(t => <li key={t}><Blast text={t} power={0.7} /></li>)}</ul>}
+          {g.featuresSchluss && <p className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h3)', lineHeight: 1.15, color: 'var(--sun-400)', transform: 'rotate(-2deg)', transformOrigin: 'left' }}><Blast text={g.featuresSchluss} /></p>}
         </div>}
         {g.kicker && (Array.isArray(g.kicker)
           ? <div style={{ flex: '1 1 380px', minWidth: 0, background: 'var(--grad-sun)', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: 14, transform: `rotate(${-tilt * 1.3}deg)` }}>
@@ -219,8 +351,8 @@ function GameRow({ g, flip, onNav }) {
               <span style={{ fontSize: 22, lineHeight: 1.45, fontWeight: 700 }}>{g.kicker}</span>
             </div>)}
       </div>}
-      {g.nachsatz && <p style={{ margin: 0, fontSize: 20, lineHeight: 1.55 }}>{g.nachsatz}</p>}
-      {g.hinweis && <p className="tw-pixel" style={{ margin: 0, fontSize: 12, color: 'var(--gray-400)', textAlign: 'center' }}>{g.hinweis}</p>}
+      {g.nachsatz && <p style={{ margin: 0, fontSize: 20, lineHeight: 1.55 }}><Blast text={g.nachsatz} power={0.7} /></p>}
+      {g.hinweis && <p className="tw-pixel" style={{ margin: 0, fontSize: 12, color: 'var(--gray-400)', textAlign: 'center' }}><Blast text={g.hinweis} power={0.7} /></p>}
     </SlantSection>
   );
 }
