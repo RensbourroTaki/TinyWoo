@@ -61,6 +61,9 @@ export async function mountDaiganoid(container, opts = {}) {
     /** Vom Wirt aufrufen, wenn sich die Liste hinter opts.scores geaendert hat (HI-Anzeige nachziehen). */
     refreshScores() { app.syncHi(); },
     setOption(k, v) { app.options[k] = v; },
+    /** Ton an/aus; aus einem Klick-Handler aufrufen, dann schaltet das auch Audio auf Mobilgeraeten frei. */
+    setMuted(on) { app.setMuted(on); if (app.audio) app.audio.unlock(); },
+    isMuted() { return !!app.options.muted; },
     destroy() {
       app.destroy();
       if (ro) ro.disconnect();

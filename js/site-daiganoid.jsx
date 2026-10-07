@@ -33,6 +33,7 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
   const [error, setError] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [submitError, setSubmitError] = React.useState('');
+  const [muted, setMuted] = React.useState(false);
 
   React.useEffect(() => { scoresRef.current = scores || []; if (game.current) game.current.refreshScores(); }, [scores]);
   React.useEffect(() => { if (onPlaying) onPlaying(state === 'game'); }, [state]);
@@ -56,7 +57,7 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
           onGameOver: (r) => { setOver(r); setName(''); setSubmitError(''); },
         },
       });
-    }).then((g) => { if (live) game.current = g; else if (g) g.destroy(); })
+    }).then((g) => { if (live) { game.current = g; if (g) setMuted(g.isMuted()); } else if (g) g.destroy(); })
       .catch((e) => setError(String(e && e.message || e)));
     return () => { live = false; if (game.current) { game.current.destroy(); game.current = null; } };
   }, []);
@@ -101,6 +102,7 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
         <Hud label="Round" value={`${hud.round}/${hud.rounds}`} color="var(--sky-400)" />
         <Hud label="Lives" value={'▰'.repeat(Math.min(6, hud.lives)) || '-'} color="var(--lime-400)" />
         <Hud label="Hi" value={String(hud.hi).padStart(7, '0')} color="var(--sun-400)" />
+        <Button variant="ghost" size="sm" icon={<Icon name={muted ? 'volume-x' : 'volume-2'} size={18} />} aria-label={muted ? 'Sound on' : 'Sound off'} title={muted ? 'Sound on' : 'Sound off'} aria-pressed={muted} onClick={() => { if (!game.current) return; const m = !muted; game.current.setMuted(m); setMuted(m); }} />
         <Button variant="ghost" size="sm" icon={<Icon name="maximize" size={18} />} onClick={() => game.current && game.current.fullscreen()}>Fullscreen</Button>
       </div>
       <p style={{ margin: 0, maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: 'var(--text-muted)', textAlign: 'center' }}>

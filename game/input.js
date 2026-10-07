@@ -24,6 +24,7 @@ export class GameInput {
     this.lockReady = false;            // von der App gesetzt: nur im laufenden Spiel darf gesperrt werden
     this.touchActive = false;
     this.toLogicX = (artX) => artX;    // wird vom Spiel gesetzt (Art -> Logik)
+    this.onGesture = null;             // wird synchron in jeder Nutzergeste gerufen (Audio-Freischaltung, iOS/Android)
     this.bind();
   }
 
@@ -47,6 +48,7 @@ export class GameInput {
     this.onLeave = () => { this.pointerInside = false; this.pointerArt = null; };
     this.onDown = (e) => {
       if (e.button !== undefined && e.button !== 0) return;
+      if (this.onGesture) this.onGesture();
       const a = this.artPos(e);
       this.clicks.push(a);
       if (e.pointerType !== 'touch') { this.pointerInside = true; this.pointerArt = a; }
@@ -59,9 +61,11 @@ export class GameInput {
         try { const p = c.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (err) { /* egal */ }
       }
     };
-    this.onUp = () => { this.fireHeld = false; };
+    // Touch zaehlt erst beim Loslassen als Geste, daher auch hier freischalten (nur wenn auf dem Canvas begonnen)
+    this.onUp = () => { if (this.fireHeld && this.onGesture) this.onGesture(); this.fireHeld = false; };
     this.onLock = () => { this.locked = document.pointerLockElement === c; if (this.locked) this.absoluteX = null; };
     this.onKeyDown = (e) => {
+      if (this.onGesture) this.onGesture();
       if (e.repeat) { if (['ArrowUp', 'ArrowDown'].includes(e.code)) this.pressedKeys.push(e.code); return; }
       this.keys.add(e.code);
       this.pressedKeys.push(e.code);

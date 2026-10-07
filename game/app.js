@@ -51,7 +51,7 @@ export function saveScore(entry) {
 
 function loadOptions() {
   // mlock (frueher lock): Pointer-Lock ist jetzt standardmaessig aus, alte gespeicherte Werte gelten nicht mehr
-  const d = { sfx: true, music: true, scanlines: true, sens: 5, mlock: false };
+  const d = { sfx: true, music: true, scanlines: true, sens: 5, mlock: false, muted: false };
   try { return Object.assign(d, JSON.parse(localStorage.getItem(OPTIONS_KEY) || '{}')); } catch (e) { return d; }
 }
 
@@ -110,6 +110,7 @@ export class DaiganoidApp {
     this.audio = new GameAudio(base);
     this.audio.sfxOn = this.options.sfx;
     this.audio.musicOn = this.options.music;
+    this.audio.setMuted(this.options.muted);
     this.assets = await loadAssets(base, (p) => { this.progress = p; });
     this.fonts = {
       spin: new SpinFont(this.assets.img.fontSpin, this.assets.fonts.spin),
@@ -124,6 +125,7 @@ export class DaiganoidApp {
       this.input.sensitivity = 0.4 + this.options.sens * 0.16;
       this.input.wantLock = this.options.mlock;
       this.input.arrowPaddle = !DEV_KEYS;
+      this.input.onGesture = () => this.audio.unlock();
       if (!this.assets.img.cursor) this.canvas.style.cursor = '';   // ohne Bild bleibt der normale Zeiger
     }
     document.addEventListener('visibilitychange', this.onVisibility);
@@ -165,6 +167,13 @@ export class DaiganoidApp {
       this.raf = requestAnimationFrame(loop);
     };
     this.raf = requestAnimationFrame(loop);
+  }
+
+  /** Hauptschalter Ton (Lautsprecher-Button der Seite), wird mit den Optionen gespeichert. */
+  setMuted(on) {
+    this.options.muted = !!on;
+    if (this.audio) this.audio.setMuted(on);
+    try { localStorage.setItem(OPTIONS_KEY, JSON.stringify(this.options)); } catch (e) { /* privat */ }
   }
 
   destroy() {
@@ -259,7 +268,6 @@ export class DaiganoidApp {
     const keys = this.input ? this.input.takeKeys() : [];
     const clicks = this.input ? this.input.takeClicks() : [];
     const fire = this.input ? this.input.takeFire() : false;
-    if (clicks.length || keys.length) this.audio.unlock();
     if (DEV_KEYS) {
       for (const k of keys) {
         if (k === CURSOR.plus) this.cursorStep = Math.min(8, this.cursorStep + 1);
