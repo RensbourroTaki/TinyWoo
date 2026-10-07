@@ -136,7 +136,6 @@ window.TW_INHALT = {
       { text: 'I\'m especially proud of the 360-degree spinning letters of my bitmap font. I pixelled and polished them over quite a few late nights.' },
       { text: 'I hope you enjoy this version! Over time I plan to add bosses, a level editor and more, though I mustn\'t forget the other games I still want to make ;)' },
       { text: 'Have fun!' },
-      { text: 'And thank you, TAITO, for one of the best gameplay loops ever created!' },
     ],
   },
 
