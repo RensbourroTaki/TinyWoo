@@ -698,5 +698,5 @@ export function brickImage(v) {
 }
 
 export function itemImage(key) {
-  return { a: 'itemA', b: 'itemB', c: 'itemC', e: 'itemE', f: 'itemF', l: 'itemL', minus: 'itemMinus', n: 'itemN', o: 'itemO', x: 'itemX', what: 'itemWhat' }[key];
+  return { a: 'itemA', b: 'itemB', c: 'itemC', e: 'itemE', f: 'itemF', l: 'itemL', minus: 'itemMinus', n: 'itemN', o: 'itemO', x: 'itemX', xl: 'itemXl', what: 'itemWhat' }[key];
 }

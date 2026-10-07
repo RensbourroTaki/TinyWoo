@@ -22,12 +22,13 @@ export async function mountDaiganoid(container, opts = {}) {
   const app = new DaiganoidApp(canvas, opts);
   const maxScale = opts.maxScale || 4;
   const fullscreenMax = opts.fullscreenMax || 8;
+  let fill = null;             // Handy-Vollbild: { width(), height() } = Platz fuer das Bild, sonst null
 
   function fit() {
     const dpr = window.devicePixelRatio || 1;
-    const fs = document.fullscreenElement && container.contains(document.fullscreenElement) || document.fullscreenElement === container;
+    const fs = fill || document.fullscreenElement && container.contains(document.fullscreenElement) || document.fullscreenElement === container;
     let availW, availH;
-    if (fs) { availW = window.innerWidth; availH = window.innerHeight; } else {
+    if (fill) { availW = fill.width(); availH = fill.height(); } else if (fs) { availW = window.innerWidth; availH = window.innerHeight; } else {
       availW = opts.availWidth ? opts.availWidth() : (container.clientWidth || ART_W);
       availH = opts.availHeight ? opts.availHeight() : Math.max(ART_H, window.innerHeight - 140);
     }
@@ -55,6 +56,15 @@ export async function mountDaiganoid(container, opts = {}) {
       const el = opts.fullscreenElement || container;
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       else if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+    },
+    /**
+     * Handy-Vollbild an/aus: das Bild so breit wie moeglich (ganzzahlig, pixelgenau) in den Platz aus
+     * area = { width(), height() }, pad = Element darunter, auf dem Wischen den Schlaeger bewegt.
+     */
+    setMobileFill(area, pad) {
+      fill = area || null;
+      if (app.input) app.input.setPad(fill ? pad : null);
+      fit();
     },
     showHighscores() { app.showHighscores(); },
     toMenu() { app.showHighscores(); },

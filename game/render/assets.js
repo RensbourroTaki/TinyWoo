@@ -35,7 +35,7 @@ export const IMAGES = {
   ballMega: 'player/ball-item1.png',         // 6x6, Mega-Ball (frisst alles)
   itemA: 'items/a.png', itemB: 'items/b.png', itemC: 'items/c.png', itemE: 'items/e.png', itemF: 'items/f.png',
   itemL: 'items/l.png', itemMinus: 'items/minus.png', itemN: 'items/n.png', itemO: 'items/o.png', itemX: 'items/x.png',
-  itemWhat: 'items/what.png',
+  itemXl: 'items/xl.png', itemWhat: 'items/what.png',
 };
 
 /** Optionale Bilder: fehlen sie (noch), wird ein Platzhalter gezeichnet. */

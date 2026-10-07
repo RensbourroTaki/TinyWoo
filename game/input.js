@@ -2,6 +2,11 @@
 // Liefert pro Logik-Frame das Schlaeger-Delta in Logik-Pixeln und den Feuer-Zustand.
 import { ART_H, ART_W } from './render/board.js';
 
+// Schlaeger-Zone (Handy-Vollbild): Wischen bewegt relativ, kurzes Tippen = Feuer.
+const PAD_GAIN = 1.2;          // Schlaeger-Weg je Finger-Weg (1 = gleich weit wie auf dem Bild)
+const PAD_TAP_MS = 250;        // kuerzer als das ...
+const PAD_TAP_PX = 10;         // ... und weniger bewegt als das (CSS-Pixel) = Tippen
+
 export class GameInput {
   constructor(canvas, getScale) {
     this.canvas = canvas;
@@ -94,6 +99,48 @@ export class GameInput {
     return { x: (e.clientX - r.left) / r.width * ART_W, y: (e.clientY - r.top) / r.height * ART_H };
   }
 
+  /** Schlaeger-Zone ausserhalb des Canvas anbinden (null = abbinden). */
+  setPad(el) {
+    if (this.pad) {
+      const p = this.pad;
+      p.removeEventListener('pointerdown', this.onPadDown);
+      p.removeEventListener('pointermove', this.onPadMove);
+      p.removeEventListener('pointerup', this.onPadUp);
+      p.removeEventListener('pointercancel', this.onPadUp);
+      this.pad = null;
+    }
+    if (!el) return;
+    this.pad = el;
+    let id = null, lastX = 0, startX = 0, startT = 0, moved = false;
+    this.onPadDown = (e) => {
+      if (id !== null) return;                       // nur der erste Finger steuert
+      if (this.onGesture) this.onGesture();
+      id = e.pointerId; lastX = startX = e.clientX; startT = performance.now(); moved = false;
+      this.accum = 0;
+      this.absoluteX = null;
+      this.touchActive = true;
+      try { el.setPointerCapture(id); } catch (err) { /* egal */ }
+      e.preventDefault();
+    };
+    this.onPadMove = (e) => {
+      if (e.pointerId !== id) return;
+      const w = this.canvas.getBoundingClientRect().width || ART_W;
+      this.accum += (e.clientX - lastX) * (ART_W / w) / 1.25 * PAD_GAIN;
+      lastX = e.clientX;
+      if (Math.abs(e.clientX - startX) > PAD_TAP_PX) moved = true;
+    };
+    this.onPadUp = (e) => {
+      if (e.pointerId !== id) return;
+      id = null;
+      if (!moved && performance.now() - startT < PAD_TAP_MS) { this.firePressed = true; if (this.onGesture) this.onGesture(); }
+    };
+    el.addEventListener('pointerdown', this.onPadDown);
+    el.addEventListener('pointermove', this.onPadMove);
+    el.addEventListener('pointerup', this.onPadUp);
+    el.addEventListener('pointercancel', this.onPadUp);
+    el.style.touchAction = 'none';
+  }
+
   releaseLock() {
     if (document.pointerLockElement === this.canvas && document.exitPointerLock) document.exitPointerLock();
   }
@@ -144,6 +191,7 @@ export class GameInput {
     document.removeEventListener('pointerlockchange', this.onLock);
     c.removeEventListener('keydown', this.onKeyDown);
     c.removeEventListener('keyup', this.onKeyUp);
+    this.setPad(null);
     this.releaseLock();
   }
 }
