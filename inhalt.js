@@ -79,7 +79,7 @@ window.TW_INHALT = {
       // kicker = gelber Steam-Kasten (Text, oder [Titel, Text]), nachsatz = Absatz darunter. (text = kurz, fuer die Startseite)
       // Optional (derzeit aus): cast = Figurenkarten [Name, Text], ablauf = nummerierte Kaertchen, features = Liste, hinweis = kleine Zeile.
       beschreibung: [
-        'Shoot Trump higher and higher with rockets. Earn the respect of the Tiger Claws, three mercenary birds who help you shoot down balloons, UFOs and snails. And invite Putin: he gives you perks, but you have to impress him, or he leaves.',
+        'Shoot Trump higher and higher with rockets, and shoot balloons to extend your play time. Earn the respect of the Tiger Claws, three mercenary birds who help you shoot down balloons, UFOs and snails. And invite Putin: he gives you perks, but you have to impress him, or he leaves.',
       ],
       kicker: 'Compete worldwide with every Steam player on the in-game highscore list, with Steam names and avatars.',
       nachsatz: 'Upgrade your rockets and the mercenaries, lower your rocket prices and buy pets who watch your next shot!',
