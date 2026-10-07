@@ -98,7 +98,7 @@ window.TW_INHALT = {
       features2: [
         'Unlimited rockets',
         'Worldwide highscore board with Steam names and avatars',
-        'Top 20 ticker in the main menu: everyone sees the best players',
+        'Ticker with the top 20 players in the main menu',
         'Rocket and mercenary upgrades',
         'Pet shop',
         'Stats screen with your total progress chart, accuracy and best combos',
