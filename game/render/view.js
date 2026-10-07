@@ -3,13 +3,13 @@
 //   Art-X = 10 + 1,25 * (hwX - 16)      Art-Y = 301 - 1,25 * hwY   (Decke hwY 233 -> Art 9,75)
 // Alle Positionen werden erst beim Zeichnen mit der Geraete-Skalierung S multipliziert und gerundet,
 // so bleibt die 1,25-Schrittweite bei 4x exakt (5 Geraete-Pixel je Logik-Pixel).
-import { INNER, PHASER_Y, boardState, flickerPhaser } from './board.js';
+import { ART_H, INNER, PHASER_Y, boardState, flickerPhaser } from './board.js';
 import { BRICK_COLORS } from './assets.js';
 import { SpinText } from './spintext.js';
 import { GOLD, KIND_MASK, KIND_SPECIAL, REGENERATES, ROWS } from '../core/brickgrid.js';
 import { PaddleType } from '../core/paddle.js';
 import { MAX_BALLS } from '../core/playfield.js';
-import { Phase, INTRO_FRAMES, READY_FRAMES, EXITING_FRAMES, ENEMY_W, ENEMY_H } from '../play/session.js';
+import { Phase, INTRO_FRAMES, READY_FRAMES, EXITING_FRAMES, ENEMY_W, ENEMY_H, DEFLECTOR_WARN } from '../play/session.js';
 import { COLUMNS } from '../play/levels.js';
 import { levelName } from '../play/levelnames.js';
 
@@ -123,9 +123,16 @@ export class GameView {
           this.queue = [{ at: 150, text: levelName(session.round, session.variant), hold: 60 }];
           this.audio.play('beep');
           break;
-        case 'go':
-          this.phaserOn(true);
+        case 'go': break;   // Phaser bleibt im Spiel aus, nur das Deflector-Item schaltet ihn ein
+        case 'deflectorOn': this.phaserOn(true); break;
+        case 'deflectorOff': this.phaserOn(false); break;
+        case 'floorBounce': {
+          this.audio.play('wall', 0.7, 0.8);
+          this.phaserFlash = 6;
+          const c = this.ballCenter(session.field.balls[e.ball]);
+          this.spawnSparks(c.x, c.y + 3, SPARKS.wall, 0, -1, 2.2);
           break;
+        }
         case 'launch': break;
         case 'paddleHit':
           this.audio.play('paddle', 1, e.edge ? 1.15 : 1);
@@ -161,7 +168,6 @@ export class GameView {
         case 'itemSpawned': break;
         case 'itemCaught':
           this.audio.play('beep', 0.8, 1.3);
-          this.texts.push({ text: e.name, x: Math.min(200, Math.max(40, ax(e.x))), y: ay(e.y) - 30, t: 0, len: 70 });
           break;
         case 'paddleType': break;
         case 'shot': this.audio.play('brick', 0.5, 2.2); break;
@@ -352,17 +358,12 @@ export class GameView {
       for (let i = 0; i < cells.length; i++) if (cells[i] !== 0) filled.push(i);
       if (filled.length) this.effects.push({ type: 'shine', cell: filled[Math.floor(this.rand() * filled.length)], t: 0, len: 12 });
     }
-    // Ball verloren: faellt in den Phaser
+    // Ball verloren: faellt unten aus dem Bild (ohne Deflector gibt es keinen Phaser)
     if (this.lostBall) {
       const lb = this.lostBall;
       lb.t++;
       lb.y += 2.5;
-      if (lb.y >= PHASER_Y + 2) {
-        this.explode(lb.x + 3, PHASER_Y + 6, 1);
-        this.phaserFlash = 14;
-        this.audio.play('phaser', 1, 0.7);
-        this.lostBall = null;
-      }
+      if (lb.y >= ART_H) this.lostBall = null;
     }
     if (this.phaserFlash > 0) this.phaserFlash--;
     // Phaser-Animation: Hochfahren (Frames 0..3), danach Flackern jeden Tick
@@ -373,6 +374,9 @@ export class GameView {
         bs.phaserAlpha = 1;
       } else {
         flickerPhaser(bs, this.phaserFlash > 0);
+        // Deflector laeuft ab: Phaser setzt immer wieder aus
+        const left = session.deflectorFrames;
+        if (left > 0 && left < DEFLECTOR_WARN && ((left >> 3) & 1)) bs.phaserAlpha = 0.12;
       }
     }
     // Tueren
@@ -688,5 +692,5 @@ export function brickImage(v) {
 }
 
 export function itemImage(key) {
-  return { a: 'itemA', b: 'itemB', c: 'itemC', e: 'itemE', f: 'itemF', l: 'itemL', minus: 'itemMinus', n: 'itemN', o: 'itemO', x: 'itemX', xl: 'itemXl', what: 'itemWhat' }[key];
+  return { a: 'itemA', b: 'itemB', c: 'itemC', e: 'itemE', f: 'itemF', l: 'itemL', minus: 'itemMinus', n: 'itemN', o: 'itemO', x: 'itemX', what: 'itemWhat' }[key];
 }

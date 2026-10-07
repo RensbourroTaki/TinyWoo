@@ -7,9 +7,9 @@
 import { MAX_BALLS, Playfield, StepResult, XorShiftRandomBit, fieldConfig } from '../core/playfield.js';
 import { PaddleType, paddleGeometryFor } from '../core/paddle.js';
 import { gridCellAt, horizontalReflectionOf, reflectHorizontal } from '../core/ballmotion.js';
-import { GOLD, KIND_MASK, KIND_SPECIAL, ROWS, isMover } from '../core/brickgrid.js';
+import { GOLD, KIND_CAPSULE, KIND_MASK, KIND_SPECIAL, ROWS, isMover } from '../core/brickgrid.js';
 import { COLUMNS, ROUNDS, loadLevel } from './levels.js';
-import { ITEMS, ITEM_H, ITEM_W, pickItem, resolveSurprise } from './items.js';
+import { ITEMS, ITEM_H, ITEM_W, LEVEL_ITEMS, pickItem, resolveSurprise } from './items.js';
 
 export const Phase = Object.freeze({
   INTRO: 'intro',        // Steine erscheinen, Schlaeger fliegt ein
@@ -28,6 +28,9 @@ export const READY_FRAMES = 330;   // LEVEL NN / Name in der Drehschrift mit lan
 export const BALL_LOST_FRAMES = 78;   // 1,3 s nach dem Ballverlust, dann Schlaeger + Ball direkt (ohne Intro/Ansage)
 export const EXITING_FRAMES = 80;
 export const MEGA_FRAMES = 600;
+export const DEFLECTOR_FRAMES = 600;       // Deflector (xl-Item) 10 s aktiv
+export const DEFLECTOR_WARN = 180;         // letzte 3 s flackert der Phaser als Warnung
+export const MULTI_BALLS = 12;             // o-Item
 export const MAX_ITEMS = 2;
 export const MAX_SHOTS = 4;
 export const SHOT_SPEED = 4;
@@ -68,7 +71,9 @@ export class GameSession {
     this.lives = 0;
     this.frame = 0;
     this.pierceFrames = 0;
-    this.laser = 0;            // 0 aus, 1 zwei Strahlen, 2 drei Strahlen
+    this.deflectorFrames = 0;  // > 0 = Deflector aktiv (Phaser an, Baelle prallen unten ab)
+    this.levelItems = new Map();   // Zelle -> fest vergebenes Item (LEVEL_ITEMS) im aktuellen Level
+    this.laser = 0;            // 0 aus, 1 zwei Strahlen
     this.nextExtraLife = EXTRA_LIFE_FIRST;
     this.exitSide = 0;         // -1 links, +1 rechts (EXIT/EXITING)
     this.exitPush = 0;         // Frames, die der Spieler gegen die Wand drueckt
@@ -112,6 +117,15 @@ export class GameSession {
       const col = i % COLUMNS;
       this.movers.push({ row: Math.floor(i / COLUMNS), col, dir: col < COLUMNS >> 1 ? 1 : -1, from: col, to: col, t: -1 });
     }
+    // Fest vergebene Items: je eins in einem zufaelligen Item-Stein
+    this.levelItems.clear();
+    const capsules = [];
+    for (let i = 0; i < cells.length; i++) if ((cells[i] & KIND_MASK) === KIND_CAPSULE) capsules.push(i);
+    for (const key of LEVEL_ITEMS) {
+      if (!capsules.length) break;
+      const cell = capsules.splice(this.randomInt(capsules.length), 1)[0];
+      this.levelItems.set(cell, key);
+    }
     this.items.length = 0;
     this.shots.length = 0;
     this.enemies.length = 0;
@@ -136,6 +150,7 @@ export class GameSession {
     this.field.pierceBall = 0;
     this.pierceFrames = 0;
     this.laser = 0;
+    this.endDeflector();
     this.field.flatReflect = 0;
     this.field.specialMode = 0;
     this.field.difficulty = difficulty(this.round);
@@ -186,6 +201,7 @@ export class GameSession {
           f.pierceBall = 0;
           this.emit('megaEnd');
         }
+        if (this.deflectorFrames > 0 && --this.deflectorFrames === 0) this.endDeflector();
         if (this.phase !== Phase.PLAYING) break;   // Break-Item hat den Ablauf veraendert
         if (result === StepResult.ALL_BALLS_LOST) {
           this.phase = Phase.BALL_LOST;
@@ -255,6 +271,15 @@ export class GameSession {
       f.setActive(i, false);
     }
     f.ballCount = 0;
+    this.endDeflector();
+  }
+
+  /** Deflector aus (Zeit abgelaufen, Leben verloren, Level zu Ende). */
+  endDeflector() {
+    const was = this.field.floorBounce !== 0;
+    this.deflectorFrames = 0;
+    this.field.floorBounce = 0;
+    if (was) this.emit('deflectorOff');
   }
 
   openExits() {
@@ -331,9 +356,12 @@ export class GameSession {
   }
 
   spawnItem(cell) {
-    if (this.items.length >= MAX_ITEMS) return;
+    // Fest vergebene Items fallen immer (auch ueber MAX_ITEMS), sonst gingen sie verloren
+    let key = this.levelItems.get(cell);
+    if (key) this.levelItems.delete(cell);
+    else if (this.items.length >= MAX_ITEMS) return;
+    else key = pickItem(() => this.random(), true);
     const col = cell % COLUMNS, row = Math.floor(cell / COLUMNS);
-    const key = pickItem(() => this.random(), true);
     const it = { key, x: FIELD_LEFT + 8 + 16 * col, y16: (216 + LIFT - 8 * row) << 4, age: 0 };
     this.items.push(it);
     this.emit('itemSpawned', { key, cell });
@@ -342,13 +370,17 @@ export class GameSession {
   applyItem(key) {
     const f = this.field;
     switch (key) {
-      case 'e': this.laser = 0; this.setPaddleType(PaddleType.LARGE); break;
+      case 'n': this.laser = 0; this.setPaddleType(PaddleType.LARGE); break;
       case 'minus': this.laser = 0; this.setPaddleType(PaddleType.SMALL); break;
       case 'c': this.laser = 0; this.setPaddleType(PaddleType.CATCH); break;
-      case 'n': this.laser = 0; this.setPaddleType(PaddleType.SHADOW); break;
       case 'l': this.setPaddleType(PaddleType.NORMAL); this.laser = 1; break;
-      case 'xl': this.setPaddleType(PaddleType.NORMAL); this.laser = 2; break;
       case 'b': f.requestMultiball(3); break;
+      case 'o': f.requestMultiball(MULTI_BALLS); break;
+      case 'xl':
+        if (f.floorBounce === 0) this.emit('deflectorOn');
+        f.floorBounce = 1;
+        this.deflectorFrames = DEFLECTOR_FRAMES;
+        break;
       case 'a':
         f.pierceBall = 1;
         this.pierceFrames = MEGA_FRAMES;
@@ -361,7 +393,7 @@ export class GameSession {
           b.bouncesLeft = 40;
         }
         break;
-      case 'o': this.lives++; this.emit('extraLife', { lives: this.lives }); break;
+      case 'e': this.lives++; this.emit('extraLife', { lives: this.lives }); break;
       case 'x': this.openExits(); break;
       default: break;
     }
@@ -393,7 +425,7 @@ export class GameSession {
   fireLaser() {
     if (this.shots.length + 2 > MAX_SHOTS + 1) return;
     const p = this.field.paddle;
-    const xs = this.laser === 2 ? [p.left + 3, p.center, p.right - 3] : [p.left + 3, p.right - 3];
+    const xs = [p.left + 3, p.right - 3];
     for (const x of xs) this.shots.push({ x: x & 0xFF, y: 16, age: 0 });
     this.emit('shot', { count: xs.length });
   }
@@ -619,6 +651,7 @@ export class GameSession {
   onBallLost(ball, x, y) {
     this.emit('ballLost', { ball, x, y, remaining: this.field.ballCount });
   }
+  onFloorBounce(ball) { this.emit('floorBounce', { ball }); }
   onIdleLimit() {}
 
   onBrickHit(ball, cell, before, after) {

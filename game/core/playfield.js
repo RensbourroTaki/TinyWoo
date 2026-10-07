@@ -69,6 +69,7 @@ export class Playfield {
 
     this.pierceBall = 0;        // $E731: Durchschlag-Ball
     this.solidGold = false;     // eigenes Gameplay (nicht im ROM): Gold haelt auch dem Durchschlag-Ball stand, Ball prallt ab
+    this.floorBounce = 0;       // eigenes Gameplay (nicht im ROM): ungleich 0 = Ball prallt unten ab statt verloren zu gehen (Deflector)
     this.minSpeed = 0;          // $E7E0: Mindest-Speed nach Deckenkontakt
     this.difficulty = 0;        // $E7E5: Abpraller-Tabelle 0..3
     this.specialMode = 0;       // $E5F7: Sondermodus (Baelle werden nachgefuellt, Tabelle 4)
@@ -82,7 +83,7 @@ export class Playfield {
 
     this.random = new XorShiftRandomBit(1);
     /** Ereignis-Empfaenger (alle Methoden optional): onLaunch, onPaddleHit, onCatch, onPaddleFlatBounce,
-     *  onShadowHit, onWallBounce, onCeilingBounce, onSpeedUp, onRandomTurn, onBallLost, onIdleLimit,
+     *  onShadowHit, onWallBounce, onCeilingBounce, onSpeedUp, onRandomTurn, onBallLost, onFloorBounce, onIdleLimit,
      *  onBrickHit, onBrickDestroyed. */
     this.listener = null;
   }
@@ -467,6 +468,12 @@ export class Playfield {
     if (b.paddleLock) return;
     if (b.y >= 0x10) return;
     if (b.y < 0x08) {
+      if (this.floorBounce !== 0) {
+        b.y = 0x08;
+        reflectHorizontal(b);
+        if (this.listener && this.listener.onFloorBounce) this.listener.onFloorBounce(index);
+        return;
+      }
       this.loseBall(index, b);
       return;
     }
