@@ -197,8 +197,8 @@ window.TW_INHALT = {
     heroZeile2: 'but fun!',
     heroText: 'Decades of game-dev experience.\nSmall games. Big fun.',   // \n = Zeilenumbruch
     laufband: ['Rocket Trump in development', 'Play Daiganoid in the arcade', 'Tiny, but fun!','Highscores open'],
-    communityTitel: 'Join the dojo',
-    communityText: 'Devlogs, playtests, memes and the occasional existential crisis.',
+    communityTitel: 'social things',
+    communityText: 'no devlogs, no playtests, no memes, but trailers, gameplay videos and the occasional existential crisis',
     // About-Seite: Bausteine in Reihenfolge. { h } = Zwischenüberschrift, { p } = Absatz, { liste } = Aufzählung, { schluss } = Schlusssatz.
     about: [
       { h: "Here's my story" },
