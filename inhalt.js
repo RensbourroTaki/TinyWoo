@@ -197,6 +197,7 @@ window.TW_INHALT = {
         'Some UI icons, so I can spend my pixel time where it matters',
       ] },
       { p: "Everything else I make myself, or it's a purchased asset I modify to fit the game visually and technically. Sometimes it's the work of an artist I simply love, because it fits better than anything I would have made." },
+      { p: "I'm choosing not to spend my time running a Discord server or making videos about my workflow, because that would just pull me away from the actual work of making a beautiful, exciting game. And I don't want to end up relying on a bunch of AI agents because I can't manage the work of that many people. Besides, I don't want to grow. Tiny Woo is meant to stay tiny!" },
     ],
     footer: '© 2026 Tiny Woo · Made by one guy with a sword',
   },
