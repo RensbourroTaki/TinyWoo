@@ -54,16 +54,24 @@ export const SPARKS = {
  *     Lichtstrichen), senkrecht nur auf sy (Zeilen ruecken zu Scanlines auseinander). Jeder Ruck: Weiss-Puls,
  *     Tuerkis-Wischspur vom alten zum neuen Platz, Zeilen versetzt um bis zu tear Art-Px. Rucke werden kleiner
  *     (decay), bis jerk des Gesamtwegs erreicht ist.
- *  3. tail Frames: Rest des Wegs weich abgebremst, Farbe kuehlt nach Tuerkis ab, Helligkeit sinkt, Mittellinie
- *     verglimmt, im letzten Drittel fallen einzelne Pixel flackernd aus, bis alles verstummt.
+ *     Beim ersten Ruck in der Mitte eine kleine Explosion (pop): Funken mit Impuls und Schwerkraft plus Lichtball
+ *     (BOOM, Skalierung pop.boom).
+ *  3. settle Frames: Rest des Wegs weich abgebremst, Farbe kuehlt nach Tuerkis ab, Mittellinie verglimmt.
+ *  4. Dann zerfallen die Lichtstriche in Punkte (dots: per Punkte je Strich-Pixel), die langsam weiter nach aussen
+ *     treiben (spd, aussen schneller um far), kaum senkrecht (vy), gebremst (drag), heiss -> Originalfarbe -> Tuerkis,
+ *     ab blink ihrer Lebenszeit blinkend, und ueber life Frames ausfaden.
  */
 export const DEREZ = {
   hotColor: 'rgb(235,255,252)', cyan: 'rgb(90,240,215)', magenta: 'rgb(255,60,200)',
   chroma: 0.6, smear: 0.4, cool: 0.55, line: 0.4,
-  paddle: { hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 10, sx: 2.2, sy: 1.5, tear: 2, tail: 24 },
-  enemy:  { hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 7, sx: 2.6, sy: 1.3, tear: 1.5, tail: 22 },
-  ball:   { hold: 2, jumps: 3, every: 2, decay: 0.5, jerk: 0.8, gap: 4, sx: 3, sy: 1.5, tear: 1, tail: 18 },
+  dots: { per: 0.7, spd: [0.25, 0.7], far: 0.6, vy: 0.12, drag: 0.988, life: [70, 150], hot: 4, blink: 0.3, glow: 0.45, max: 2500 },
+  pop: { count: [26, 38], speed: [0.7, 2.6], life: [18, 46], lift: 0.7, big: 0.35, boom: 0.42 },
+  paddle: { hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 10, sx: 2.2, sy: 1.5, tear: 2, settle: 8, pop: 1 },
+  enemy:  { hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 7, sx: 2.6, sy: 1.3, tear: 1.5, settle: 7, pop: 0.9 },
+  ball:   { hold: 2, jumps: 3, every: 2, decay: 0.5, jerk: 0.8, gap: 4, sx: 3, sy: 1.5, tear: 1, settle: 6, pop: 0.6 },
 };
+/** Fester Zufall 0..1 aus zwei Ganzzahlen (Zeilenversatz, Blinken). */
+const derezHash = (i, k) => ((Math.imul(i ^ (k << 12), 0x9E3779B1) >>> 16) & 1023) / 1024;
 /**
  * Lichtblitz ueber jeder Explosion (additiv): heisser Kern, grosser oranger Schein und ein Druckring.
  * Radien in Art-Pixeln (mal Explosions-Skalierung), len in Frames.
@@ -98,6 +106,7 @@ export class GameView {
     this.queue = [];
     this.zoom = 0.75;             // Textgroesse wie im Hauptmenue, wird von der App gesetzt
     this.sparks = [];             // { x, y, vx, vy, t, len } in Art-Pixeln
+    this.dots = [];               // Derez-Punkte { x, y, vx, vy, t, len, col, ph }
     this.trails = [];             // je Ball: letzte Mittelpunkte [{ x, y }] in Art-Pixeln, neueste zuletzt
     this.glowBall = glowSprite(BALL_GLOW.color);
     this.glowMega = glowSprite(BALL_GLOW.mega);
@@ -386,7 +395,7 @@ export class GameView {
     }
     const hw = Math.max(1, cx - left, left + bw - cx), hh = Math.max(1, cy - top, top + bh - cy);
     this.effects.push({
-      type: 'derez', kind, t: 0, len: cfg.hold + cfg.jumps * cfg.every + cfg.tail + 1,
+      type: 'derez', kind, t: 0, len: cfg.hold + cfg.jumps * cfg.every + cfg.settle,
       m, dx, dy, row, col, cx, cy, hw, hh, seed: (Math.random() * 4096) | 0,
     });
   }
@@ -409,8 +418,18 @@ export class GameView {
     this.announces = this.announces.filter((a) => !a.done);
     for (const t of this.texts) t.t++;
     this.texts = this.texts.filter((t) => t.t < t.len);
-    for (const e of this.effects) e.t++;
+    for (const e of this.effects) {
+      e.t++;
+      if (e.type !== 'derez') continue;
+      const c = DEREZ[e.kind];
+      if (e.t === c.hold) this.derezPop(e, c);           // Riss: kleine Explosion in der Mitte
+      if (e.t === e.len) this.derezDots(e);              // Striche zerfallen in Punkte (letzte Pose = len - 1)
+    }
     this.effects = this.effects.filter((e) => e.t < e.len);
+    // Derez-Punkte: treiben gebremst weiter nach aussen
+    const DD = DEREZ.dots;
+    for (const p of this.dots) { p.vx *= DD.drag; p.vy *= DD.drag; p.x += p.vx; p.y += p.vy; p.t++; }
+    this.dots = this.dots.filter((p) => p.t < p.len);
     // Funken: Schwerkraft, Luftwiderstand, verschwinden ausgeglueht oder unter dem Bild
     for (const p of this.sparks) {
       const d = p.drag || SPARKS.drag;
@@ -713,6 +732,52 @@ export class GameView {
   }
 
   /**
+   * Pose des Teleport-Risses zum Frame t (siehe DEREZ): Ruck j, Frames seit dem Ruck (since), Abbrems-Anteil u,
+   * Weg p, Dehnung (sy, Strichbreite w), Zeilenversatz; xAt/yAt liefern die Art-Position von Pixel k.
+   */
+  derezPose(e, t) {
+    const c = DEREZ[e.kind], jerkEnd = c.hold + c.jumps * c.every;
+    // Weg (0..1) nach Ruck j: Spruenge werden geometrisch kleiner, bis jerk erreicht ist
+    const at = (j) => (j <= 0 ? 0 : c.jerk * (1 - Math.pow(c.decay, j)) / (1 - Math.pow(c.decay, c.jumps)));
+    let j, since, u = 0, p;
+    if (t < c.hold) { j = 0; since = -1; p = 0; }
+    else if (t < jerkEnd) { j = Math.floor((t - c.hold) / c.every) + 1; since = (t - c.hold) % c.every; p = at(j); }
+    else { j = c.jumps; since = 99; u = Math.min(1, (t - jerkEnd + 1) / c.settle); p = c.jerk + (1 - c.jerk) * (1 - Math.pow(1 - u, 3)); }
+    const sy = 1 + (c.sy - 1) * p, w = Math.max(1, Math.round(1 + (c.sx - 1) * p));
+    const tearK = c.tear * Math.min(1, p / 0.3) * (1 - 0.6 * u);
+    const xAt = (k, pp = p, jj = j) => {
+      const tr = jj > 0 ? (derezHash(e.row[k] + e.seed, jj) - 0.5) * 2 * tearK : 0;   // Zeilenversatz je Ruck
+      return Math.round(e.cx + e.dx[k] * (1 + (c.sx - 1) * pp) + (e.dx[k] < 0 ? -1 : 1) * c.gap * pp + tr);
+    };
+    const yAt = (k) => Math.round(e.cy + e.dy[k] * sy);
+    return { c, j, since, u, p, sy, w, at, xAt, yAt };
+  }
+
+  /** Kleine Explosion in der Rissmitte: Funken mit Impuls und Schwerkraft, dazu ein kleiner Lichtball. */
+  derezPop(e, c) {
+    const P = DEREZ.pop, s = c.pop;
+    this.spawnSparks(e.cx, e.cy, { ...P, count: P.count.map((n) => n * s), speed: P.speed.map((v) => v * (0.6 + 0.4 * s)) }, 0, -1, Math.PI * 2);
+    this.effects.push({ type: 'boom', x: e.cx, y: e.cy, scale: P.boom * s, t: 0, len: BOOM.len });
+  }
+
+  /** Lichtstriche der letzten Pose zerfallen in Punkte, die langsam weiter nach aussen treiben. */
+  derezDots(e) {
+    const D = DEREZ.dots, ps = this.derezPose(e, e.len - 1);
+    const r = (a) => a[0] + Math.random() * (a[1] - a[0]);
+    for (let k = 0; k < e.m && this.dots.length < D.max; k++) {
+      const X = ps.xAt(k), Y = ps.yAt(k), side = e.dx[k] < 0 ? -1 : 1, far = Math.min(1, Math.abs(e.dx[k]) / e.hw);
+      const n = Math.max(1, Math.round(ps.w * D.per * (0.6 + 0.8 * Math.random())));
+      for (let i = 0; i < n; i++) {
+        this.dots.push({
+          x: X + Math.floor(Math.random() * ps.w), y: Y,
+          vx: side * r(D.spd) * (1 + D.far * far), vy: Math.sign(e.dy[k]) * D.vy * Math.random() + (Math.random() - 0.5) * D.vy,
+          t: 0, len: Math.round(r(D.life)), col: e.col[k], ph: (Math.random() * 1024) | 0,
+        });
+      }
+    }
+  }
+
+  /**
    * Derez als Teleport-Riss (siehe DEREZ): die Pixel behalten ihre Anordnung und werden je Ruck von der Mitte weg
    * versetzt, waagerecht gedehnt (Lichtstriche) und senkrecht leicht gespreizt (Scanlines). Weiss-Puls, Wischspur und
    * Abkuehlen nach Tuerkis additiv (je Ebene ein fill), dazu Rissblitz und Mittellinie. Alles aufs Art-Raster.
@@ -720,7 +785,6 @@ export class GameView {
   drawDerez(ctx, S) {
     let any = false;
     const Z = DEREZ;
-    const hash = (i, k) => ((Math.imul(i ^ (k << 12), 0x9E3779B1) >>> 16) & 1023) / 1024;
     const L = this.derezLists || (this.derezLists = { cur: [], smear: [] });
     const rects = (list, style, a, ox = 0) => {   // list = [x, y, w, ...] in Art-Pixeln, Hoehe 1
       if (!list.length || a <= 0.01) return;
@@ -733,35 +797,20 @@ export class GameView {
     for (const e of this.effects) {
       if (e.type !== 'derez') continue;
       if (!any) { ctx.save(); any = true; }
-      const c = Z[e.kind], t = e.t, jerkEnd = c.hold + c.jumps * c.every;
-      // Weg (0..1) nach Ruck j: Spruenge werden geometrisch kleiner, bis jerk erreicht ist
-      const at = (j) => (j <= 0 ? 0 : c.jerk * (1 - Math.pow(c.decay, j)) / (1 - Math.pow(c.decay, c.jumps)));
-      let j, since, u = 0, p;
-      if (t < c.hold) { j = 0; since = -1; p = 0; }
-      else if (t < jerkEnd) { j = Math.floor((t - c.hold) / c.every) + 1; since = (t - c.hold) % c.every; p = at(j); }
-      else { j = c.jumps; since = 99; u = Math.min(1, (t - jerkEnd) / c.tail); p = c.jerk + (1 - c.jerk) * (1 - Math.pow(1 - u, 3)); }
-      const fade = (1 - u) * (1 - u);
+      const t = e.t, ps = this.derezPose(e, t), { c, j, since, u, p, sy, w } = ps;
       const hot = t < c.hold ? 1 : since === 0 ? 0.75 : since === 1 ? 0.3 : 0;
-      const sy = 1 + (c.sy - 1) * p, w = Math.max(1, Math.round(1 + (c.sx - 1) * p));
-      const tearK = c.tear * Math.min(1, p / 0.3) * (1 - u);
-      const xAt = (k, pp, jj) => {
-        const tr = jj > 0 ? (hash(e.row[k] + e.seed, jj) - 0.5) * 2 * tearK : 0;   // Zeilenversatz je Ruck
-        return Math.round(e.cx + e.dx[k] * (1 + (c.sx - 1) * pp) + (e.dx[k] < 0 ? -1 : 1) * c.gap * pp + tr);
-      };
       const cur = L.cur, sm = L.smear;
       cur.length = 0; sm.length = 0;
-      const smearing = since === 0 || since === 1, pPrev = at(j - 1);
-      const drop = u > 0.6 ? (u - 0.6) / 0.4 : 0;   // im letzten Drittel fallen Pixel flackernd aus
+      const smearing = since === 0 || since === 1, pPrev = ps.at(j - 1);
       ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = fade;
+      ctx.globalAlpha = 1;
       for (let k = 0; k < e.m; k++) {
-        if (drop && hash(k + e.seed, t >> 1) < drop) continue;
-        const X = xAt(k, p, j), Y = Math.round(e.cy + e.dy[k] * sy);
+        const X = ps.xAt(k), Y = ps.yAt(k);
         ctx.fillStyle = e.col[k];
         ctx.fillRect(X * S, Y * S, w * S, S);
         cur.push(X, Y, w);
         if (smearing) {
-          const X0 = xAt(k, pPrev, j - 1), a = Math.min(X0, X);
+          const X0 = ps.xAt(k, pPrev, j - 1), a = Math.min(X0, X);
           sm.push(a, Y, Math.max(X0, X) + w - a);
         }
       }
@@ -773,19 +822,45 @@ export class GameView {
       }
       if (smearing) rects(sm, Z.cyan, Z.smear * (since === 0 ? 1 : 0.4));
       rects(cur, Z.hotColor, hot);
-      rects(cur, Z.cyan, Z.cool * (0.3 * p + 0.7 * u) * fade);
-      // Rissblitz in der Mitte beim ersten Ruck, danach Mittellinie ueber die ganze Breite, verglimmt mit
+      rects(cur, Z.cyan, Z.cool * (0.3 * p + 0.7 * u));
+      // Rissblitz in der Mitte beim ersten Ruck, danach Mittellinie ueber die ganze Breite, verglimmt
       if (j === 1 && smearing) {
         ctx.globalAlpha = since === 0 ? 0.9 : 0.4; ctx.fillStyle = Z.hotColor;
         ctx.fillRect(Math.round(e.cx) * S, Math.round(e.cy - e.hh * sy) * S, S, Math.round(2 * e.hh * sy) * S);
       }
       if (t >= c.hold) {
         const span = e.hw * (1 + (c.sx - 1) * p) + c.gap * p;
-        ctx.globalAlpha = Z.line * fade; ctx.fillStyle = Z.cyan;
+        ctx.globalAlpha = Z.line * (1 - u); ctx.fillStyle = Z.cyan;
         ctx.fillRect(Math.round(e.cx - span) * S, Math.floor(e.cy) * S, Math.round(2 * span) * S, S);
       }
     }
     if (any) ctx.restore();
+    this.drawDots(ctx, S);
+  }
+
+  /** Derez-Punkte: erst heiss, dann Originalfarbe mit Tuerkis-Schein, spaeter blinkend, weich ausgefadet. */
+  drawDots(ctx, S) {
+    if (!this.dots.length) return;
+    const D = DEREZ.dots, glow = [];
+    ctx.save();
+    for (const p of this.dots) {
+      const q = p.t / p.len;
+      // Blinken: ab D.blink immer haeufiger aus (Zufall je Punkt in 3-Frame-Takten)
+      if (q > D.blink && derezHash(p.ph, (p.t / 3) | 0) < 0.25 + 0.6 * (q - D.blink) / (1 - D.blink)) continue;
+      const a = Math.pow(1 - q, 1.6), X = Math.round(p.x) * S, Y = Math.round(p.y) * S;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.t < D.hot ? DEREZ.hotColor : p.col;
+      ctx.fillRect(X, Y, S, S);
+      glow.push(X, Y, a);
+    }
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = DEREZ.cyan;
+    for (let i = 0; i < glow.length; i += 3) {
+      ctx.globalAlpha = D.glow * glow[i + 2];
+      ctx.fillRect(glow[i], glow[i + 1], S, S);
+    }
+    ctx.restore();
   }
 
   /** Lichtblitz ueber den Explosionen: heisser Kern, oranger Schein, Druckring (alles additiv). */
