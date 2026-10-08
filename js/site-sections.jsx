@@ -282,27 +282,17 @@ function GameRow({ g, flip, onNav }) {
   const fakten = (g.presse && g.presse.fakten || []).filter(([k]) => k !== 'Price');
   return (
     <SlantSection tone={flip ? 'raised' : 'deep'} angle={flip ? 3 : -3} edge={flip ? 'orange' : 'sun'} style={{ padding: 'var(--space-10) 0' }} innerStyle={{ maxWidth: 1320, display: 'flex', flexDirection: 'column', gap: 72 }}>
+      {/* Titel + Text ueber dem Bild */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <H2><Blast text={g.title} /></H2>
+        {g.tagline && <p className="tw-heading" style={{ margin: 0, fontSize: 'var(--fs-h3, 24px)', lineHeight: 1.25, color: 'var(--sun-400)' }}><Blast text={g.tagline} /></p>}
+        {absaetze.map((t, i) => <p key={i} style={{ margin: 0, fontSize: i === 0 ? 24 : 20, lineHeight: 1.5, whiteSpace: 'pre-line', color: i === 0 ? 'var(--text-strong)' : undefined, fontWeight: i === 0 ? 700 : undefined }}><Blast text={t} power={0.7} /></p>)}
+      </div>
       <div style={{ position: 'relative' }}>
         {ytId(g.trailer)
           ? <Trailer url={g.trailer} title={g.title} style={{ transform: `rotate(${tilt}deg)` }} />
           : <img src={g.image} alt={g.title} style={{ width: '100%', display: 'block', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 'var(--radius-xl)', border: '6px solid var(--ink)', boxShadow: 'var(--shadow-pop-lg), var(--shadow-float)', transform: `rotate(${tilt}deg)` }} />}
         {g.status && <div style={{ position: 'absolute', top: -22, [flip ? 'left' : 'right']: 36, transform: `rotate(${-tilt * 5}deg) scale(1.5)`, transformOrigin: flip ? 'left top' : 'right top' }}><Badge tone="cherry">{g.status}</Badge></div>}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px 64px', alignItems: 'flex-start' }}>
-        <div style={{ flex: '2 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <H2><Blast text={g.title} /></H2>
-          {g.tagline && <p className="tw-heading" style={{ margin: 0, fontSize: 'var(--fs-h3, 24px)', lineHeight: 1.25, color: 'var(--sun-400)' }}><Blast text={g.tagline} /></p>}
-          {absaetze.map((t, i) => <p key={i} style={{ margin: 0, fontSize: i === 0 ? 24 : 20, lineHeight: 1.5, whiteSpace: 'pre-line', color: i === 0 ? 'var(--text-strong)' : undefined, fontWeight: i === 0 ? 700 : undefined }}><Blast text={t} power={0.7} /></p>)}
-        </div>
-        <div style={{ ...card, flex: '1 1 320px', minWidth: 0, gap: 22 }}>
-          <Kicker>At a glance</Kicker>
-          {fakten.length > 0 && <FactList rows={fakten} />}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{(g.tags || []).map(t => <Badge key={t} tone="outline">{t}</Badge>)}</div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {g.link && <Button icon={<Icon name="steam" brand size={20} />} href={g.link}>{g.linkText || 'Play'}</Button>}
-            <Button variant="ghost" icon={<Icon name="newspaper" size={20} />} onClick={() => onNav('press')}>Press kit</Button>
-          </div>
-        </div>
       </div>
       {g.cast && <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {g.castTitel && <Kicker><Blast text={g.castTitel} power={0.8} /></Kicker>}
@@ -330,9 +320,9 @@ function GameRow({ g, flip, onNav }) {
           })}
         </ol>
       </div>}
-      {/* nebeneinander steht die hohe "At a glance"-Karte rechts -> Luecke links halbieren; einspaltig (schmal) kein Versatz */}
-      {(g.features || g.kicker) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '48px 64px', alignItems: 'center', marginTop: g.cast || g.ablauf ? 0 : 'clamp(-84px, calc(1000px - 100vw), 0px)' }}>
-        {g.features && <div style={{ flex: '1 1 420px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Features links, rechts "At a glance"-Karte + Steam-Kasten darunter */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '48px 64px', alignItems: 'flex-start' }}>
+        {g.features && <div style={{ flex: '2 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {g.featuresIntro && <p style={{ margin: '0 0 8px', fontSize: 20, lineHeight: 1.55 }}><Blast text={g.featuresIntro} power={0.7} /></p>}
           {g.featuresTitel && <h3 className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h2)', lineHeight: 1.05, transform: 'rotate(-2deg)', transformOrigin: 'left' }}><Blast text={g.featuresTitel} /></h3>}
           <ul style={{ margin: 0, paddingLeft: 24, fontSize: 18, lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: 8 }}>{g.features.map(t => <li key={t}><Blast text={t} power={0.7} /></li>)}</ul>
@@ -341,14 +331,22 @@ function GameRow({ g, flip, onNav }) {
           {g.features2 && <ul style={{ margin: 0, paddingLeft: 24, fontSize: 18, lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: 8 }}>{g.features2.map(t => <li key={t}><Blast text={t} power={0.7} /></li>)}</ul>}
           {g.featuresSchluss && <p className="tw-heading" style={{ margin: '8px 0 0', fontSize: 'var(--fs-h3)', lineHeight: 1.15, color: 'var(--sun-400)', transform: 'rotate(-2deg)', transformOrigin: 'left' }}><Blast text={g.featuresSchluss} /></p>}
         </div>}
+        <div style={{ flex: '1 1 320px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 56 }}>
+        <div style={{ ...card, gap: 22 }}>
+          <Kicker>At a glance</Kicker>
+          {fakten.length > 0 && <FactList rows={fakten} />}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{(g.tags || []).map(t => <Badge key={t} tone="outline">{t}</Badge>)}</div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {g.link && <Button icon={<Icon name="steam" brand size={20} />} href={g.link}>{g.linkText || 'Play'}</Button>}
+            <Button variant="ghost" icon={<Icon name="newspaper" size={20} />} onClick={() => onNav('press')}>Press kit</Button>
+          </div>
+        </div>
         {g.kicker && (Array.isArray(g.kicker)
-          ? <div style={{ flex: '1 1 380px', minWidth: 0, background: 'linear-gradient(180deg, var(--lime-400) 0%, #5CCF34 55%, var(--lime-600) 100%)', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: 14, transform: `rotate(${-tilt * 1.3}deg)` }}>
+          ? <div style={{ background: 'linear-gradient(180deg, var(--lime-400) 0%, #5CCF34 55%, var(--lime-600) 100%)', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: 14, transform: `rotate(${-tilt * 1.3}deg)` }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Icon name="steam" brand size={36} /><span className="tw-heading" style={{ fontSize: 'var(--fs-h3)', lineHeight: 1.1 }}>{g.kicker[0]}</span></span>
               <span style={{ fontSize: 19, lineHeight: 1.5, fontWeight: 700 }}>{g.kicker[1]}</span>
             </div>
-          : <div style={{ flex: '1 1 380px', minWidth: 0, background: '#52BF2E', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '28px 32px', display: 'flex', alignItems: 'center', gap: 20,
-              /* Versatz nach oben nur nebeneinander (breit); einspaltig (< ~1000px) kein Versatz, sonst verdeckt er den Text */
-              transform: 'translate(clamp(-20px, calc(1000px - 100vw), 0px), clamp(-220px, calc((1000px - 100vw) * 10), 0px)) rotate(-5deg)' }}>
+          : <div style={{ background: '#52BF2E', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '28px 28px', display: 'flex', alignItems: 'center', gap: 18, transform: 'rotate(-4deg)' }}>
               <Icon name="steam" brand size={80} />
               {/* \n = neue Zeile; letzte Zeile gross als Ausruf */}
               <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -357,7 +355,8 @@ function GameRow({ g, flip, onNav }) {
                   : <span key={i} className="tw-heading" style={{ marginTop: 6, fontSize: 'var(--fs-h3)', lineHeight: 1.1 }}>{z}</span>)}
               </span>
             </div>)}
-      </div>}
+        </div>
+      </div>
       {g.nachsatz && <p style={{ margin: 0, fontSize: 20, lineHeight: 1.55 }}><Blast text={g.nachsatz} power={0.7} /></p>}
       {g.hinweis && <p className="tw-pixel" style={{ margin: 0, fontSize: 12, color: 'var(--gray-400)', textAlign: 'center' }}><Blast text={g.hinweis} power={0.7} /></p>}
     </SlantSection>
