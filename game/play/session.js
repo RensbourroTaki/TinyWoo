@@ -25,7 +25,8 @@ export const Phase = Object.freeze({
 
 export const START_LIVES = 3;
 export const INTRO_FRAMES = 110;
-export const READY_FRAMES = 200;   // LEVEL NN / Name in der Drehschrift mit langsamem Ausdrehen
+export const ANNOUNCE_AT = 18;     // LEVEL NN / Name startet 0,3 s nach Beginn des Steinaufbaus (INTRO) und laeuft parallel
+export const READY_FRAMES = 108;   // Rest der Ansage nach dem Intro (ab Ansage wie frueher 200 Frames bis zum Spiel)
 export const BALL_LOST_FRAMES = 78;   // 1,3 s nach dem Ballverlust, dann Schlaeger + Ball direkt (ohne Intro/Ansage)
 export const SPAWN_FRAMES = 30;       // Dauer des Schlaeger-Beams (view.js: Frame 0 vier Ticks, 13 Frames je zwei Ticks)
 export const EXITING_FRAMES = 80;
@@ -201,7 +202,8 @@ export class GameSession {
       case Phase.INTRO:
         f.movePaddle(paddleDelta & 0xFF);   // Beam und Schlaeger gehen mit der Maus mit
         this.stickBallsToPaddle();
-        if (--this.phaseTimer <= 0) {
+        if (--this.phaseTimer === INTRO_FRAMES - ANNOUNCE_AT) this.emit('announce');
+        if (this.phaseTimer <= 0) {
           this.phase = Phase.READY;
           this.phaseTimer = READY_FRAMES;
           this.ballsHidden = false;

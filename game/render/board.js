@@ -173,7 +173,7 @@ export class Board {
 
   /**
    * Dynamische Teile. state: { doorTop: [f,f], doorLeft, doorRight (0..3), topLight: [0/1,0/1],
-   * lights: [6 x 0/1], phaserFrame (0..8, -1 aus), phaserAlpha }
+   * lights: [6 x 0..1], phaserFrame (0..8, -1 aus), phaserAlpha }
    */
   drawDynamic(ctx, st) {
     const I = this.img;
@@ -191,7 +191,12 @@ export class Board {
     if (st.doorLeft > 0) this.frame(ctx, I.doorLeftLight, 17, st.doorLeft, DOOR_LEFT.lightX, DOOR_LEFT.y);
     if (st.doorRight > 0) this.frame(ctx, I.doorRightLight, 17, st.doorRight, DOOR_RIGHT.lightX, DOOR_RIGHT.y);
     // Laempchen
-    for (let i = 0; i < LIGHTS.length; i++) this.frame(ctx, I.greenlight, 3, st.lights[i] ? 1 : 0, LIGHTS[i][0], LIGHTS[i][1]);
+    // Laempchen: 0..1 = Helligkeit (Menue dimmt), an = Frame 1 ueber dem dunklen Frame 0
+    for (let i = 0; i < LIGHTS.length; i++) {
+      const v = st.lights[i];
+      if (v < 1) this.frame(ctx, I.greenlight, 3, 0, LIGHTS[i][0], LIGHTS[i][1]);
+      if (v > 0) this.frame(ctx, I.greenlight, 3, 1, LIGHTS[i][0], LIGHTS[i][1], Math.min(1, v));
+    }
     // Phaser zuletzt (ueber Rahmen und Endkappen), additiv = leuchtender Strahl
     if (st.phaserFrame >= 0) {
       ctx.globalCompositeOperation = 'lighter';

@@ -10,7 +10,7 @@ import { SpinText } from './spintext.js';
 import { GOLD, KIND_MASK, KIND_SPECIAL, REGENERATES, ROWS } from '../core/brickgrid.js';
 import { PaddleType } from '../core/paddle.js';
 import { MAX_BALLS } from '../core/playfield.js';
-import { Phase, INTRO_FRAMES, READY_FRAMES, EXITING_FRAMES, ENEMY_W, ENEMY_H, DEFLECTOR_WARN } from '../play/session.js';
+import { Phase, INTRO_FRAMES, EXITING_FRAMES, ENEMY_W, ENEMY_H, DEFLECTOR_WARN } from '../play/session.js';
 import { COLUMNS } from '../play/levels.js';
 import { levelName } from '../play/levelnames.js';
 
@@ -142,11 +142,13 @@ export class GameView {
         case 'roundStart':
           if (e.newRound) this.startIntro(session, true); else this.respawn();
           break;
-        case 'ready':
+        case 'announce':   // waehrend des Steinaufbaus (session ANNOUNCE_AT)
           this.say(`LEVEL ${String(session.round + 1).padStart(2, '0')}`, 70, 114);
           this.queue = [{ at: 18, text: levelName(session.round, session.variant), hold: 70, y: 142 }];
+          this.queueT = 0;
           this.audio.play('beep');
           break;
+        case 'ready': break;
         case 'go': break;   // Phaser bleibt im Spiel aus, nur das Deflector-Item schaltet ihn ein
         case 'deflectorOn': this.phaserOn(true); break;
         case 'deflectorOff': this.phaserOn(false); break;
@@ -413,9 +415,8 @@ export class GameView {
     this.tick++;
     const bs = this.bs;
     // Ankuendigungs-Warteschlange (LEVEL NN -> Name)
-    if (this.queue && this.queue.length && session.phase === Phase.READY) {
-      const elapsed = READY_FRAMES - session.phaseTimer;
-      if (elapsed >= this.queue[0].at) {
+    if (this.queue && this.queue.length) {
+      if (++this.queueT >= this.queue[0].at) {
         const q = this.queue.shift();
         this.say(q.text, q.hold, q.y);
         this.audio.play('beep', 0.7, 1.1);

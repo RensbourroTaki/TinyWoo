@@ -18,7 +18,9 @@ const pixelText = { fontFamily: 'var(--font-pixel)', letterSpacing: 'var(--track
 const Kicker =({ children }) => <span className="tw-pixel" style={{ fontSize: 26, color: 'var(--sky-400)' }}>{children}</span>;
 const CSS = '@keyframes tw-live-pulse{0%{box-shadow:0 0 0 0 rgba(123,232,74,.65)}100%{box-shadow:0 0 0 10px rgba(123,232,74,0)}}'
   + '.tw-snap::-webkit-scrollbar{display:none}'
-  + '.tw-credit{transition:background .15s,border-color .15s}.tw-credit:hover{background:rgba(255,184,0,.08);border-color:rgba(255,184,0,.55)}';
+  + '.tw-credit{transition:background .15s,border-color .15s}.tw-credit:hover{background:rgba(255,184,0,.08);border-color:rgba(255,184,0,.55)}'
+  + '@keyframes tw-blink{0%,49%{opacity:1}50%,100%{opacity:0}}.tw-blink{animation:tw-blink 1.1s steps(1,end) infinite}'
+  + '@media (prefers-reduced-motion:reduce){.tw-blink{animation:none}}';
 
 const localScores = () => { const M = window.Daiganoid; try { return M && M.loadScores ? M.loadScores() : []; } catch (e) { return []; } };
 const readMine = () => { try { const v = JSON.parse(localStorage.getItem(MINE_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
@@ -120,6 +122,30 @@ function StoryPanel() {
         })}
       </div>
     </GlowFrame>
+  );
+}
+
+/** Box unter dem Spiel: Version, blinkender Entwicklungs-Hinweis, Roadmap. Ohne Rahmen, eine Stufe dunkler als die Seite. */
+function RoadmapBox() {
+  const R = D.roadmap;
+  if (!R) return null;
+  const punkte = R.punkte || [];
+  return (
+    <div style={{ borderRadius: 'var(--radius-xl)', background: 'var(--bg-sunken)', boxShadow: 'inset 0 4px 0 rgba(0,0,0,.25)', padding: '30px clamp(20px, 4vw, 44px) 34px', display: 'flex', flexDirection: 'column', alignItems: 'center', textTransform: 'uppercase' }}>
+      {R.version && <div style={{ ...pixel('clamp(20px, 2.2vw, 28px)', 'var(--gray-300)'), textAlign: 'center' }}>{R.version}</div>}
+      {R.hinweis && <div className="tw-blink" style={{ ...pixel('clamp(14px, 1.5vw, 18px)', 'var(--lime-400)'), textAlign: 'center', lineHeight: 1.4, marginTop: 22, textShadow: '0 0 12px rgba(123,232,74,.45)' }}>{R.hinweis}</div>}
+      {punkte.length > 0 && <div style={{ alignSelf: 'stretch', marginTop: 34, paddingTop: 26, borderTop: '1px solid rgba(255,184,0,.2)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {R.titel && <h3 style={{ margin: 0, ...pixel(22), background: 'var(--grad-sun-hot)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent', alignSelf: 'flex-start' }}>{R.titel}</h3>}
+        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {punkte.map((p, k) => (
+            <li key={k} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, ...pixelText, fontSize: 16, lineHeight: 1.45, color: 'var(--text-strong)' }}>
+              <span aria-hidden="true" style={{ flex: '0 0 8px', width: 8, height: 8, marginTop: 7, background: 'var(--orange-400)' }} />
+              <span>{p}</span>
+            </li>
+          ))}
+        </ul>
+      </div>}
+    </div>
   );
 }
 
@@ -375,6 +401,11 @@ function ArcadePage({ onDock }) {
           ))}
         </div>
       )}
+      {/* Breit: eigene Zeile mit derselben Spaltenaufteilung, damit die Box genau unter dem Spielfeld steht
+          (in der klebenden Spiel-Spalte selbst wuerde sie das Spiel ueberlagern). */}
+      <div style={wide ? { display: 'grid', gridTemplateColumns: container.gridTemplateColumns, gap: 28 } : {}}>
+        <div style={wide ? { gridColumn: 2, minWidth: 0 } : {}}><RoadmapBox /></div>
+      </div>
     </section>
   );
 }

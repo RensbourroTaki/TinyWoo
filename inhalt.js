@@ -160,6 +160,23 @@ window.TW_INHALT = {
     },
 
     highscoreTitel: 'Highscore',
+    // Box unter dem Spiel auf der Arcade-Seite: Version, blinkender Hinweis, Roadmap-Liste.
+    roadmap: {
+      version: 'Daiganoid V.0.94',
+      hinweis: 'Daiganoid is still under development',
+      titel: 'Roadmap',
+      punkte: [
+        'Design & animate 4x enemy types',
+        'Final boss fight (robo spider that holds on the board? Nothing new! :/)',
+        'Audio chain effects for the stone spawns',
+        'Level editor',
+        'Better explosion audio',
+        'Polishing the getting bigger transformation',
+        'Better laser sprites',
+        'Enhancing particle FX',
+        'Pixeling more and better backgrounds like 1st lvl (swap with old ones)',
+      ],
+    },
     storyTitel: 'The story',
     story: [
       { lead: 'DAIGANOID is my love letter to TAITO\'s arcade masterpiece from the mid 80\'s ARKANOID',

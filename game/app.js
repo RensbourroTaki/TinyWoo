@@ -43,6 +43,14 @@ const CURSOR = { minus: 'F8', plus: 'F9' };
  * Ausblenden ueber fade Frames, beginnt lead Frames vor dem Spielstart (Schlaeger-Beam laeuft schon an), sink = Absenken dabei.
  */
 const CURSOR_FLY = { y: 282, angle: -135, frames: 60, turn: 0.85, bob: 1.5, bobSpeed: 0.08, fade: 20, lead: 12, sink: 2 };
+/** START GAME: Logo zieht zusammen mit der Schrift weg (Art-y = 24 - k * Frames^2); hold = Frames nach dem Zeigerflug bis zum Spielstart. */
+const LOGO_OUT = { k: 0.1, hold: 20, cursor: 21 };   // cursor = Frames nach dem Klick, bis der Zeiger losfliegt (0,35 s)
+/**
+ * Tueren im Menue (Leerlauf, Frames bei 60/s): obere und untere Tueren abwechselnd, je Gruppe Zyklus cycle, davon die
+ * letzten open Frames offen; die unteren laufen um offset versetzt. warn Frames vor dem Oeffnen blinken die Lampen der
+ * Gruppe blinks-mal (blink Frames an/aus), das letzte Mal bleiben sie an; nach dem Schliessen dimmen sie ueber dim aus.
+ */
+const DOOR_IDLE = { cycle: 360, open: 120, offset: 180, warn: 60, blink: 8, blinks: 3, dim: 30 };
 /** Hinweiszeile unter dem Menue (Pixelschrift): Text, Art-y, Blinktakt in Frames (an + aus), Font-Pixel S - shrink. */
 const HINT = { text: 'No Coins Needed!', y: 240, period: 60, shrink: 1 };
 /** Credits in der Pixelschrift (wie die Hinweiszeile): { h } = Ueberschrift in CREDITS_Y.color, '' = kleiner Abstand. */
@@ -122,7 +130,8 @@ export class DaiganoidApp {
     this.syncHi();
     this.scanPattern = null;
     this.logoY = -80;
-    this.menuZoom = 0.75;       // Menueschrift: (S - 1) Geraetepixel je Font-Pixel, mindestens 1
+    this.logoOut = -1;          // Frames seit START GAME (Logo zieht weg), -1 = steht
+    this.menuZoom = 0.75;      // Menueschrift: (S - 1) Geraetepixel je Font-Pixel, mindestens 1
     this.onVisibility = () => {
       if (this.audio) this.audio.setHidden(document.hidden);
       if (document.hidden && this.state === 'game') this.pause(true);
@@ -214,6 +223,7 @@ export class DaiganoidApp {
     this.state = s;
     this.t = 0;
     this.pendingState = null;
+    this.logoOut = -1;
     if (this.hooks.onState) this.hooks.onState(s);
     if (s === 'intro') {
       this.boardAlpha = 0;
@@ -323,10 +333,35 @@ export class DaiganoidApp {
     }
   }
 
-  idleLights() {
-    for (let i = 0; i < 6; i++) this.bs.lights[i] = ((this.lightTimer >> 5) % 6) === i ? 1 : 0;
+  /** Menue-Leerlauf: Tueren + Lampen (DOOR_IDLE); closing = alles ruhig schliessen und Lampen ausdimmen (START GAME). */
+  idleLights(closing = false) {
+    const D = DOOR_IDLE, bs = this.bs, lt = this.lightTimer;
+    const openAt = D.cycle - D.open, warnAt = openAt - D.warn;
+    const group = (p) => {
+      if (closing) return { open: false, lamp: null };
+      if (p >= openAt) return { open: true, lamp: 1 };
+      if (p < D.dim) return { open: false, lamp: 1 - p / D.dim };
+      if (p >= warnAt) { const k = Math.floor((p - warnAt) / D.blink); return { open: false, lamp: k >= (D.blinks - 1) * 2 || k % 2 === 0 ? 1 : 0 }; }
+      return { open: false, lamp: 0 };
+    };
+    const top = group(lt % D.cycle), low = group((lt + D.offset) % D.cycle);
+    const lamp = (i, v) => { bs.lights[i] = v === null ? Math.max(0, bs.lights[i] - 1 / D.dim) : v; };
+    for (let i = 0; i < 4; i++) lamp(i, top.lamp);
+    lamp(4, low.lamp); lamp(5, low.lamp);
+    // Tueren schrittweise wie im Spiel (oben alle 3, unten alle 4 Frames ein Bild)
+    const step = (v, open, every) => (lt % every ? v : open ? Math.min(3, v + 1) : Math.max(0, v - 1));
+    for (let i = 0; i < 2; i++) { bs.doorTop[i] = step(bs.doorTop[i], top.open, 3); bs.topLight[i] = bs.doorTop[i] >= 2 ? 1 : 0; }
+    bs.doorLeft = step(bs.doorLeft, low.open, 4);
+    bs.doorRight = step(bs.doorRight, low.open, 4);
     this.phaserIdle = true;   // Flackern laeuft in drawFront je Bild-Frame
     if (this.logo) this.logo.update();
+  }
+
+  /** START GAME: Logo zieht ab dem Klick zusammen mit der Schrift nach oben weg (LOGO_OUT). */
+  updateLogoOut() {
+    if (this.logoOut < 0) return;
+    this.logoOut++;
+    this.logoY = Math.round(24 - this.logoOut * this.logoOut * LOGO_OUT.k);
   }
 
   /** Projektplan "The Beginning": Schwarz, Logo faellt ein, Board blendet ein, Lichter/Tueren, Menue fliegt ein. */
@@ -352,7 +387,6 @@ export class DaiganoidApp {
       if (k === 70) { bs.phaserFrame = 0; this.audio.play('phaser', 0.5); }
     } else if (t >= 260) {
       this.idleLights();
-      bs.doorTop = [0, 0]; bs.topLight = [0, 0]; bs.doorLeft = 0; bs.doorRight = 0;
     }
     if (t === 200 && !this.teaser) this.enterMenu();   // Menue fliegt noch waehrend des Intros ein
     if (t >= 200) { this.menuAlpha = 1; this.updateTexts(); }
@@ -396,7 +430,9 @@ export class DaiganoidApp {
   }
 
   tickMenu(keys, clicks) {
-    this.idleLights();
+    this.idleLights(this.pendingState === 'starting');
+    this.updateLogoOut();
+    if (this.logoOut === LOGO_OUT.cursor) this.startCursorFly();
     this.updateTexts();
     // Glow ist ein festes Bild -> erst einblenden, wenn alle Buchstaben stehen
     const landed = this.menuTexts.every((st) => st.settled);
@@ -419,8 +455,8 @@ export class DaiganoidApp {
     if (target === 'starting') {
       this.bs.phaserFrame = -1;   // Phaser aus, im Spiel schaltet ihn nur das Deflector-Item ein
       this.audio.fadeOutMusic();  // Menue-Musik blendet waehrend der Startsequenz aus
-      // sichtbarer Zeiger wird uebernommen und fliegt zum Ball (CURSOR_FLY)
-      if (this.cursorShown()) this.cursorFly = { x: this.input.pointerArt.x, y: this.input.pointerArt.y, t: 0, fade: -1 };
+      this.logoOut = 0;           // Logo zieht zusammen mit der Schrift weg, der Zeiger fliegt erst danach (tickStarting)
+      if (this.logo) this.logo.startShimmer();
     }
     this.leaveTo(target, this.menuIndex);
   }
@@ -475,27 +511,30 @@ export class DaiganoidApp {
     try { localStorage.setItem(OPTIONS_KEY, JSON.stringify(o)); } catch (e) { /* privat */ }
   }
 
-  /** Projektplan "The Game starts": Lichter/Tueren flackern, Logo schimmert und zieht weg, dann Spielstart. */
+  /**
+   * Nach START GAME: Schrift und Logo sind schon weggezogen (tickMenu), Tueren schliessen ruhig. Der Zeiger
+   * fliegt seit LOGO_OUT.cursor Frames nach dem Klick zur Spawn-Stelle (CURSOR_FLY), blendet aus, der Schlaeger-Beam startet.
+   */
   tickStarting() {
     const t = this.t;
-    const bs = this.bs;
-    this.menuAlpha = Math.max(0, 1 - t / 20);
-    if (this.logo) {
-      if (t === 1) this.logo.startShimmer();
-      this.logo.update();
-      if (t > 40) this.logoY = Math.round(24 - (t - 40) * (t - 40) * 0.12);
+    this.menuAlpha = 0;
+    this.idleLights(true);
+    this.updateLogoOut();
+    if (t === 1) {
+      if (this.logoOut < LOGO_OUT.cursor) this.startCursorFly();   // Schrift war schneller weg als der Zeiger-Start
+      // Rest des Zeigerflugs (laeuft schon seit LOGO_OUT.cursor Frames nach dem Klick) + Pause
+      const left = this.cursorFly ? CURSOR_FLY.frames + LOGO_OUT.hold - this.cursorFly.t : 10;
+      this.startEnd = Math.max(CURSOR_FLY.lead + 1, left);
     }
-    if (t < 70) {
-      for (let i = 0; i < 6; i++) bs.lights[i] = Math.random() < 0.5 ? 1 : 0;
-      bs.doorTop[0] = (t >> 1) & 3; bs.doorTop[1] = ((t >> 1) + 2) & 3;
-      bs.doorLeft = (t >> 2) & 3; bs.doorRight = ((t >> 2) + 1) & 3;
-      if (t % 12 === 0) this.audio.play('doorClose', 0.3, 1.5);
-    } else {
-      bs.doorTop = [0, 0]; bs.topLight = [0, 0]; bs.doorLeft = 0; bs.doorRight = 0;
-      this.idleLights();
-    }
-    if (t === 90 - CURSOR_FLY.lead && this.cursorFly) this.cursorFly.fade = 0;
-    if (t >= 90) this.startGame();
+    if (t < 1) return;
+    if (t >= this.startEnd - CURSOR_FLY.lead && this.cursorFly && this.cursorFly.fade < 0) this.cursorFly.fade = 0;
+    if (t >= this.startEnd) this.startGame();
+  }
+
+  /** Sichtbaren Zeiger uebernehmen, er fliegt zur Spawn-Stelle (CURSOR_FLY). */
+  startCursorFly() {
+    if (this.cursorFly || !this.cursorShown()) return;
+    this.cursorFly = { x: this.input.pointerArt.x, y: this.input.pointerArt.y, t: 0, fade: -1 };
   }
 
   /** Neues Spiel ab Runde round (0-basiert), Variante variant (0 links, 1 rechts). */
