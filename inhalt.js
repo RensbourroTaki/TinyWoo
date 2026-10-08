@@ -156,8 +156,6 @@ window.TW_INHALT = {
     header: {
       kicker: 'Welcome to the',
       titel: 'ARCADE',
-      zeile: 'The Arkanoid fan project!',
-      unterzeile: 'Made with the deepest respect for TAITO, creators of the timeless original.',
     },
 
     highscoreTitel: 'Highscore',
