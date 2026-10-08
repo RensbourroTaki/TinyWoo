@@ -104,7 +104,7 @@ function StoryPanel() {
       <PanelTitle>{D.storyTitel || 'The story'}</PanelTitle>
       <div style={{ padding: '22px 22px 26px', display: 'flex', flexDirection: 'column', gap: 22 }}>
         {parts.map((p, k) => {
-          if (p.schluss) return <p key={k} style={{ margin: '4px 0 0', ...pixel(16), background: 'var(--grad-sun-hot)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent', lineHeight: 1.3 }}>{p.schluss}</p>;
+          if (p.schluss) return <p key={k} style={{ margin: '4px 0 0', alignSelf: 'flex-end', textAlign: 'right', ...pixel(16), background: 'var(--grad-sun-hot)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent', lineHeight: 1.3 }}>{p.schluss}</p>;
           return (
             <section key={k} style={{ display: 'flex', flexDirection: 'column', gap: 10, ...(p.titel && k > 0 ? { paddingTop: 20, borderTop: '1px solid rgba(255,184,0,.2)' } : {}) }}>
               {p.titel && <h3 style={{ margin: 0, ...pixel(18, 'var(--sky-400)'), lineHeight: 1.4 }}>{p.titel}</h3>}
