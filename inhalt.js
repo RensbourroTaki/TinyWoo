@@ -15,7 +15,6 @@ window.TW_INHALT = {
 
   /* ---------- LINKS ---------- */
   links: {
-    discord: '#',            // z.B. 'https://discord.gg/abc123'
     email: ['tinywoogames', 'gmail.com'],   // absichtlich getrennt (Schutz vor Spam-Bots): ['name', 'domain']
     kontaktFormKey: 'a95235b3-d5b6-4cfc-9213-7161abaa0399',      // Web3Forms Access Key (kostenlos auf web3forms.com mit deiner E-Mail holen)
   },
@@ -23,7 +22,6 @@ window.TW_INHALT = {
   /* Social-Buttons. Nicht gebraucht? Zeile löschen.
      brand-Namen: discord, youtube, x, tiktok, instagram, itchdotio, steam, twitch, github, reddit, bluesky */
   socials: [
-    { brand: 'discord',   label: 'Discord',   href: '#' },
     { brand: 'youtube',   label: 'YouTube',   href: '#' },
     { brand: 'x',         label: 'X',         href: '#' },
     { brand: 'tiktok',    label: 'TikTok',    href: '#' },
@@ -180,9 +178,9 @@ window.TW_INHALT = {
     heroZeile1: 'Tiny,',
     heroZeile2: 'but fun!',
     heroText: 'Tiny Woo is decades of game-dev experience, distilled into small games that are simply fun to play.',
-    laufband: ['Rocket Trump in development', 'Play Daiganoid in the arcade', 'Join the Discord', 'One samurai', 'Zero Japan', 'Highscores open'],
+    laufband: ['Rocket Trump in development', 'Play Daiganoid in the arcade', 'One samurai', 'Zero Japan', 'Highscores open'],
     communityTitel: 'Join the dojo',
-    communityText: 'Devlogs, playtests, memes and the occasional existential crisis. The Discord is where it all happens.',
+    communityText: 'Devlogs, playtests, memes and the occasional existential crisis.',
     // About-Seite: Bausteine in Reihenfolge. { h } = Zwischenüberschrift, { p } = Absatz, { liste } = Aufzählung, { schluss } = Schlusssatz.
     about: [
       { h: "Here's my story" },

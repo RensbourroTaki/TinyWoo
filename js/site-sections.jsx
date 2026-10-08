@@ -258,7 +258,6 @@ function Community() {
     <SlantSection tone="raised" angle={3} edge="orange" innerStyle={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, textAlign: 'center' }}>
       <H2 style={{ transform: 'rotate(-2deg)', transformOrigin: 'center' }}>{I.texte.communityTitel}</H2>
       <p style={{ margin: 0, fontSize: 17, maxWidth: 520, lineHeight: 1.55 }}>{I.texte.communityText}</p>
-      <Button size="lg" variant="secondary" icon={<Icon name="discord" brand size={26} />} href={I.links.discord}>Join Discord</Button>
       <SocialLinks links={I.socials} style={{ justifyContent: 'center' }} />
     </SlantSection>
   );

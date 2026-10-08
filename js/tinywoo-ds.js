@@ -1374,7 +1374,7 @@ function NavBar({
   logo,
   links = [],
   active,
-  discordHref = '#',
+  discordHref,
   onNavigate,
   sticky = true,
   style
@@ -1410,7 +1410,7 @@ function NavBar({
       color: 'var(--sun-400)'
     }
   }, "TINY WOO"));
-  const discordBtn = /*#__PURE__*/React.createElement(__ds_scope.Button, {
+  const discordBtn = discordHref && /*#__PURE__*/React.createElement(__ds_scope.Button, {
     size: "sm",
     variant: "secondary",
     href: discordHref,
@@ -1529,10 +1529,6 @@ Object.assign(__ds_scope, { NavBar });
 // components/navigation/SocialLinks.jsx
 try { (() => {
 const DEFAULT_SOCIALS = [{
-  brand: 'discord',
-  label: 'Discord',
-  href: '#'
-}, {
   brand: 'youtube',
   label: 'YouTube',
   href: '#'

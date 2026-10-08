@@ -25,7 +25,7 @@ function App() {
   const nav = p => { location.hash = p === 'home' ? '' : p; setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   return (
     <div style={{ minHeight: '100vh' }}>
-      <NavBar logo={I.logo} links={LINKS} active={page} onNavigate={nav} discordHref={I.links.discord} />
+      <NavBar logo={I.logo} links={LINKS} active={page} onNavigate={nav} />
       {page === 'home' && <>
         <Hero onNav={nav} />
         <Ticker items={I.texte.laufband} />

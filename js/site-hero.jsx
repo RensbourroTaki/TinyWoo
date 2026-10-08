@@ -25,7 +25,6 @@ function Hero({ onNav }) {
           <p style={{ margin: 0, fontSize: 'var(--fs-lg)', lineHeight: 'var(--lh-body)', maxWidth: 480, textWrap: 'pretty' }}>{I.texte.heroText}</p>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
             <Button size="lg" icon={<Icon name="rocket" size={26} />} onClick={() => onNav('games')}>See games</Button>
-            <Button size="lg" variant="secondary" icon={<Icon name="discord" brand size={26} />} href={I.links.discord}>Discord</Button>
           </div>
         </div>
         <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
