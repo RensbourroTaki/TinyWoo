@@ -177,9 +177,9 @@ window.TW_INHALT = {
 
   /* ---------- TEXTE ---------- */
   texte: {
-    heroZeile1: 'One samurai.',
-    heroZeile2: 'Zero Japan.',
-    heroText: 'Tiny Woo is a one-person game studio making fast, loud, slightly rude little games. Grab a controller, bring snacks.',
+    heroZeile1: 'Tiny,',
+    heroZeile2: 'but fun!',
+    heroText: 'Tiny Woo is decades of game-dev experience, distilled into small games that are simply fun to play.',
     laufband: ['Rocket Trump in development', 'Play Daiganoid in the arcade', 'Join the Discord', 'One samurai', 'Zero Japan', 'Highscores open'],
     communityTitel: 'Join the dojo',
     communityText: 'Devlogs, playtests, memes and the occasional existential crisis. The Discord is where it all happens.',
