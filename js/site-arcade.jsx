@@ -57,6 +57,24 @@ function ArcadeHeader({ compact }) {
   );
 }
 
+/** Band unter dem Kopf: schraege orange Linie ueber die volle Breite, darunter ein Verlauf vom dunklen Header-Blau
+ *  zur Seitenfarbe, darin zentriert "THE [Arkanoid-Logo] FAN PROJECT". Abstand Linie->Zeile = Zeile->Tafeln.
+ *  sectionGap: Abstand, den die umgebende Section ohnehin zwischen ihren Kindern setzt. */
+function ArcadeBand({ compact, sectionGap }) {
+  const space = compact ? 36 : 72;
+  const fs = 'clamp(18px, 2.6vw, 40px)';
+  return (
+    <div style={{ position: 'relative', margin: `${compact ? 8 : 24}px calc(50% - 50vw) 0`, padding: `${space}px var(--gutter) ${Math.max(0, space - sectionGap)}px` }}>
+      <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: compact ? 220 : 290, transform: 'skewY(-1.3deg)', borderTop: '6px solid var(--orange-400)', background: 'linear-gradient(to bottom, var(--blue-900), var(--bg-page))' }} />
+      <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: compact ? 10 : 14 }}>
+        <span style={pixel(fs, 'var(--orange-400)')}>The</span>
+        <img src="assets/logo/arkanoid_original_logo.png" alt="Arkanoid" style={{ height: 'clamp(44px, 7.5vw, 110px)', width: 'auto', maxWidth: '70vw', imageRendering: 'pixelated', display: 'block' }} />
+        <span style={pixel(fs, 'var(--orange-400)')}>Fan project</span>
+      </div>
+    </div>
+  );
+}
+
 /** Eine Musik-Zeile: Titel fett, Kuenstler gedaempft, Einsatzort als Label, ganze Zeile klickbar. */
 function CreditRow({ c }) {
   return (
@@ -288,6 +306,7 @@ function ArcadePage() {
     <section style={{ maxWidth: 1480, margin: '0 auto', padding: wide ? '48px var(--gutter) 0' : '24px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: wide ? 40 : 20 }}>
       <style>{CSS}</style>
       <ArcadeHeader compact={!wide} />
+      <ArcadeBand compact={!wide} sectionGap={wide ? 40 : 20} />
       <div ref={snap} className="tw-snap" style={container} onScroll={onScroll}>
         {PANES.map((key) => (
           <div key={key} style={pane(key)}>
