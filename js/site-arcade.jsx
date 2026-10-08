@@ -19,11 +19,13 @@ const localScores = () => { const M = window.Daiganoid; try { return M && M.load
 const readMine = () => { try { const v = JSON.parse(localStorage.getItem(MINE_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
 const writeMine = (ids) => { try { localStorage.setItem(MINE_KEY, JSON.stringify(ids.slice(-50))); } catch (e) { /* privat */ } };
 
-/** Duenner runder Rahmen im Sonne-Orange-Verlauf, innen dunkle Flaeche. Beide Seitentafeln benutzen ihn. */
-function GlowFrame({ children, style }) {
+/** Duenner runder Rahmen im Sonne-Orange-Verlauf, innen dunkle Flaeche. Beide Seitentafeln benutzen ihn.
+ *  height: feste Aussenhoehe in px (0 = so hoch wie der Inhalt). */
+function GlowFrame({ children, style, height }) {
+  const fixed = height > 0;
   return (
-    <div style={{ borderRadius: 'var(--radius-xl)', padding: 2, background: 'var(--grad-sun)', boxShadow: '0 0 28px -8px rgba(255,184,0,.45), var(--shadow-float)', ...style }}>
-      <div style={{ borderRadius: 30, background: 'var(--blue-950)', display: 'flex', flexDirection: 'column', minHeight: '100%', boxSizing: 'border-box' }}>{children}</div>
+    <div style={{ borderRadius: 'var(--radius-xl)', padding: 2, background: 'var(--grad-sun)', boxShadow: '0 0 28px -8px rgba(255,184,0,.45), var(--shadow-float)', ...(fixed ? { height, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' } : {}), ...style }}>
+      <div style={{ borderRadius: 30, background: 'var(--blue-950)', display: 'flex', flexDirection: 'column', minHeight: fixed ? 0 : '100%', flex: fixed ? 1 : undefined, boxSizing: 'border-box' }}>{children}</div>
     </div>
   );
 }
@@ -103,15 +105,15 @@ function ScoreRow({ e, i, mine }) {
 }
 
 /** Rechte Tafel: dieselbe Liste wie im Spiel, Top 10, ausklappbar bis Top 100.
- *  scrollList: ausgeklappte Liste in sich scrollen lassen (breites Layout, Tafel klebt am Schirm). */
-function HighscorePanel({ scores, total, live, source, mine, expanded, onToggle, scrollList }) {
+ *  height: Rahmenhoehe der Story-Tafel (breites Layout); die Liste scrollt dann im Rahmen. 0 = Inhaltshoehe. */
+function HighscorePanel({ scores, total, live, source, mine, expanded, onToggle, height }) {
   const shown = expanded ? scores : scores.slice(0, 10);
   const empty = source === 'local' ? 'No scores on this device yet.' : source === 'loading' ? 'Loading…' : 'No scores yet. Be the first.';
-  const scroll = expanded && scrollList;
+  const fixed = height > 0;
   return (
-    <GlowFrame>
+    <GlowFrame height={height}>
       <PanelTitle right={<LiveBadge live={live} />}>{D.highscoreTitel || 'Highscore'}</PanelTitle>
-      <div style={{ padding: '10px 12px 4px', display: 'flex', flexDirection: 'column', gap: 2, maxHeight: scroll ? 'min(60vh, 760px)' : 'none', overflowY: scroll ? 'auto' : 'visible' }}>
+      <div style={{ padding: '10px 12px 4px', display: 'flex', flexDirection: 'column', gap: 2, ...(fixed ? { flex: 1, minHeight: 0, overflowY: 'auto', scrollbarWidth: 'thin' } : {}) }}>
         {shown.length === 0 && <div style={{ ...pixel(12, 'var(--gray-400)'), padding: '28px 10px', textAlign: 'center', lineHeight: 1.6 }}>{empty}</div>}
         {shown.map((e, i) => <ScoreRow key={e.id || `l${i}`} e={e} i={i} mine={!!e.id && mine.has(e.id)} />)}
       </div>
@@ -215,6 +217,20 @@ function ArcadePage() {
   const snap = React.useRef(null);
   const idxRef = React.useRef(PANES.indexOf('game'));
   const [idx, setIdx] = React.useState(idxRef.current);
+  const storyBox = React.useRef(null);
+  const [storyH, setStoryH] = React.useState(0);
+
+  // Breit: Hoehe der Story-Tafel messen, der Highscore-Rahmen uebernimmt sie.
+  React.useLayoutEffect(() => {
+    const el = storyBox.current;
+    if (!wide || !el) return undefined;
+    const upd = () => setStoryH(el.offsetHeight);
+    upd();
+    if (typeof ResizeObserver === 'undefined') { window.addEventListener('resize', upd); return () => window.removeEventListener('resize', upd); }
+    const ro = new ResizeObserver(upd);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [wide]);
 
   // Schmal: auf die aktive Tafel springen (Start = Spiel), auch nach Drehen des Geraets.
   React.useLayoutEffect(() => {
@@ -246,7 +262,7 @@ function ArcadePage() {
   const gameInner = wide ? {} : { padding: '0 var(--gutter)' };
 
   const panels = {
-    scores: <HighscorePanel scores={hs.scores} total={hs.total} live={hs.live} source={hs.source} mine={hs.mine} expanded={expanded} onToggle={() => setExpanded((e) => !e)} scrollList={wide} />,
+    scores: <HighscorePanel scores={hs.scores} total={hs.total} live={hs.live} source={hs.source} mine={hs.mine} expanded={expanded} onToggle={() => setExpanded((e) => !e)} height={wide ? storyH : 0} />,
     game: <DaiganoidArcade scores={hs.scores} onSubmit={hs.submit} onPlaying={hs.setPlaying} />,
     story: <StoryPanel />,
   };
@@ -260,7 +276,7 @@ function ArcadePage() {
           <div key={key} style={pane(key)}>
             {key === 'game'
               ? <div style={gameInner}>{panels.game}</div>
-              : <div style={side}><div style={sideInner}>{panels[key]}</div></div>}
+              : <div style={side}><div ref={key === 'story' ? storyBox : undefined} style={sideInner}>{panels[key]}</div></div>}
           </div>
         ))}
       </div>
