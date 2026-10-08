@@ -109,7 +109,7 @@ function StoryPanel() {
             <section key={k} style={{ display: 'flex', flexDirection: 'column', gap: 10, ...(p.titel && k > 0 ? { paddingTop: 20, borderTop: '1px solid rgba(255,184,0,.2)' } : {}) }}>
               {p.titel && <h3 style={{ margin: 0, ...pixel(18, 'var(--sky-400)'), lineHeight: 1.4 }}>{p.titel}</h3>}
               {p.lead && <p style={{ margin: 0, ...pixelText, fontSize: 19, lineHeight: 1.45, color: 'var(--text-strong)' }}>{p.lead}</p>}
-              {p.text && <p style={{ margin: 0, ...pixelText, fontSize: 16, lineHeight: 1.65, color: 'var(--gray-300)' }}>{p.text}</p>}
+              {p.text && <p style={{ margin: 0, ...pixelText, fontSize: 16, lineHeight: 1.65, color: '#98A2B4' }}>{p.text}</p>}
               {p.credits && p.credits.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
                 {p.credits.map((c, j) => <CreditRow key={j} c={c} />)}
               </div>}
