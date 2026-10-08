@@ -1,5 +1,5 @@
 (() => {
-const { Button, Icon, Badge } = window.TinyWooDesignSystem_fe221f;
+const { Button, Icon } =window.TinyWooDesignSystem_fe221f;
 const I = window.TW_INHALT;
 
 // Ticker-Farben, per Zifferntaste 1–7 waehlbar; Taste 8 = Regenbogen-Cycle durch alle (Default). Nichts wird gespeichert.
@@ -40,25 +40,28 @@ function Ticker({ items, angle = -3, tone = 'sun' }) {
   );
 }
 
+// Der Hero liegt mit seinem Grund (--bg-hero) auch unter dem durchsichtigen Header, damit der Logo-Glow oben nicht abreisst.
+const HEADER_H = 72;          // Header-Hoehe: --nav-h (Logo 54 px + 2 x 8 px Padding passt hinein)
+// Unten endet der Grund schraeg (-3 deg wie der Ticker) genau unter der Ticker-Mitte, damit keine Kante sichtbar wird.
+const TICKER_HALB = 34;       // halbe Ticker-Hoehe
+const TIEF = `calc(${TICKER_HALB}px + 2.62vw)`;   // 2.62vw = tan(3 deg) * 50vw
+
 function Hero({ onNav }) {
   return (
-    <section style={{ position: 'relative', overflow: 'hidden', padding: '40px 0 110px' }}>
-      <div aria-hidden className="tw-stripes" style={{ position: 'absolute', inset: '-20% -10% 18% -10%', background: 'var(--blue-800)', transform: 'skewY(-7deg)', borderBottom: '6px solid var(--sun-400)' }} />
-      <div aria-hidden style={{ position: 'absolute', right: '-6%', top: '8%', width: '46%', height: '78%', background: 'var(--electric-500)', transform: 'skewX(-12deg)', border: '4px solid var(--ink)', boxShadow: '14px 14px 0 var(--ink)' }} />
+    <section style={{ position: 'relative', overflowX: 'clip', marginTop: -HEADER_H, marginBottom: `calc(-1 * ${TIEF})`, padding: `${40 + HEADER_H}px 0 calc(110px + ${TIEF})`, background: 'var(--bg-hero)', clipPath: 'polygon(0 0,100% 0,100% calc(100% - 5.24vw),0 100%)' }}>
       <div style={{ position: 'relative', maxWidth: 'var(--container)', margin: '0 auto', padding: '0 var(--gutter)', display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,1fr)', gap: 40, alignItems: 'center' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22, animation: 'tw-pop-in var(--dur-slow) var(--ease-pop)' }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Badge tone="lime" tilt>Solo indie dev</Badge><Badge tone="outline">Est. one guy</Badge></div>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 22, animation: 'tw-pop-in var(--dur-slow) var(--ease-pop)' }}>
           <h1 className="tw-heading" style={{ fontSize: 'var(--fs-hero)', transform: 'rotate(-4deg)', transformOrigin: 'left' }}>
             {I.texte.heroZeile1}<br /><span style={{ color: 'var(--orange-400)' }}>{I.texte.heroZeile2}</span>
           </h1>
-          <p style={{ margin: 0, fontSize: 'var(--fs-lg)', lineHeight: 'var(--lh-body)', maxWidth: 480, textWrap: 'pretty' }}>{I.texte.heroText}</p>
+          <p style={{ margin: 0, fontSize: 'var(--fs-lg)', lineHeight: 'var(--lh-body)', maxWidth: 480, textWrap: 'pretty', whiteSpace: 'pre-line' }}>{I.texte.heroText}</p>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <Button size="lg" icon={<Icon name="rocket" size={26} />} onClick={() => onNav('games')}>See games</Button>
+            <Button size="lg" icon={<Icon name="gamepad-2" size={26} />} onClick={() => onNav('games')}>See games</Button>
           </div>
         </div>
-        <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-          <img src={I.logo} alt="Tiny Woo" style={{ width: '100%', maxWidth: 440, borderRadius: 'var(--radius-xl)', border: '5px solid var(--ink)', boxShadow: 'var(--shadow-pop-lg), var(--shadow-float)', transform: 'rotate(5deg)', animation: 'tw-bob 3.2s ease-in-out infinite' }} />
-          <div style={{ position: 'absolute', left: -6, bottom: 10, transform: 'rotate(-10deg)' }}><Badge tone="sun">Now loading…</Badge></div>
+        {/* Logo mit Glow 1:1 (912x744), mittig auf der rechten Spalte, darf ueber die Spalte hinausragen */}
+        <div style={{ position: 'relative', alignSelf: 'stretch' }}>
+          <img src={I.logoHero} alt="Tiny Woo" width={912} height={744} style={{ position: 'absolute', left: '50%', top: '50%', width: 912, height: 744, maxWidth: 'none', margin: '-372px 0 0 -456px', pointerEvents: 'none', animation: 'tw-bob 3.2s ease-in-out infinite' }} />
         </div>
       </div>
     </section>

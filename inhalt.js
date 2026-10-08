@@ -12,6 +12,8 @@
 window.TW_INHALT = {
 
   logo: 'assets/logo/tinywoo-logo.png',
+  logoNav: 'assets/logo/tinywoo-logo-nav.png',     // Header, 90x54, wird 1:1 gezeigt
+  logoHero: 'assets/logo/tinywoo-logo-glow.png',   // Hero rechts, 912x744 mit Glow, wird 1:1 gezeigt
 
   /* ---------- LINKS ---------- */
   links: {
@@ -193,7 +195,7 @@ window.TW_INHALT = {
   texte: {
     heroZeile1: 'Tiny,',
     heroZeile2: 'but fun!',
-    heroText: 'Tiny Woo is decades of game-dev experience, distilled into small games that are simply fun to play.',
+    heroText: 'Decades of game-dev experience.\nSmall games. Big fun.',   // \n = Zeilenumbruch
     laufband: ['Rocket Trump in development', 'Play Daiganoid in the arcade', 'Tiny, but fun!','Highscores open'],
     communityTitel: 'Join the dojo',
     communityText: 'Devlogs, playtests, memes and the occasional existential crisis.',

@@ -15,6 +15,7 @@
 
 /* Semantic */
 --bg-page:var(--blue-700);--bg-deep:var(--blue-900);--bg-sunken:var(--blue-800);--bg-raised:var(--blue-600);
+--bg-hero:#102657;/* Header + Hero, nahtlos */
 --surface-card:var(--blue-800);--surface-card-hi:var(--blue-600);--surface-chrome:var(--blue-950);
 --text-heading:var(--sun-400);--text-heading-alt:var(--orange-400);--text-body:var(--gray-200);--text-strong:var(--gray-50);--text-muted:var(--gray-300);--text-faint:var(--gray-400);--text-on-sun:var(--ink);
 --border-ink:var(--ink);--border-soft:rgba(255,255,255,.10);--border-strong:rgba(255,255,255,.22);

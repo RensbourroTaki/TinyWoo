@@ -1395,11 +1395,24 @@ function NavBar({
   discordHref,
   onNavigate,
   sticky = true,
+  overlay = false,
   style
 }) {
   const narrow = useNarrow();
   const [open, setOpen] = React.useState(false);
   React.useEffect(() => setOpen(false), [active, narrow]);
+  // overlay: ganz oben durchsichtig (Hero-Glow scheint durch), sobald gescrollt wird deckend
+  const [top, setTop] = React.useState(() => window.scrollY < 1);
+  React.useEffect(() => {
+    if (!overlay) return;
+    const h = () => setTop(window.scrollY < 1);
+    h();
+    window.addEventListener('scroll', h, {
+      passive: true
+    });
+    return () => window.removeEventListener('scroll', h);
+  }, [overlay]);
+  const bgOpacity = overlay && top && !open ? 0 : 1;
   const logoLink = /*#__PURE__*/React.createElement("a", {
     href: "#",
     onClick: e => {
@@ -1413,15 +1426,9 @@ function NavBar({
     src: logo,
     alt: "Tiny Woo",
     style: {
-      height: narrow ? 46 : 56,
-      width: narrow ? 46 : 56,
-      objectFit: 'cover',
-      borderRadius: 14,
-      border: '3px solid var(--ink)',
-      boxShadow: 'var(--shadow-pop-sm)',
-      transform: 'rotate(-4deg)'
-    }
-  }) : /*#__PURE__*/React.createElement("span", {
+      display: 'block'
+    } // 1:1, keine Skalierung
+  }) :/*#__PURE__*/React.createElement("span", {
     style: {
       fontFamily: 'var(--font-display)',
       fontSize: 30,
@@ -1459,10 +1466,9 @@ function NavBar({
     style: {
       position: 'absolute',
       inset: 0,
-      background: 'var(--glass)',
-      backdropFilter: 'var(--blur-glass)',
-      WebkitBackdropFilter: 'var(--blur-glass)',
-      borderBottom: '3px solid var(--ink)'
+      background: 'var(--bg-hero)',
+      opacity: bgOpacity,
+      transition: 'opacity var(--dur)'
     }
   }), /*#__PURE__*/React.createElement("nav", {
     style: {
@@ -1513,11 +1519,10 @@ function NavBar({
     "aria-hidden": true,
     style: {
       position: 'absolute',
-      inset: '0 0 -10px',
-      background: 'var(--glass)',
-      backdropFilter: 'var(--blur-glass)',
-      WebkitBackdropFilter: 'var(--blur-glass)',
-      clipPath: 'polygon(0 0,100% 0,100% 72%,0 100%)'
+      inset: 0,
+      background: 'var(--bg-hero)',
+      opacity: bgOpacity,
+      transition: 'opacity var(--dur)'
     }
   }), /*#__PURE__*/React.createElement("nav", {
     style: {
