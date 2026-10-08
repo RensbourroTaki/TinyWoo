@@ -13,7 +13,7 @@ const PANE_LABEL = { scores: 'Highscore', game: 'Game', story: 'Story' };
 const pixel = (fs, color) => ({ fontFamily: 'var(--font-pixel)', fontSize: fs, letterSpacing: 'var(--tracking-pixel)', textTransform: 'uppercase', color, lineHeight: 1 });
 /** Pixel-Font fuer Fliesstext: wie pixel(), aber ohne Grossschreibung (lesbarer). */
 const pixelText = { fontFamily: 'var(--font-pixel)', letterSpacing: 'var(--tracking-pixel)' };
-const Kicker =({ children }) => <span className="tw-pixel" style={{ fontSize: 13, color: 'var(--sky-400)' }}>{children}</span>;
+const Kicker =({ children }) => <span className="tw-pixel" style={{ fontSize: 26, color: 'var(--sky-400)' }}>{children}</span>;
 const CSS = '@keyframes tw-live-pulse{0%{box-shadow:0 0 0 0 rgba(123,232,74,.65)}100%{box-shadow:0 0 0 10px rgba(123,232,74,0)}}'
   + '.tw-snap::-webkit-scrollbar{display:none}'
   + '.tw-credit{transition:background .15s,border-color .15s}.tw-credit:hover{background:rgba(255,184,0,.08);border-color:rgba(255,184,0,.55)}';
