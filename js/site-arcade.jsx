@@ -11,7 +11,9 @@ const PANES = ['scores', 'game', 'story'];
 const PANE_LABEL = { scores: 'Highscore', game: 'Game', story: 'Story' };
 
 const pixel = (fs, color) => ({ fontFamily: 'var(--font-pixel)', fontSize: fs, letterSpacing: 'var(--tracking-pixel)', textTransform: 'uppercase', color, lineHeight: 1 });
-const Kicker = ({ children }) => <span className="tw-pixel" style={{ fontSize: 13, color: 'var(--sky-400)' }}>{children}</span>;
+/** Pixel-Font fuer Fliesstext: wie pixel(), aber ohne Grossschreibung (lesbarer). */
+const pixelText = { fontFamily: 'var(--font-pixel)', letterSpacing: 'var(--tracking-pixel)' };
+const Kicker =({ children }) => <span className="tw-pixel" style={{ fontSize: 13, color: 'var(--sky-400)' }}>{children}</span>;
 const CSS = '@keyframes tw-live-pulse{0%{box-shadow:0 0 0 0 rgba(123,232,74,.65)}100%{box-shadow:0 0 0 10px rgba(123,232,74,0)}}'
   + '.tw-snap::-webkit-scrollbar{display:none}'
   + '.tw-credit{transition:background .15s,border-color .15s}.tw-credit:hover{background:rgba(255,184,0,.08);border-color:rgba(255,184,0,.55)}';
@@ -59,7 +61,7 @@ function ArcadeHeader({ compact }) {
 function CreditRow({ c }) {
   return (
     <a className="tw-credit" href={c.href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, border: '1px solid rgba(255,184,0,.22)', textDecoration: 'none', color: 'var(--text-body)' }}>
-      <span style={{ flex: 1, minWidth: 0, fontSize: 15, lineHeight: 1.4 }}>
+      <span style={{ flex: 1, minWidth: 0, ...pixelText, fontSize: 15, lineHeight: 1.4 }}>
         <strong style={{ color: 'var(--text-strong)' }}>{c.titel}</strong>
         <span style={{ color: 'var(--text-muted)' }}> · {c.von}</span>
       </span>
@@ -80,9 +82,9 @@ function StoryPanel() {
           if (p.schluss) return <p key={k} style={{ margin: '4px 0 0', ...pixel(16), background: 'var(--grad-sun-hot)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent', lineHeight: 1.3 }}>{p.schluss}</p>;
           return (
             <section key={k} style={{ display: 'flex', flexDirection: 'column', gap: 10, ...(p.titel && k > 0 ? { paddingTop: 20, borderTop: '1px solid rgba(255,184,0,.2)' } : {}) }}>
-              {p.titel && <h3 style={{ margin: 0, ...pixel(12, 'var(--sky-400)'), lineHeight: 1.4 }}>{p.titel}</h3>}
-              {p.lead && <p style={{ margin: 0, fontSize: 19, lineHeight: 1.45, fontWeight: 700, color: 'var(--text-strong)' }}>{p.lead}</p>}
-              {p.text && <p style={{ margin: 0, fontSize: 15.5, lineHeight: 1.65, color: 'var(--text-body)' }}>{p.text}</p>}
+              {p.titel && <h3 style={{ margin: 0, ...pixel(18, 'var(--sky-400)'), lineHeight: 1.4 }}>{p.titel}</h3>}
+              {p.lead && <p style={{ margin: 0, ...pixelText, fontSize: 19, lineHeight: 1.45, color: 'var(--text-strong)' }}>{p.lead}</p>}
+              {p.text && <p style={{ margin: 0, ...pixelText, fontSize: 16, lineHeight: 1.65, color: 'var(--text-body)' }}>{p.text}</p>}
               {p.credits && p.credits.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
                 {p.credits.map((c, j) => <CreditRow key={j} c={c} />)}
               </div>}
