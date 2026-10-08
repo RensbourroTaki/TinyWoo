@@ -125,15 +125,19 @@ function StoryPanel() {
   );
 }
 
-/** Box unter dem Spiel: Version, blinkender Entwicklungs-Hinweis, Roadmap. Ohne Rahmen, eine Stufe dunkler als die Seite. */
-function RoadmapBox() {
+/**
+ * Box unter dem Spiel: Version, blinkender Entwicklungs-Hinweis, Roadmap. Ohne Rahmen, eine Stufe dunkler als die Seite.
+ * width = Breite des Spielrahmens (breites Layout), 0 = volle Breite. Schrift bleibt fest, schmal bricht nur oefter um.
+ */
+function RoadmapBox({ width = 0 }) {
   const R = D.roadmap;
   if (!R) return null;
   const punkte = R.punkte || [];
+  const padX = width && width < 640 ? 20 : 40;
   return (
-    <div style={{ borderRadius: 'var(--radius-xl)', background: 'var(--bg-sunken)', boxShadow: 'inset 0 4px 0 rgba(0,0,0,.25)', padding: '30px clamp(20px, 4vw, 44px) 34px', display: 'flex', flexDirection: 'column', alignItems: 'center', textTransform: 'uppercase' }}>
-      {R.version && <div style={{ ...pixel('clamp(20px, 2.2vw, 28px)', 'var(--gray-300)'), textAlign: 'center' }}>{R.version}</div>}
-      {R.hinweis && <div className="tw-blink" style={{ ...pixel('clamp(14px, 1.5vw, 18px)', 'var(--lime-400)'), textAlign: 'center', lineHeight: 1.4, marginTop: 22, textShadow: '0 0 12px rgba(123,232,74,.45)' }}>{R.hinweis}</div>}
+    <div style={{ ...(width ? { maxWidth: width, margin: '0 auto' } : null), boxSizing: 'border-box', borderRadius: 'var(--radius-xl)', background: 'var(--bg-sunken)', boxShadow: 'inset 0 4px 0 rgba(0,0,0,.25)', padding: width ? `28px ${padX}px 32px` : '30px clamp(20px, 4vw, 44px) 34px', display: 'flex', flexDirection: 'column', alignItems: 'center', textTransform: 'uppercase' }}>
+      {R.version && <div style={{ ...pixel(24, 'var(--gray-300)'), textAlign: 'center' }}>{R.version}</div>}
+      {R.hinweis && <div className="tw-blink" style={{ ...pixel(16, 'var(--lime-400)'), textAlign: 'center', lineHeight: 1.4, marginTop: 22, textShadow: '0 0 12px rgba(123,232,74,.45)' }}>{R.hinweis}</div>}
       {punkte.length > 0 && <div style={{ alignSelf: 'stretch', marginTop: 34, paddingTop: 26, borderTop: '1px solid rgba(255,184,0,.2)', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {R.titel && <h3 style={{ margin: 0, ...pixel(22), background: 'var(--grad-sun-hot)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent', alignSelf: 'flex-start' }}>{R.titel}</h3>}
         <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -317,6 +321,19 @@ function ArcadePage({ onDock }) {
     return () => ro.disconnect();
   }, [wide]);
 
+  // Breit: Breite des Spielrahmens (springt mit der Skalierung 4x/3x/2x), die Roadmap-Box uebernimmt sie.
+  const [frameW, setFrameW] = React.useState(0);
+  React.useLayoutEffect(() => {
+    const f = gameBox.current && gameBox.current.querySelector('.tw-daig-frame');
+    if (!wide || !f) return undefined;
+    const upd = () => setFrameW(Math.round(f.getBoundingClientRect().width));
+    upd();
+    if (typeof ResizeObserver === 'undefined') { window.addEventListener('resize', upd); return () => window.removeEventListener('resize', upd); }
+    const ro = new ResizeObserver(upd);
+    ro.observe(f);
+    return () => ro.disconnect();
+  }, [wide]);
+
   // Andock-Platz oben in der Seite (neben dem Kopf), links/Breite = Spielrahmen, relativ zur Section.
   // Schmal: Lage im Karussell unabhaengig vom Wischstand (Spieltafel so, als waere sie sichtbar).
   const sect = React.useRef(null);
@@ -386,7 +403,11 @@ function ArcadePage({ onDock }) {
         {PANES.map((key) => (
           <div key={key} style={pane(key)}>
             {key === 'game'
-              ? <div ref={gameBox} style={gameInner}>{panels.game}</div>
+              ? <React.Fragment>
+                <div ref={gameBox} style={gameInner}>{panels.game}</div>
+                {/* Breit: Roadmap direkt unter dem Spiel in derselben Spalte, so breit wie der Spielrahmen */}
+                {wide && <div style={{ marginTop: 24 }}><RoadmapBox width={frameW} /></div>}
+              </React.Fragment>
               : <div style={side}><div ref={key === 'story' ? storyBox : undefined} style={sideInner}>{panels[key]}</div></div>}
           </div>
         ))}
@@ -401,11 +422,8 @@ function ArcadePage({ onDock }) {
           ))}
         </div>
       )}
-      {/* Breit: eigene Zeile mit derselben Spaltenaufteilung, damit die Box genau unter dem Spielfeld steht
-          (in der klebenden Spiel-Spalte selbst wuerde sie das Spiel ueberlagern). */}
-      <div style={wide ? { display: 'grid', gridTemplateColumns: container.gridTemplateColumns, gap: 28 } : {}}>
-        <div style={wide ? { gridColumn: 2, minWidth: 0 } : {}}><RoadmapBox /></div>
-      </div>
+      {/* Schmal: Roadmap unter dem Karussell in voller Breite (breit steht sie in der Spiel-Spalte) */}
+      {!wide && <RoadmapBox />}
     </section>
   );
 }
