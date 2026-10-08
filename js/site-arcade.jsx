@@ -163,7 +163,7 @@ function HighscorePanel({ scores, total, live, source, mine, expanded, onToggle,
         <span style={{ ...pixel(16, 'var(--gray-500)'), lineHeight: 1.5 }}>{source === 'local' ? 'Offline · your local scores' : `${total} players · names are filtered`}</span>
         {scores.length > 10 && <Button variant="ghost" size="sm" onClick={onToggle}>{expanded ? 'Top 10' : `Top ${Math.min(100, scores.length)}`}</Button>}
       </div>
-      {D.arcadeHinweis && <p style={{ margin: 10, ...pixelText, fontSize: 16, lineHeight: 1.65, color: 'var(--lime-600)', textAlign: 'center' }}>{D.arcadeHinweis}</p>}
+      {D.arcadeHinweis && <p style={{ margin: 10, ...pixelText, fontSize: 16, lineHeight: 1.65, textTransform: 'uppercase', color: 'var(--lime-600)', textAlign: 'center' }}>{D.arcadeHinweis}</p>}
     </GlowFrame>
   );
 }
