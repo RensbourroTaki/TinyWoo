@@ -22,8 +22,8 @@ const ITEM_FRAMES = [0, 1, 2, 3, 4, 5, 5, 5, 5, 6, 7, 8, 9];   // 6. Frame vierm
 
 /** Ball-Glow (additiv, Radius in Art-Pixeln ab Ballmitte; Ball selbst = 3) und roter Rand des Mega-Balls. */
 export const BALL_GLOW = { radius: 4.6, alpha: 0.42, color: [150, 235, 255], mega: [255, 40, 20], megaBlur: 2.2, megaAlpha: 0.9 };
-/** Schlaeger nach Leben-Verlust: Ausblenden (Frames) und ruhiges Einblenden beim Respawn mit klebendem Ball. */
-export const PADDLE_FADE = { out: 14, in: 24 };
+/** Schlaeger nach Leben-Verlust: Ausblenden (Frames, 0 = sofort weg, er explodiert) und ruhiges Einblenden beim Respawn mit klebendem Ball. */
+export const PADDLE_FADE = { out: 0, in: 24 };
 /** Ball-Trail: Laenge in Frames, Staerke, Punktradius (Art-Pixel), Abstand der Zwischenpunkte. */
 export const TRAIL = { len: 14, alpha: 0.3, radius: 2.4, step: 1.2 };
 /**
@@ -35,7 +35,29 @@ export const SPARKS = {
   wall: { count: [5, 9], speed: [0.5, 1.6], life: [18, 40] },
   explosion: { count: [60, 90], speed: [0.8, 3.6], life: [30, 72], lift: 1.0, big: 0.3 },
   colors: [[255, 255, 255], [255, 236, 140], [255, 160, 50], [230, 60, 20]],
-  max: 900,
+  max: 1400,
+};
+/**
+ * Flipbook-Explosionen (player/explosions*.webp + explosions.json, 64 Frames aus den 512er TGAs): Ball = Explosion_29,
+ * Schlaeger = Explosion_27, Gegner = Explosion_28. anchor = Explosionspunkt im 512er Frame, scale = Art-Pixel je
+ * Quell-Pixel, ticks = Logik-Frames je Bild. Kein Lichtblitz: die Funken (SHARDS) ueberdecken das Weiche.
+ */
+export const FLIP = {
+  ball: { scale: 0.11, ticks: 1, anchor: [256, 352] },
+  paddle: { scale: 0.18, ticks: 1, anchor: [256, 352] },
+  enemy: { scale: 0.1, ticks: 1, anchor: [256, 324] },
+};
+/**
+ * Funken der Flipbook-Explosionen, additiv, Tuerkis passend zur Elektro-Zone: Striche (durch die Geschwindigkeit
+ * gedehnt, Laenge = Tempo * stretch Art-Pixel, bremsen staerker) und kleine Punkte. spread = Streubreite des
+ * Startpunkts (Art-Pixel, Schlaegerbreite), lift = Auftrieb nach oben.
+ */
+export const SHARDS = {
+  colors: [[255, 255, 255], [200, 255, 248], [90, 240, 215], [30, 170, 130]],
+  stretch: 2.4, width: 0.6, gravity: 0.05, drag: 0.94, dotDrag: 0.975,
+  ball: { streaks: [36, 52], dots: [50, 74], speed: [1.6, 5.5], life: [18, 42], spread: 2, lift: 0.8 },
+  paddle: { streaks: [130, 170], dots: [170, 230], speed: [1.6, 7.5], life: [24, 70], spread: 30, lift: 1.2 },
+  enemy: { streaks: [50, 70], dots: [70, 100], speed: [1.6, 6], life: [20, 50], spread: 12, lift: 1.0 },
 };
 /**
  * Lichtblitz ueber jeder Explosion (additiv): heisser Kern, grosser oranger Schein und ein Druckring.
@@ -45,6 +67,8 @@ export const BOOM = { len: 24, core: 13, glow: 34, coreAlpha: 1, glowAlpha: 0.85
 export class GameView {
   constructor(assets, fonts, board, audio, zap) {
     this.img = assets.img;
+    this.flip = assets.flip.anims;
+    this.flipPages = assets.flip.pages;
     this.spin = fonts.spin;
     this.board = board;
     this.audio = audio;
@@ -163,7 +187,7 @@ export class GameView {
           this.audio.play('doorOpen', 0.6);
           break;
         case 'enemyKilled':
-          this.explode(ax(e.x), ay(e.y), 1);
+          this.blast('enemy', ax(e.x), ay(e.y));
           this.audio.play('phaser', 0.6, 1.4);
           break;
         case 'ballLost': {
@@ -176,11 +200,14 @@ export class GameView {
           this.lostBall = { x: ax(e.x - 3) - 0.5, y: ay(e.y + 1) - 0.5, vx, vy, t: 0 };
           break;
         }
-        case 'lifeLost':
-          this.paddleFade = { dir: -1, t: 0 };   // Schlaeger blendet aus, Respawn nach BALL_LOST_FRAMES
+        case 'lifeLost': {
+          this.paddleFade = { dir: -1, t: 0 };   // Schlaeger explodiert, Respawn nach BALL_LOST_FRAMES
+          const p = session.field.paddle;
+          this.blast('paddle', (ax(p.left) + ax(p.right + 1)) / 2, 294.5);
           break;
+        }
         case 'ballVanish':
-          this.explode(ax(e.x - 1), ay(e.y - 1), 0.6);
+          this.blast('ball', ax(e.x - 1), ay(e.y - 1));
           break;
         case 'roundClear':
           this.lightMode = 'clear';
@@ -229,7 +256,8 @@ export class GameView {
   paddleAlpha() {
     const pf = this.paddleFade;
     if (!pf) return 1;
-    return pf.dir < 0 ? Math.max(0, 1 - pf.t / PADDLE_FADE.out) : Math.min(1, pf.t / PADDLE_FADE.in);
+    if (pf.dir < 0) return PADDLE_FADE.out > 0 ? Math.max(0, 1 - pf.t / PADDLE_FADE.out) : 0;
+    return Math.min(1, pf.t / PADDLE_FADE.in);
   }
 
   startIntro(session, newRound) {
@@ -291,6 +319,25 @@ export class GameView {
     this.spawnSparks(x, y, { ...cfg, count: cfg.count.map((n) => n * scale) }, 0, -1, Math.PI * 2);
   }
 
+  /** Flipbook-Explosion kind ('ball' | 'paddle' | 'enemy', siehe FLIP/SHARDS) an (x, y): Animation plus Striche und Punkte. */
+  blast(kind, x, y) {
+    const f = FLIP[kind], c = SHARDS[kind];
+    this.effects.push({ type: 'flip', anim: kind, x, y, scale: f.scale, ticks: f.ticks, t: 0, len: this.flip[kind].frames.length * f.ticks });
+    const r = (a) => a[0] + Math.random() * (a[1] - a[0]);
+    const spawn = (n, streak) => {
+      for (let i = 0; i < n && this.sparks.length < SPARKS.max; i++) {
+        const a = Math.random() * Math.PI * 2, v = r(c.speed);
+        this.sparks.push({
+          x: x + (Math.random() - 0.5) * c.spread, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - c.lift * Math.random(),
+          t: 0, len: Math.round(r(c.life)), size: 1, streak, pal: SHARDS.colors,
+          drag: streak ? SHARDS.drag : SHARDS.dotDrag, g: SHARDS.gravity,
+        });
+      }
+    };
+    spawn(Math.round(r(c.streaks)), true);
+    spawn(Math.round(r(c.dots)), false);
+  }
+
   // ---------------------------------------------------------------- pro Logik-Frame
 
   update(session) {
@@ -313,7 +360,8 @@ export class GameView {
     this.effects = this.effects.filter((e) => e.t < e.len);
     // Funken: Schwerkraft, Luftwiderstand, verschwinden ausgeglueht oder unter dem Bild
     for (const p of this.sparks) {
-      p.vx *= SPARKS.drag; p.vy = p.vy * SPARKS.drag + SPARKS.gravity;
+      const d = p.drag || SPARKS.drag;
+      p.vx *= d; p.vy = p.vy * d + (p.g ?? SPARKS.gravity);
       p.x += p.vx; p.y += p.vy; p.t++;
     }
     this.sparks = this.sparks.filter((p) => p.t < p.len && p.y < 340);
@@ -363,7 +411,7 @@ export class GameView {
       }
       if (lb.y + 3 >= ZAP.boomY) {
         const x = lb.x + 3;
-        this.explode(x, ZAP.boomY, 0.6);
+        this.blast('ball', x, ZAP.boomY);
         if (this.zap) this.zap.burst(x, ZAP.boomY);
         this.lostBall = null;
       }
@@ -528,6 +576,7 @@ export class GameView {
       const w = 24 * e.scale, h = 21 * e.scale;
       ctx.drawImage(I.explosion, 0, fr * 21, 24, 21, Math.round((e.x - w / 2) * S), Math.round((e.y - h / 2) * S), Math.round(w * S), Math.round(h * S));
     }
+    this.drawFlips(ctx, S);
     this.drawBooms(ctx, S);
     this.drawSparks(ctx, S);
     this.board.drawDynamic(ctx, bs);
@@ -598,15 +647,41 @@ export class GameView {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     for (const p of this.sparks) {
-      const u = p.t / p.len;
+      const u = p.t / p.len, P = p.pal || C;
       const q = u * last, i = Math.min(last - 1, Math.floor(q)), w = q - i;
-      const c0 = C[i], c1 = C[i + 1];
-      ctx.fillStyle = `rgb(${Math.round(c0[0] + (c1[0] - c0[0]) * w)},${Math.round(c0[1] + (c1[1] - c0[1]) * w)},${Math.round(c0[2] + (c1[2] - c0[2]) * w)})`;
+      const c0 = P[i], c1 = P[i + 1];
+      const rgb = `rgb(${Math.round(c0[0] + (c1[0] - c0[0]) * w)},${Math.round(c0[1] + (c1[1] - c0[1]) * w)},${Math.round(c0[2] + (c1[2] - c0[2]) * w)})`;
       ctx.globalAlpha = 1 - u * u;
+      if (p.streak && Math.abs(p.vx) + Math.abs(p.vy) > 0.4) {
+        // Strich: zeigt nach hinten, Laenge waechst mit dem Tempo und schrumpft beim Abbremsen
+        ctx.strokeStyle = rgb;
+        ctx.lineWidth = Math.max(1, SHARDS.width * S);
+        ctx.beginPath();
+        ctx.moveTo(p.x * S, p.y * S);
+        ctx.lineTo((p.x - p.vx * SHARDS.stretch) * S, (p.y - p.vy * SHARDS.stretch) * S);
+        ctx.stroke();
+        continue;
+      }
+      ctx.fillStyle = rgb;
       const z = p.size === 2 && u < 0.6 ? 2 : 1;   // grosse Funken schrumpfen beim Ausgluehen
       ctx.fillRect(Math.round(p.x * S), Math.round(p.y * S), z * S, z * S);
     }
     ctx.restore();
+  }
+
+  /** Flipbook-Explosionen: beschnittene Frames aus dem Atlas, an FLIP[anim].anchor ausgerichtet, geglaettet verkleinert. */
+  drawFlips(ctx, S) {
+    let any = false;
+    for (const e of this.effects) {
+      if (e.type !== 'flip') continue;
+      const frames = this.flip[e.anim].frames, [ax0, ay0] = FLIP[e.anim].anchor;
+      const [x, y, w, h, ox, oy, page] = frames[Math.min(frames.length - 1, Math.floor(e.t / e.ticks))];
+      if (!w) continue;
+      if (!any) { ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; any = true; }
+      const k = e.scale * S;
+      ctx.drawImage(this.flipPages[page], x, y, w, h, e.x * S + (ox - ax0) * k, e.y * S + (oy - ay0) * k, w * k, h * k);
+    }
+    if (any) ctx.restore();
   }
 
   /** Lichtblitz ueber den Explosionen: heisser Kern, oranger Schein, Druckring (alles additiv). */

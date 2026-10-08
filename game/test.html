@@ -44,6 +44,8 @@ for (let i = 0; i < ticks; i++) {
   }
   // ?boom=N: N Ticks vor Schluss eine Explosion mitten ins Feld (Funken pruefen)
   if (app.view && q.get('boom') && i === ticks - parseInt(q.get('boom'), 10)) app.view.explode(120, 150, 1);
+  // ?blast=N&kind=ball|paddle: N Ticks vor Schluss eine Flipbook-Explosion mitten ins Feld
+  if (app.view && q.get('blast') && i === ticks - parseInt(q.get('blast'), 10)) app.view.blast(q.get('kind') || 'paddle', 120, 200);
   app.tick();
 }
 if (q.get('bg')) app.board.build(app.S, parseInt(q.get('bg'), 10) - 1);

@@ -97,7 +97,7 @@ function loadImage(url, optional) {
 
 /**
  * Laedt alles. base = Pfad zu assets/daiganoid/ (mit Schraegstrich am Ende).
- * Liefert { img: {name: Image|null}, fonts: {spin, console}, backgrounds: [{ name, img, mask|null }], glow: json|null }.
+ * Liefert { img: {name: Image|null}, fonts: {spin, console}, backgrounds: [{ name, img, mask|null }], glow: json|null, flip: json }.
  */
 export async function loadAssets(base, onProgress) {
   const img = {};
@@ -113,10 +113,14 @@ export async function loadAssets(base, onProgress) {
   const fontsJob = fetch(base + 'fonts/fonts.json', { cache: 'no-cache' }).then((r) => r.json()).then((j) => { tick(); return j; });
   const bgJob = loadBackgrounds(base).then((l) => { tick(); return l; });
   const glowJob = fetch(base + 'menu/glow.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  // Flipbook-Explosionen Ball/Schlaeger/Gegner: Rechtecke in der JSON, Atlas-Seiten (verlustfreies WebP) danach laden
+  const flipJob = fetch(base + 'player/explosions.json', { cache: 'no-cache' }).then((r) => r.json())
+    .then((j) => Promise.all(j.pages.map((p) => loadImage(base + 'player/' + p, false))).then((pages) => ({ ...j, pages })));
   await Promise.all(jobs);
   const fonts = await fontsJob;
   const backgrounds = await bgJob;
   const glow = await glowJob;
+  const flip = await flipJob;
   if (!backgrounds.length) throw new Error(`Bild fehlt: ${base}${BG_DIR}bg01.png`);
-  return { img, fonts, backgrounds, glow };
+  return { img, fonts, backgrounds, glow, flip };
 }
