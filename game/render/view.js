@@ -47,25 +47,28 @@ export const SPARKS = {
 /**
  * Derez als Teleport-Riss (Tron): Ball, Schlaeger und Gegner werden im Moment des Todes einmal in Art-Pixel zerlegt
  * (getImageData auf einem kleinen Puffer). Die Form bleibt erhalten, kein Pixel fliegt frei - das Sprite wird von
- * seiner Mitte aus auseinandergezogen, mode 'h' (Schlaeger) nur seitlich, 'r' (Ball, Gegner) radial:
+ * seiner Mitte aus auseinandergezogen.
+ * mode 'h' (Schlaeger), nur seitlich: Jedes Pixel wird sofort selbst zum Punkt (dots) und bleibt deckend auf seinem
+ *  Platz, bis der Riss es erreicht (crack Frames von der Mitte bis zu den Enden). Dann bekommt es einen Stoss nach
+ *  links bzw. rechts (spd, aussen staerker um far), bremst mit drag ab, zieht eine Spur in seiner Farbe nach und
+ *  fadet ueber life Frames aus. In der Mitte explodiert es (pop: Funken, Lichtball, Pixel-Schockwellenring ring).
+ * mode 'r' (Ball, Gegner), radial:
  *  1. hold Frames: Objekt friert ein, blitzt weiss, Farbversatz Magenta/Tuerkis.
- *  2. jumps Rucke im Abstand every Frames, Rucke werden kleiner (decay), bis jerk des Gesamtwegs erreicht ist.
- *     'h': linke Haelfte springt nach links, rechte nach rechts (Spalt gap Art-Px), waagerecht auf sx gedehnt
- *     (Pixel werden zu Lichtstrichen), Hoehe bleibt; Zeilen versetzt um bis zu tear Art-Px, Mittellinie.
- *     'r': jedes Pixel springt von der Mitte weg nach aussen (gap), Abstaende wachsen um sx, Form bleibt erhalten.
- *     Jeder Ruck: Weiss-Puls, Tuerkis-Wischspur vom alten zum neuen Platz. Beim ersten Ruck in der Mitte eine kleine
- *     Explosion (pop): Funken mit Impuls und Schwerkraft plus Lichtball (BOOM, Skalierung pop.boom).
- *  3. settle Frames: Rest des Wegs weich abgebremst, Farbe kuehlt nach Tuerkis ab, Mittellinie verglimmt.
- *  4. Dann zerfallen die Pixel/Striche in Punkte (dots: per Punkte je Strich-Pixel), die langsam in derselben
- *     Richtung weiter nach aussen treiben ('h' nur seitlich, 'r' radial; spd, aussen schneller um far), gebremst
- *     (drag), heiss -> Originalfarbe -> Tuerkis, ab blink ihrer Lebenszeit blinkend, ueber life Frames ausfaden.
+ *  2. jumps Rucke im Abstand every Frames, Rucke werden kleiner (decay), bis jerk des Gesamtwegs erreicht ist:
+ *     jedes Pixel springt von der Mitte weg nach aussen (gap), Abstaende wachsen um sx, Form bleibt erhalten.
+ *     Jeder Ruck: Weiss-Puls, Geist am alten Platz. Beim ersten Ruck die Explosion (pop) in der Mitte.
+ *  3. settle Frames: Rest des Wegs weich abgebremst, Farbe kuehlt nach Tuerkis ab.
+ *  4. Dann werden die Pixel zu Punkten, die radial weiter nach aussen treiben (dots: spd, aussen schneller um far,
+ *     drag) und ueber life Frames ausfaden.
+ * Punkte: heiss (hot Frames) -> Originalfarbe, Spur (trail, Nachziehen lag), Tuerkis-Schein glow, Ausfaden (1-q)^fade.
  */
 export const DEREZ = {
   hotColor: 'rgb(235,255,252)', cyan: 'rgb(90,240,215)', magenta: 'rgb(255,60,200)',
   chroma: 0.6, smear: 0.4, cool: 0.55, line: 0.4,
-  dots: { per: 0.7, spd: [0.25, 0.7], far: 0.6, drag: 0.988, life: [70, 150], hot: 4, blink: 0.3, glow: 0.45, max: 2500 },
+  dots: { per: 0.7, spd: [0.4, 1.2], far: 1, drag: 0.985, life: [80, 150], hot: 2, fade: 1.4, trail: 0.35, lag: 0.3, glow: 0.3, max: 3000 },
   pop: { count: [26, 38], speed: [0.7, 2.6], life: [18, 46], lift: 0.7, big: 0.35, boom: 0.42 },
-  paddle: { mode: 'h', hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 10, sx: 2.2, tear: 2, settle: 8, pop: 1 },
+  ring: { len: 20, r: [3, 26], alpha: 0.9 },
+  paddle: { mode: 'h', crack: 5, spd: [1, 3.2], far: 1.2, drag: 0.94, life: [60, 120], pop: 1.7 },
   enemy:  { mode: 'r', hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 6, sx: 1.8, settle: 7, pop: 0.9 },
   ball:   { mode: 'r', hold: 2, jumps: 3, every: 2, decay: 0.5, jerk: 0.8, gap: 4, sx: 2.2, settle: 6, pop: 0.6 },
 };
@@ -393,6 +396,19 @@ export class GameView {
       col[k] = `rgba(${data[o]},${data[o + 1]},${data[o + 2]},${(data[o + 3] / 255).toFixed(2)})`;
     }
     const hw = Math.max(1, cx - left, left + bw - cx), hh = Math.max(1, cy - top, top + bh - cy);
+    if (cfg.mode === 'h') {
+      // Seitlich: jedes Pixel wird ab seinem Platz selbst zum Punkt, Riss laeuft in crack Frames von der Mitte nach aussen
+      const D = DEREZ.dots, r = (a) => a[0] + Math.random() * (a[1] - a[0]);
+      for (let k = 0; k < m && this.dots.length < D.max; k++) {
+        const far = Math.min(1, Math.abs(dx[k]) / hw), x = Math.round(cx + dx[k] - 0.5);
+        this.dots.push({
+          x, y: row[k], tx: x, ty: row[k], vx: (dx[k] < 0 ? -1 : 1) * r(cfg.spd) * (0.4 + cfg.far * far), vy: 0,
+          t: 0, rel: Math.round(cfg.crack * far + Math.random()), len: Math.round(r(cfg.life)), drag: cfg.drag, col: col[k],
+        });
+      }
+      this.derezPop({ cx, cy }, cfg);
+      return;
+    }
     this.effects.push({
       type: 'derez', kind, t: 0, len: cfg.hold + cfg.jumps * cfg.every + cfg.settle,
       m, dx, dy, row, col, cx, cy, hw, hh, seed: (Math.random() * 4096) | 0,
@@ -425,10 +441,15 @@ export class GameView {
       if (e.t === e.len) this.derezDots(e);              // Striche zerfallen in Punkte (letzte Pose = len - 1)
     }
     this.effects = this.effects.filter((e) => e.t < e.len);
-    // Derez-Punkte: treiben gebremst weiter nach aussen
+    // Derez-Punkte: warten rel Frames auf ihrem Platz, treiben dann gebremst nach aussen, Spurende (tx, ty) zieht nach
     const DD = DEREZ.dots;
-    for (const p of this.dots) { p.vx *= DD.drag; p.vy *= DD.drag; p.x += p.vx; p.y += p.vy; p.t++; }
-    this.dots = this.dots.filter((p) => p.t < p.len);
+    for (const p of this.dots) {
+      if (++p.t <= p.rel) continue;
+      const d = p.drag || DD.drag;
+      p.vx *= d; p.vy *= d; p.x += p.vx; p.y += p.vy;
+      p.tx += (p.x - p.tx) * DD.lag; p.ty += (p.y - p.ty) * DD.lag;
+    }
+    this.dots = this.dots.filter((p) => p.t < p.rel + p.len);
     // Funken: Schwerkraft, Luftwiderstand, verschwinden ausgeglueht oder unter dem Bild
     for (const p of this.sparks) {
       const d = p.drag || SPARKS.drag;
@@ -759,11 +780,12 @@ export class GameView {
     return { c, j, since, u, p, w, radial, at, xAt, yAt, dir };
   }
 
-  /** Kleine Explosion in der Rissmitte: Funken mit Impuls und Schwerkraft, dazu ein kleiner Lichtball. */
+  /** Explosion in der Rissmitte: Funken mit Impuls und Schwerkraft, Lichtball und Pixel-Schockwellenring. */
   derezPop(e, c) {
     const P = DEREZ.pop, s = c.pop;
     this.spawnSparks(e.cx, e.cy, { ...P, count: P.count.map((n) => n * s), speed: P.speed.map((v) => v * (0.6 + 0.4 * s)) }, 0, -1, Math.PI * 2);
     this.effects.push({ type: 'boom', x: e.cx, y: e.cy, scale: P.boom * s, t: 0, len: BOOM.len });
+    this.effects.push({ type: 'ring', x: e.cx, y: e.cy, scale: s, t: 0, len: DEREZ.ring.len });
   }
 
   /** Lichtstriche der letzten Pose zerfallen in Punkte, die langsam weiter nach aussen treiben. */
@@ -776,10 +798,8 @@ export class GameView {
       const n = Math.max(1, Math.round(ps.w * D.per * (0.6 + 0.8 * Math.random())));
       for (let i = 0; i < n; i++) {
         const v = r(D.spd) * (1 + D.far * far);
-        this.dots.push({
-          x: X + Math.floor(Math.random() * ps.w), y: Y, vx: ux * v, vy: uy * v,
-          t: 0, len: Math.round(r(D.life)), col: e.col[k], ph: (Math.random() * 1024) | 0,
-        });
+        const x = X + Math.floor(Math.random() * ps.w);
+        this.dots.push({ x, y: Y, tx: x, ty: Y, vx: ux * v, vy: uy * v, t: 0, rel: 0, len: Math.round(r(D.life)), col: e.col[k] });
       }
     }
   }
@@ -842,27 +862,53 @@ export class GameView {
     this.drawDots(ctx, S);
   }
 
-  /** Derez-Punkte: erst heiss, dann Originalfarbe mit Tuerkis-Schein, spaeter blinkend, weich ausgefadet. */
+  /**
+   * Derez-Punkte: vor dem Abloesen deckend an ihrem Platz (das Sprite selbst), danach kurz heiss, dann
+   * Originalfarbe mit Nachzieh-Spur in derselben Farbe und leichtem Tuerkis-Schein, ueber life Frames weich ausgefadet.
+   */
   drawDots(ctx, S) {
-    if (!this.dots.length) return;
     const D = DEREZ.dots, glow = [];
     ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
     for (const p of this.dots) {
-      const q = p.t / p.len;
-      // Blinken: ab D.blink immer haeufiger aus (Zufall je Punkt in 3-Frame-Takten)
-      if (q > D.blink && derezHash(p.ph, (p.t / 3) | 0) < 0.25 + 0.6 * (q - D.blink) / (1 - D.blink)) continue;
-      const a = Math.pow(1 - q, 1.6), X = Math.round(p.x) * S, Y = Math.round(p.y) * S;
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = a;
-      ctx.fillStyle = p.t < D.hot ? DEREZ.hotColor : p.col;
-      ctx.fillRect(X, Y, S, S);
-      glow.push(X, Y, a);
+      const a = p.t - p.rel, X = Math.round(p.x), Y = Math.round(p.y);
+      ctx.fillStyle = p.col;
+      if (a < 0) { ctx.globalAlpha = 1; ctx.fillRect(X * S, Y * S, S, S); continue; }
+      const al = Math.pow(1 - a / p.len, D.fade);
+      const TX = Math.round(p.tx), TY = Math.round(p.ty);
+      if (TX !== X || TY !== Y) {
+        ctx.globalAlpha = al * D.trail;
+        if (TY === Y) ctx.fillRect(Math.min(TX, X) * S, Y * S, (Math.abs(X - TX) + 1) * S, S);
+        else for (let i = 1; i <= 3; i++) ctx.fillRect(Math.round(X + (TX - X) * i / 3) * S, Math.round(Y + (TY - Y) * i / 3) * S, S, S);
+      }
+      ctx.globalAlpha = al;
+      if (a < D.hot) ctx.fillStyle = DEREZ.hotColor;
+      ctx.fillRect(X * S, Y * S, S, S);
+      glow.push(X * S, Y * S, al);
     }
     ctx.globalCompositeOperation = 'lighter';
     ctx.fillStyle = DEREZ.cyan;
     for (let i = 0; i < glow.length; i += 3) {
       ctx.globalAlpha = D.glow * glow[i + 2];
       ctx.fillRect(glow[i], glow[i + 1], S, S);
+    }
+    // Schockwellenring der Derez-Explosion: Pixel-Kreis, weiss mit Tuerkis-Saum, waechst und verlischt
+    const R = DEREZ.ring;
+    for (const e of this.effects) {
+      if (e.type !== 'ring') continue;
+      const u = e.t / e.len, k = (1 - u) * (1 - u);
+      const rad = (R.r[0] + (R.r[1] - R.r[0]) * (1 - (1 - u) * (1 - u))) * e.scale;
+      for (const [dr, style, al] of [[0, DEREZ.hotColor, R.alpha], [-1.2, DEREZ.cyan, R.alpha * 0.6]]) {
+        const rr = rad + dr, n = Math.ceil(2 * Math.PI * rr * 1.3);
+        if (rr <= 0) continue;
+        ctx.globalAlpha = al * k; ctx.fillStyle = style;
+        ctx.beginPath();
+        for (let i = 0; i < n; i++) {
+          const w = (i / n) * Math.PI * 2;
+          ctx.rect(Math.round(e.x + Math.cos(w) * rr) * S, Math.round(e.y + Math.sin(w) * rr) * S, S, S);
+        }
+        ctx.fill();
+      }
     }
     ctx.restore();
   }
