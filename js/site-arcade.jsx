@@ -100,7 +100,7 @@ function CreditRow({ c }) {
 function StoryPanel() {
   const parts = D.story || [];
   return (
-    <GlowFrame>
+    <GlowFrame style={{ textTransform: 'uppercase' }}>
       <PanelTitle>{D.storyTitel || 'The story'}</PanelTitle>
       <div style={{ padding: '22px 22px 26px', display: 'flex', flexDirection: 'column', gap: 22 }}>
         {parts.map((p, k) => {
