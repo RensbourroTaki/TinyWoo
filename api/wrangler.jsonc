@@ -11,7 +11,7 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Arcade"] }],
   "vars": {
     // Von diesen Seiten darf der Browser den Server ansprechen (Komma-getrennt, * am Ende erlaubt).
-    "ALLOWED_ORIGINS": "https://rensbourrotaki.github.io,http://localhost:*,http://127.0.0.1:*"
+    "ALLOWED_ORIGINS": "https://rensbourrotaki.github.io,https://tinywoogames.com,https://www.tinywoogames.com,http://localhost:*,http://127.0.0.1:*"
   }
   // Geheimnisse (nicht hier eintragen!): `npx wrangler secret put ADMIN_KEY` und `npx wrangler secret put TOKEN_SECRET`
 }
