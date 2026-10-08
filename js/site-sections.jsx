@@ -346,9 +346,16 @@ function GameRow({ g, flip, onNav }) {
               <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Icon name="steam" brand size={36} /><span className="tw-heading" style={{ fontSize: 'var(--fs-h3)', lineHeight: 1.1 }}>{g.kicker[0]}</span></span>
               <span style={{ fontSize: 19, lineHeight: 1.5, fontWeight: 700 }}>{g.kicker[1]}</span>
             </div>
-          : <div style={{ flex: '1 1 380px', minWidth: 0, background: 'linear-gradient(180deg, var(--lime-400) 0%, #5CCF34 55%, var(--lime-600) 100%)', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '28px 32px', display: 'flex', alignItems: 'center', gap: 20, transform: 'translate(-20px, -220px) rotate(-5deg)' }}>
+          : <div style={{ flex: '1 1 380px', minWidth: 0, background: '#52BF2E', color: 'var(--ink)', border: '5px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: '28px 32px', display: 'flex', alignItems: 'center', gap: 20,
+              /* Versatz nach oben nur nebeneinander (breit); einspaltig (< ~1000px) kein Versatz, sonst verdeckt er den Text */
+              transform: 'translate(clamp(-20px, calc(1000px - 100vw), 0px), clamp(-220px, calc((1000px - 100vw) * 10), 0px)) rotate(-5deg)' }}>
               <Icon name="steam" brand size={80} />
-              <span style={{ fontSize: 22, lineHeight: 1.45, fontWeight: 700 }}>{g.kicker}</span>
+              {/* \n = neue Zeile; letzte Zeile gross als Ausruf */}
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {g.kicker.split('\n').map((z, i, a) => i < a.length - 1 || a.length === 1
+                  ? <span key={i} style={{ fontSize: 22, lineHeight: 1.3, fontWeight: 800 }}>{z}</span>
+                  : <span key={i} className="tw-heading" style={{ marginTop: 6, fontSize: 'var(--fs-h3)', lineHeight: 1.1 }}>{z}</span>)}
+              </span>
             </div>)}
       </div>}
       {g.nachsatz && <p style={{ margin: 0, fontSize: 20, lineHeight: 1.55 }}><Blast text={g.nachsatz} power={0.7} /></p>}
