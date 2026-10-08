@@ -2,10 +2,39 @@
 const { Button, Icon, Badge } = window.TinyWooDesignSystem_fe221f;
 const I = window.TW_INHALT;
 
+// Ticker-Farben, per Zifferntaste 1–7 waehlbar; Taste 8 = Regenbogen-Cycle durch alle (Default). Nichts wird gespeichert.
+const TICKER_FARBEN = ['#57D93A', '#2E86FF', '#1FD1C7', '#9B5CFF', '#FF6FB5', '#FFD21F', '#FF9A1A'];
+const TICKER_REGENBOGEN_MS = 900;
+// Glanz oben, Schatten unten — liegt ueber der Grundfarbe, damit der Farbwechsel weich ueberblenden kann.
+const TICKER_GLANZ = 'linear-gradient(180deg, rgba(255,255,255,.38) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,.18) 100%)';
+
 function Ticker({ items, angle = -3, tone = 'sun' }) {
+  const [modus, setModus] = React.useState(7);   // 0..6 = feste Farbe, 7 = Regenbogen (Default)
+  const [regenbogen, setRegenbogen] = React.useState(0);
+
+  React.useEffect(() => {
+    const onKey = e => {
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      const t = e.target;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= 8) setModus(n - 1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  React.useEffect(() => {
+    if (modus !== 7) return;
+    const id = setInterval(() => setRegenbogen(i => (i + 1) % TICKER_FARBEN.length), TICKER_REGENBOGEN_MS);
+    return () => clearInterval(id);
+  }, [modus]);
+
+  const farbe = TICKER_FARBEN[modus === 7 ? regenbogen : modus];
+  const dauer = modus === 7 ? TICKER_REGENBOGEN_MS + 'ms linear' : '.3s ease';
   const line = items.map(t => t + '  ★  ').join('');
   return (
-    <div style={{ position: 'relative', zIndex: 2, transform: `rotate(${angle}deg)`, margin: '0 -40px', background: tone === 'sun' ? 'var(--grad-sun)' : 'var(--ink)', borderTop: '4px solid var(--ink)', borderBottom: '4px solid var(--ink)', overflow: 'hidden', whiteSpace: 'nowrap', padding: '12px 0' }}>
+    <div style={{ position: 'relative', zIndex: 2, transform: `rotate(${angle}deg)`, margin: '0 -40px', ...(tone === 'sun' ? { backgroundColor: farbe, backgroundImage: TICKER_GLANZ, transition: `background-color ${dauer}` } : { background: 'var(--ink)' }), borderTop: '4px solid var(--ink)', borderBottom: '4px solid var(--ink)', overflow: 'hidden', whiteSpace: 'nowrap', padding: '12px 0' }}>
       <div style={{ display: 'inline-block', animation: 'tw-marquee 22s linear infinite', fontFamily: 'var(--font-display)', fontSize: 28, color: tone === 'sun' ? 'var(--ink)' : 'var(--sun-400)', letterSpacing: '.03em' }}>{line}{line}{line}{line}</div>
     </div>
   );
