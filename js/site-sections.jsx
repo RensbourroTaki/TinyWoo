@@ -285,7 +285,7 @@ function GameRow({ g, flip, onNav }) {
       {/* Titel + Text ueber dem Bild */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <H2><Blast text={g.title} /></H2>
-        {g.tagline && <p className="tw-heading" style={{ margin: 0, fontSize: 'var(--fs-h3, 24px)', lineHeight: 1.25, color: 'var(--sun-400)' }}><Blast text={g.tagline} /></p>}
+        {g.tagline && <p className="tw-heading" style={{ margin: 0, fontSize: 'var(--fs-h3, 24px)', lineHeight: 1.25, color: '#fff', /* Winkel im goldenen Schnitt zwischen Titel (-3 deg) und Bild (tilt) */ transform: `rotate(${(-3 + (tilt + 3) * 0.382).toFixed(2)}deg)`, transformOrigin: 'left' }}><Blast text={g.tagline} /></p>}
         {absaetze.map((t, i) => <p key={i} style={{ margin: 0, fontSize: i === 0 ? 24 : 20, lineHeight: 1.5, whiteSpace: 'pre-line', color: i === 0 ? 'var(--text-strong)' : undefined, fontWeight: i === 0 ? 700 : undefined }}><Blast text={t} power={0.7} /></p>)}
       </div>
       <div style={{ position: 'relative' }}>

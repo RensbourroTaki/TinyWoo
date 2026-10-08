@@ -78,9 +78,7 @@ window.TW_INHALT = {
       // features2Titel + features2 = zweite Liste (Features), featuresSchluss = gelbe Schlusszeile.
       // kicker = gelber Steam-Kasten rechts (Text, oder [Titel, Text]), nachsatz = Absatz darunter ('' / weglassen = aus). (text = kurz, fuer die Startseite)
       // Optional (derzeit aus): cast = Figurenkarten [Name, Text], ablauf = nummerierte Kaertchen, hinweis = kleine Zeile.
-      beschreibung: [
-        "Shoot Rockets • Make D.Trump fly! • Deal with mercenary birds, UFO's and snails • Invite Putin and make him stay!",
-      ],
+      beschreibung: [],   // leer = keine Zeile unter der Unterzeile
       featuresIntro: 'Rocket Trump is a small but nasty gameplay loop where everything comes down to your rocket skills, to compete worldwide with other Steam players',
       featuresTitel: 'Your job',
       features: [
