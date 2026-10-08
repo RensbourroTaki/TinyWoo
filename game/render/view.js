@@ -188,7 +188,6 @@ export class GameView {
           break;
         case 'enemyKilled':
           this.blast('enemy', ax(e.x), ay(e.y));
-          this.audio.play('phaser', 0.6, 1.4);
           break;
         case 'ballLost': {
           // Bewegung je Frame aus der Ball-Spur: der Ball fliegt im Eingangswinkel weiter
@@ -322,6 +321,7 @@ export class GameView {
   /** Flipbook-Explosion kind ('ball' | 'paddle' | 'enemy', siehe FLIP/SHARDS) an (x, y): Animation plus Striche und Punkte. */
   blast(kind, x, y) {
     const f = FLIP[kind], c = SHARDS[kind];
+    this.audio.play('explosion_' + kind, kind === 'enemy' ? 0.6 : 1);   // Gegner-WAV ist zu laut: 40 % leiser
     this.effects.push({ type: 'flip', anim: kind, x, y, scale: f.scale, ticks: f.ticks, t: 0, len: this.flip[kind].frames.length * f.ticks });
     const r = (a) => a[0] + Math.random() * (a[1] - a[0]);
     const spawn = (n, streak) => {
