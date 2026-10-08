@@ -81,7 +81,7 @@ window.TW_INHALT = {
       beschreibung: [
         "Shoot Rockets in a special way - Hit Donald Trump and make him fly - Deal with mercenaries birds, balloons, UFO's and snails -  and invite Putin to judge your rocketeer skills!",
       ],
-      featuresIntro: 'Rocket Trump is a small but nasty gameplay loop where everything comes down to your rocket skills, and you compete worldwide with other Steam players.',
+      featuresIntro: 'Rocket Trump is a small but nasty gameplay loop where everything comes down to your rocket skills, to compete worldwide with other Steam players',
       featuresTitel: 'Your job',
       features: [
         'Launch Trump as high as you can for extra bonuses',
