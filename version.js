@@ -1,3 +1,3 @@
 // Automatisch erzeugt von tools/version.sh beim Commit. Nicht von Hand bearbeiten.
-window.TW_V = '20261008161431';
+window.TW_V = '20261008161737';
 window.TW_GAME = ['game/app.js','game/audio.js','game/core/ball.js','game/core/ballmotion.js','game/core/brickgrid.js','game/core/paddle.js','game/core/playfield.js','game/core/tables.js','game/daiganoid.js','game/filter/namefilter.js','game/filter/wordlist.js','game/input.js','game/play/items.js','game/play/levelnames.js','game/play/levels.js','game/play/session.js','game/render/assets.js','game/render/bgfx.js','game/render/board.js','game/render/font.js','game/render/logo.js','game/render/spintext.js','game/render/view.js','game/render/zap.js'];
