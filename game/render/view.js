@@ -249,6 +249,7 @@ export class GameView {
     this.beamFrame = -1;
     this.paddleVisible = true;
     this.paddleFade = { dir: 1, t: 0 };
+    this.audio.play('paddleSpawn', 0.7);   // 30 % leiser
   }
 
   /** Deckkraft von Schlaeger (und Ball beim Einblenden) aus paddleFade. */
@@ -275,6 +276,7 @@ export class GameView {
     this.introTimer = 0;
     this.paddleVisible = false;
     this.beamFrame = 0;
+    this.audio.play('paddleSpawn', 0.7);   // 30 % leiser
     if (newRound) {
       // Reihenfolge des Erscheinens: Zeilen, Spalten oder Zufall (Projektplan: drei Reihenfolgen)
       const cells = session.field.bricks.cells;

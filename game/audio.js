@@ -20,6 +20,7 @@ export const SOUNDS = {
   explosion_ball: 'sounds/explosion_ball.wav',       // Flipbook-Explosionen (view.js blast)
   explosion_paddle: 'sounds/explosion_paddle.wav',
   explosion_enemy: 'sounds/explosion_enemy.wav',
+  paddleSpawn: 'sounds/PaddleSpawn.wav',             // Schlaeger erscheint (Beam bei Levelstart / Respawn)
 };
 
 export class GameAudio {
