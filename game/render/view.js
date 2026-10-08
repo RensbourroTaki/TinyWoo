@@ -653,10 +653,6 @@ export class GameView {
     this.drawBooms(ctx, S);
     this.drawSparks(ctx, S);
     this.board.drawDynamic(ctx, bs);
-    if (this.phaserFlash > 0) {
-      ctx.fillStyle = `rgba(160,220,255,${0.05 * this.phaserFlash})`;
-      ctx.fillRect(0, (PHASER_Y - 20) * S, 240 * S, 42 * S);
-    }
     // Texte (Item-Namen, Extraleben) in der Drehschrift, schweben nach oben
     for (const t of this.texts) {
       const a = t.t < t.len - 20 ? 1 : (t.len - t.t) / 20;

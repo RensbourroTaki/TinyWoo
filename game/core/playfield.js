@@ -70,6 +70,7 @@ export class Playfield {
     this.pierceBall = 0;        // $E731: Durchschlag-Ball
     this.solidGold = false;     // eigenes Gameplay (nicht im ROM): Gold haelt auch dem Durchschlag-Ball stand, Ball prallt ab
     this.floorBounce = 0;       // eigenes Gameplay (nicht im ROM): ungleich 0 = Ball prallt unten ab statt verloren zu gehen (Deflector)
+    this.floorBounceDrop = 9;   // eigenes Gameplay: Deflector-Abprall so viele Logik-Pixel unter der Verlust-Ebene (9 = ca. 11 Art-Pixel)
     this.paddleDrop = 0;        // eigenes Gameplay (nicht im ROM): Schlaeger-Ebene (Start, Abprall, Verlust) um n Logik-Pixel tiefer
     this.minSpeed = 0;          // $E7E0: Mindest-Speed nach Deckenkontakt
     this.difficulty = 0;        // $E7E5: Abpraller-Tabelle 0..3
@@ -456,6 +457,7 @@ export class Playfield {
 
     if (b.movingUp) {
       if (b.y < this.ceiling) return;
+      if (this.paddleDrop !== 0 && b.y >= 0xF0) return;   // unter 0 umgebrochen (Deflector-Ebene) = unten, nicht Decke
       reflectHorizontal(b);
       if (this.minSpeed >= b.speed) b.speed = this.minSpeed;
       if (L && L.onCeilingBounce) L.onCeilingBounce(index);
@@ -473,7 +475,9 @@ export class Playfield {
     if (y >= 0x10 - d) return;
     if (y < 0x08 - d) {
       if (this.floorBounce !== 0) {
-        b.y = 0x08 - d;
+        const floor = 0x08 - d - this.floorBounceDrop;
+        if (y >= floor) return;   // Deflector-Ebene liegt tiefer: Ball fliegt bis dorthin weiter
+        b.y = floor & 0xFF;
         reflectHorizontal(b);
         if (this.listener && this.listener.onFloorBounce) this.listener.onFloorBounce(index);
         return;
