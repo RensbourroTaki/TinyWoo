@@ -9,8 +9,8 @@ const WIDE_PX = 1180;                           // ab hier drei Spalten, darunte
 // Wisch nach rechts zeigt die linke Tafel (Highscore), Wisch nach links die rechte (Story).
 const PANES = ['scores', 'game', 'story'];
 const PANE_LABEL = { scores: 'Highscore', game: 'Game', story: 'Story' };
-// Andock-Platz fuer den Site-Player ueber dem Spiel (rechtsbuendig zum Spielfeld): Hoehe = Mini-Player, Abstand darunter.
-const DOCK_H = 46, DOCK_GAP = 12;
+// Andock-Platz fuer den Site-Player: ganz oben in der Seite (stoesst an die Navi), rechtsbuendig zum Spielfeld.
+const DOCK_H = 46, DOCK_TOP = 12;
 
 const pixel = (fs, color) => ({ fontFamily: 'var(--font-pixel)', fontSize: fs, letterSpacing: 'var(--tracking-pixel)', textTransform: 'uppercase', color, lineHeight: 1 });
 /** Pixel-Font fuer Fliesstext: wie pixel(), aber ohne Grossschreibung (lesbarer). */
@@ -291,21 +291,24 @@ function ArcadePage({ onDock }) {
     return () => ro.disconnect();
   }, [wide]);
 
-  // Andock-Platz: links/Breite des Spielrahmens innerhalb der Spielspalte (beide Layouts).
+  // Andock-Platz oben in der Seite (neben dem Kopf), links/Breite = Spielrahmen, relativ zur Section.
+  // Schmal: Lage im Karussell unabhaengig vom Wischstand (Spieltafel so, als waere sie sichtbar).
+  const sect = React.useRef(null);
   const [dock, setDock] = React.useState(null);
   React.useLayoutEffect(() => {
-    const el = gameBox.current;
+    const el = gameBox.current, s = sect.current, sn = snap.current;
     const f = el && el.querySelector('.tw-daig-frame');
-    if (!onDock || !f) return undefined;
+    if (!onDock || !f || !s || !sn) return undefined;
     const upd = () => {
-      const a = el.getBoundingClientRect(), b = f.getBoundingClientRect();
-      const d = { left: Math.round(b.left - a.left), width: Math.round(b.width) };
+      const b = f.getBoundingClientRect(), sx = s.getBoundingClientRect().left;
+      const x = wide ? b.left - sx : (b.left - el.getBoundingClientRect().left) + (sn.getBoundingClientRect().left - sx);
+      const d = { left: Math.round(x), width: Math.round(b.width) };
       setDock((o) => (o && o.left === d.left && o.width === d.width ? o : d));
     };
     upd();
     if (typeof ResizeObserver === 'undefined') { window.addEventListener('resize', upd); return () => window.removeEventListener('resize', upd); }
     const ro = new ResizeObserver(upd);
-    ro.observe(el); ro.observe(f);
+    ro.observe(s); ro.observe(f);
     return () => ro.disconnect();
   }, [wide, onDock]);
 
@@ -337,7 +340,9 @@ function ArcadePage({ onDock }) {
     : { flex: '0 0 100%', minWidth: 0, scrollSnapAlign: 'center', scrollSnapStop: 'always', position: 'relative' };
   const side = wide ? {} : { position: 'absolute', inset: 0, overflowY: 'auto', scrollbarWidth: 'thin', padding: '2px var(--gutter) 8px', boxSizing: 'border-box' };
   const sideInner = wide ? {} : { maxWidth: 560, margin: '0 auto' };
-  const gameInner = { position: 'relative', ...(wide ? {} : { padding: '0 var(--gutter)' }), ...(onDock ? { paddingTop: DOCK_H + DOCK_GAP } : {}) };
+  const gameInner = wide ? {} : { padding: '0 var(--gutter)' };
+  // Schmal steht der Kopf sonst unter dem Player: oben Platz fuer ihn lassen.
+  const padTop = wide ? 48 : 24 + (onDock ? DOCK_H : 0);
 
   const panels = {
     scores: <HighscorePanel scores={hs.scores} total={hs.total} live={hs.live} source={hs.source} mine={hs.mine} expanded={expanded} onToggle={() => setExpanded((e) => !e)} height={wide ? storyH : 0} />,
@@ -346,18 +351,16 @@ function ArcadePage({ onDock }) {
   };
 
   return (
-    <section style={{ maxWidth: 1480, margin: '0 auto', padding: wide ? '48px var(--gutter) 0' : '24px var(--gutter) 0', display: 'flex', flexDirection: 'column', gap: wide ? 40 : 20 }}>
+    <section ref={sect} style={{ position: 'relative', maxWidth: 1480, margin: '0 auto', padding: `${padTop}px var(--gutter) 0`, display: 'flex', flexDirection: 'column', gap: wide ? 40 : 20 }}>
       <style>{CSS}</style>
+      {onDock && dock && <div ref={onDock} style={{ position: 'absolute', top: DOCK_TOP, left: dock.left, width: dock.width, height: DOCK_H, zIndex: 30 }} />}
       <ArcadeHeader compact={!wide} />
       <ArcadeBand compact={!wide} sectionGap={wide ? 40 : 20} />
       <div ref={snap} className="tw-snap" style={container} onScroll={onScroll}>
         {PANES.map((key) => (
           <div key={key} style={pane(key)}>
             {key === 'game'
-              ? <div ref={gameBox} style={gameInner}>
-                  {onDock && dock && <div ref={onDock} style={{ position: 'absolute', top: 0, left: dock.left, width: dock.width, height: DOCK_H, zIndex: 30 }} />}
-                  {panels.game}
-                </div>
+              ? <div ref={gameBox} style={gameInner}>{panels.game}</div>
               : <div style={side}><div ref={key === 'story' ? storyBox : undefined} style={sideInner}>{panels[key]}</div></div>}
           </div>
         ))}
