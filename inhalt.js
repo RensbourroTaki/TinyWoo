@@ -79,7 +79,7 @@ window.TW_INHALT = {
       // kicker = gelber Steam-Kasten rechts (Text, oder [Titel, Text]), nachsatz = Absatz darunter ('' / weglassen = aus). (text = kurz, fuer die Startseite)
       // Optional (derzeit aus): cast = Figurenkarten [Name, Text], ablauf = nummerierte Kaertchen, hinweis = kleine Zeile.
       beschreibung: [
-        'Shoot Trump higher and higher with rockets, and shoot balloons to extend your play time. Earn the respect of the Tiger Claws, three mercenary birds who help you shoot down balloons, UFOs and snails. And invite Putin: he gives you perks, but you have to impress him, or he leaves.',
+        "Shoot Rockets in a special way - Hit Donald Trump and make him fly - Deal with mercenaries birds, balloons, UFO's and snails -  and invite Putin to judge your rocketeer skills!",
       ],
       featuresIntro: 'Rocket Trump is a small but nasty gameplay loop where everything comes down to your rocket skills, and you compete worldwide with other Steam players.',
       featuresTitel: 'Your job',
