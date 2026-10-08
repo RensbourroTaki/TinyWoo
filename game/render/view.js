@@ -269,7 +269,7 @@ export class GameView {
     this.paddleVisible = false;
     this.beamFrame = 0;
     this.beamTimer = 0;
-    this.audio.play('paddleSpawn', 0.7);   // 30 % leiser
+    this.audio.play('paddleSpawn', 0.49);   // 2x 30 % leiser
   }
 
   startIntro(session, newRound) {
@@ -335,7 +335,7 @@ export class GameView {
    */
   blast(kind, x, y, opt = {}) {
     const I = this.img;
-    this.audio.play('explosion_' + kind, kind === 'enemy' ? 0.6 : 1);   // Gegner-WAV ist zu laut: 40 % leiser
+    this.audio.play('explosion_' + kind, kind === 'enemy' ? 0.6 : 0.7);   // Gegner-WAV 40 %, Ball/Schlaeger 30 % leiser
     if (kind === 'ball') {
       const im = opt.mega && I.ballMega ? I.ballMega : I.ball, X = Math.round(x - 3), Y = Math.round(y - 3);
       this.shatter(kind, x, y, X, Y, 6, 6, (g) => g.drawImage(im, X, Y, 6, 6));
