@@ -42,7 +42,11 @@ const CURSOR = { minus: 'F8', plus: 'F9' };
  * frames = Flugdauer, turn = Anteil davon fuer die Drehung, bob = leichtes Schweben danach (Art-Px, Tempo).
  * Ausblenden ueber fade Frames, beginnt lead Frames vor dem Spielstart (Schlaeger-Beam laeuft schon an), sink = Absenken dabei.
  */
-const START_FRAMES = 45;   // Dauer START GAME -> Spiel (Ticks)
+/** START GAME -> Spiel: Dauer (Ticks), Logo-Wartezeit, Zeiger-Flug. Taste 1 = slow (alt), 2 = fast (Standard). */
+const START = {
+  fast: { frames: 45, logoWait: 0, logoAccel: 0.7, fly: 40, shimmer: false },
+  slow: { frames: 90, logoWait: 40, logoAccel: 0.12, fly: 60, shimmer: true },
+};
 const CURSOR_FLY = { y: 282, angle: -135, frames: 40, turn: 0.85, bob: 1.5, bobSpeed: 0.08, fade: 20, lead: 12, sink: 2 };
 /** Hinweiszeile unter dem Menue (Pixelschrift): Text, Art-y, Blinktakt in Frames (an + aus), Font-Pixel S - shrink. */
 const HINT = { text: 'No Coins Needed!', y: 240, period: 60, shrink: 1 };
@@ -117,6 +121,7 @@ export class DaiganoidApp {
     this.god = false;           // God Mode (DEV_KEYS), bleibt ueber Level-Wechsel erhalten
     this.godKeyHeld = false;
     this.cursorStep = 0;        // Zeigergroesse relativ zu S (F8/F9)
+    this.startSlow = false;     // Taste 1/2 (DEV_KEYS): alter/neuer START-GAME-Ablauf (START)
     this.cursorFly = null;      // { x, y, t, fade } Zeiger fliegt nach START GAME zum Ball (CURSOR_FLY)
     this.scores = typeof opts.scores === 'function' ? opts.scores : loadScores;
     this.hi = 0;
@@ -299,6 +304,8 @@ export class DaiganoidApp {
       for (const k of keys) {
         if (k === CURSOR.plus) this.cursorStep = Math.min(8, this.cursorStep + 1);
         if (k === CURSOR.minus) this.cursorStep = Math.max(1 - this.S, this.cursorStep - 1);
+        if (k === 'Digit1' || k === 'Numpad1') this.startSlow = true;    // alter Ablauf (Logo wartet, 1,5 s)
+        if (k === 'Digit2' || k === 'Numpad2') this.startSlow = false;   // neuer Ablauf (Logo sofort weg, 0,75 s)
       }
     }
     if (this.input) this.input.lockReady = this.state === 'game' && !this.paused;
@@ -481,11 +488,14 @@ export class DaiganoidApp {
     const t = this.t;
     const bs = this.bs;
     this.menuAlpha = Math.max(0, 1 - t / 20);
+    const P = this.startSlow ? START.slow : START.fast;
     if (this.logo) {
+      if (t === 1 && P.shimmer) this.logo.startShimmer();
       this.logo.update();
-      this.logoY = Math.round(24 - t * t * 0.7);   // sofort weg, nach ~11 Ticks aus dem Bild
+      const lt = Math.max(0, t - P.logoWait);
+      this.logoY = Math.round(24 - lt * lt * P.logoAccel);
     }
-    if (t < START_FRAMES - 20) {
+    if (t < P.frames - 20) {
       for (let i = 0; i < 6; i++) bs.lights[i] = Math.random() < 0.5 ? 1 : 0;
       bs.doorTop[0] = (t >> 1) & 3; bs.doorTop[1] = ((t >> 1) + 2) & 3;
       bs.doorLeft = (t >> 2) & 3; bs.doorRight = ((t >> 2) + 1) & 3;
@@ -494,8 +504,8 @@ export class DaiganoidApp {
       bs.doorTop = [0, 0]; bs.topLight = [0, 0]; bs.doorLeft = 0; bs.doorRight = 0;
       this.idleLights();
     }
-    if (t === START_FRAMES - CURSOR_FLY.lead && this.cursorFly) this.cursorFly.fade = 0;
-    if (t >= START_FRAMES) this.startGame();
+    if (t === P.frames - CURSOR_FLY.lead && this.cursorFly) this.cursorFly.fade = 0;
+    if (t >= P.frames) this.startGame();
   }
 
   /** Neues Spiel ab Runde round (0-basiert), Variante variant (0 links, 1 rechts). */
@@ -662,10 +672,11 @@ export class DaiganoidApp {
   /** Zeiger nach START GAME: fliegt weich zum Ball, dreht die Spitze nach unten, schwebt, blendet aus (CURSOR_FLY). */
   drawFlyingCursor(ctx, S, im) {
     const f = this.cursorFly, C = CURSOR_FLY;
+    const frames = (this.startSlow ? START.slow : START.fast).fly;
     const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(2 - 2 * k, 3) / 2);
-    const move = ease(Math.min(1, f.t / C.frames));
-    const turn = ease(Math.min(1, f.t / (C.frames * C.turn)));
-    const hover = Math.max(0, f.t - C.frames);
+    const move = ease(Math.min(1, f.t / frames));
+    const turn = ease(Math.min(1, f.t / (frames * C.turn)));
+    const hover = Math.max(0, f.t - frames);
     const fade = f.fade < 0 ? 0 : f.fade / C.fade;
     // Ziel-X = Spawn-Stelle des Schlaegers (folgt der Maus), vor dem Spiel aus der Mausposition
     const tx = this.state === 'game' && this.session ? ax(this.session.field.paddle.center) : ax(this.spawnX());
