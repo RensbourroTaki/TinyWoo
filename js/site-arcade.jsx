@@ -160,10 +160,10 @@ function HighscorePanel({ scores, total, live, source, mine, expanded, onToggle,
         {shown.map((e, i) => <ScoreRow key={e.id || `l${i}`} e={e} i={i} mine={!!e.id && mine.has(e.id)} />)}
       </div>
       <div style={{ padding: '10px 22px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ ...pixel(10, 'var(--gray-500)'), lineHeight: 1.5 }}>{source === 'local' ? 'Offline · your local scores' : `${total} players · names are filtered`}</span>
+        <span style={{ ...pixel(16, 'var(--gray-500)'), lineHeight: 1.5 }}>{source === 'local' ? 'Offline · your local scores' : `${total} players · names are filtered`}</span>
         {scores.length > 10 && <Button variant="ghost" size="sm" onClick={onToggle}>{expanded ? 'Top 10' : `Top ${Math.min(100, scores.length)}`}</Button>}
       </div>
-      {D.arcadeHinweis && <p style={{ margin: 10, ...pixelText, fontSize: 12, lineHeight: 1.6, color: 'var(--lime-600)', textAlign: 'center' }}>{D.arcadeHinweis}</p>}
+      {D.arcadeHinweis && <p style={{ margin: 10, ...pixelText, fontSize: 16, lineHeight: 1.65, color: 'var(--lime-600)', textAlign: 'center' }}>{D.arcadeHinweis}</p>}
     </GlowFrame>
   );
 }
