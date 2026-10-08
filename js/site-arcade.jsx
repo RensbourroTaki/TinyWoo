@@ -60,6 +60,9 @@ function ArcadeHeader({ compact }) {
 /** Band unter dem Kopf: schraege orange Linie ueber die volle Breite, darunter ein Verlauf vom dunklen Header-Blau
  *  zur Seitenfarbe, darin zentriert "THE [Arkanoid-Logo] FAN PROJECT". Abstand Linie->Zeile = Zeile->Tafeln.
  *  sectionGap: Abstand, den die umgebende Section ohnehin zwischen ihren Kindern setzt. */
+const LOGO = 'assets/logo/arkanoid_original_logo.png';
+const LOGO_W = 130, LOGO_H = 29;                // Originalgroesse, angezeigt pixelgenau x2
+
 function ArcadeBand({ compact, sectionGap }) {
   const space = compact ? 36 : 72;
   const fs = 'clamp(18px, 2.6vw, 40px)';
@@ -68,7 +71,11 @@ function ArcadeBand({ compact, sectionGap }) {
       <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: compact ? 220 : 290, transform: 'skewY(-1.3deg)', borderTop: '6px solid var(--orange-400)', background: 'linear-gradient(to bottom, var(--blue-900), var(--bg-page))' }} />
       <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: compact ? 10 : 14 }}>
         <span style={pixel(fs, 'var(--orange-400)')}>The</span>
-        <img src="assets/logo/arkanoid_original_logo.png" alt="Arkanoid" style={{ height: 'clamp(44px, 7.5vw, 110px)', width: 'auto', maxWidth: '70vw', imageRendering: 'pixelated', display: 'block' }} />
+        <span style={{ position: 'relative', display: 'block', width: LOGO_W * 2, height: LOGO_H * 2 }}>
+          <img src={LOGO} alt="Arkanoid" width={LOGO_W * 2} height={LOGO_H * 2} style={{ imageRendering: 'pixelated', display: 'block' }} />
+          {/* Scanlines: jede Logo-Pixelzeile (2 px) halb hell, halb dunkel; per Maske nur auf dem Logo selbst. */}
+          <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 1px, rgba(0,0,0,.45) 1px) 0 0 / 100% 2px', WebkitMaskImage: `url(${LOGO})`, maskImage: `url(${LOGO})`, WebkitMaskSize: '100% 100%', maskSize: '100% 100%' }} />
+        </span>
         <span style={pixel(fs, 'var(--orange-400)')}>Fan project</span>
       </div>
     </div>
