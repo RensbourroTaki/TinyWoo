@@ -153,8 +153,8 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
         <Button variant="ghost" size="sm" icon={<Icon name={muted ? 'volume-x' : 'volume-2'} size={18} />} aria-label={muted ? 'Sound on' : 'Sound off'} title={muted ? 'Sound on' : 'Sound off'} aria-pressed={muted} onClick={() => { if (!game.current) return; const m = !muted; game.current.setMuted(m); setMuted(m); }} />
         <Button variant="ghost" size="sm" icon={<Icon name="maximize" size={18} />} onClick={enterFullscreen}>Fullscreen</Button>
       </div>}
-      {!mobile && <p style={{ margin: 0, maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: 'var(--text-muted)', textAlign: 'center' }}>
-        {inGame ? 'Mouse or arrow keys move the paddle, click or space launches the ball and fires the laser. P pauses, Esc frees the mouse.' : (D.arcadeHinweis || D.text || '')}
+      {!mobile && inGame && <p style={{ margin: 0, maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: 'var(--text-muted)', textAlign: 'center' }}>
+        Mouse or arrow keys move the paddle, click or space launches the ball and fires the laser. P pauses, Esc frees the mouse.
       </p>}
     </div>
   );
