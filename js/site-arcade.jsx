@@ -64,7 +64,7 @@ function ArcadeBand({ compact, sectionGap }) {
   const space = compact ? 36 : 72;
   const fs = 'clamp(18px, 2.6vw, 40px)';
   return (
-    <div style={{ position: 'relative', margin: `${compact ? 8 : 24}px calc(50% - 50vw) 0`, padding: `${space}px var(--gutter) ${Math.max(0, space - sectionGap)}px` }}>
+    <div style={{ position: 'relative', margin: `${compact ? 8 : -26}px calc(50% - 50vw) 0`, padding: `${space}px var(--gutter) ${Math.max(0, space - sectionGap)}px` }}>
       <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: compact ? 220 : 290, transform: 'skewY(-1.3deg)', borderTop: '6px solid var(--orange-400)', background: 'linear-gradient(to bottom, var(--blue-900), var(--bg-page))' }} />
       <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: compact ? 10 : 14 }}>
         <span style={pixel(fs, 'var(--orange-400)')}>The</span>
