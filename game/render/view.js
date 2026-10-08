@@ -47,28 +47,27 @@ export const SPARKS = {
 /**
  * Derez als Teleport-Riss (Tron): Ball, Schlaeger und Gegner werden im Moment des Todes einmal in Art-Pixel zerlegt
  * (getImageData auf einem kleinen Puffer). Die Form bleibt erhalten, kein Pixel fliegt frei - das Sprite wird von
- * seiner Mitte aus auseinandergezogen:
+ * seiner Mitte aus auseinandergezogen, mode 'h' (Schlaeger) nur seitlich, 'r' (Ball, Gegner) radial:
  *  1. hold Frames: Objekt friert ein, blitzt weiss, Farbversatz Magenta/Tuerkis.
- *  2. jumps Rucke im Abstand every Frames: an der senkrechten Mittellinie reisst es auf (Rissblitz), linke Haelfte
- *     springt nach links, rechte nach rechts (Spalt gap Art-Px), dabei waagerecht auf sx gedehnt (Pixel werden zu
- *     Lichtstrichen), senkrecht nur auf sy (Zeilen ruecken zu Scanlines auseinander). Jeder Ruck: Weiss-Puls,
- *     Tuerkis-Wischspur vom alten zum neuen Platz, Zeilen versetzt um bis zu tear Art-Px. Rucke werden kleiner
- *     (decay), bis jerk des Gesamtwegs erreicht ist.
- *     Beim ersten Ruck in der Mitte eine kleine Explosion (pop): Funken mit Impuls und Schwerkraft plus Lichtball
- *     (BOOM, Skalierung pop.boom).
+ *  2. jumps Rucke im Abstand every Frames, Rucke werden kleiner (decay), bis jerk des Gesamtwegs erreicht ist.
+ *     'h': linke Haelfte springt nach links, rechte nach rechts (Spalt gap Art-Px), waagerecht auf sx gedehnt
+ *     (Pixel werden zu Lichtstrichen), Hoehe bleibt; Zeilen versetzt um bis zu tear Art-Px, Mittellinie.
+ *     'r': jedes Pixel springt von der Mitte weg nach aussen (gap), Abstaende wachsen um sx, Form bleibt erhalten.
+ *     Jeder Ruck: Weiss-Puls, Tuerkis-Wischspur vom alten zum neuen Platz. Beim ersten Ruck in der Mitte eine kleine
+ *     Explosion (pop): Funken mit Impuls und Schwerkraft plus Lichtball (BOOM, Skalierung pop.boom).
  *  3. settle Frames: Rest des Wegs weich abgebremst, Farbe kuehlt nach Tuerkis ab, Mittellinie verglimmt.
- *  4. Dann zerfallen die Lichtstriche in Punkte (dots: per Punkte je Strich-Pixel), die langsam weiter nach aussen
- *     treiben (spd, aussen schneller um far), kaum senkrecht (vy), gebremst (drag), heiss -> Originalfarbe -> Tuerkis,
- *     ab blink ihrer Lebenszeit blinkend, und ueber life Frames ausfaden.
+ *  4. Dann zerfallen die Pixel/Striche in Punkte (dots: per Punkte je Strich-Pixel), die langsam in derselben
+ *     Richtung weiter nach aussen treiben ('h' nur seitlich, 'r' radial; spd, aussen schneller um far), gebremst
+ *     (drag), heiss -> Originalfarbe -> Tuerkis, ab blink ihrer Lebenszeit blinkend, ueber life Frames ausfaden.
  */
 export const DEREZ = {
   hotColor: 'rgb(235,255,252)', cyan: 'rgb(90,240,215)', magenta: 'rgb(255,60,200)',
   chroma: 0.6, smear: 0.4, cool: 0.55, line: 0.4,
-  dots: { per: 0.7, spd: [0.25, 0.7], far: 0.6, vy: 0.12, drag: 0.988, life: [70, 150], hot: 4, blink: 0.3, glow: 0.45, max: 2500 },
+  dots: { per: 0.7, spd: [0.25, 0.7], far: 0.6, drag: 0.988, life: [70, 150], hot: 4, blink: 0.3, glow: 0.45, max: 2500 },
   pop: { count: [26, 38], speed: [0.7, 2.6], life: [18, 46], lift: 0.7, big: 0.35, boom: 0.42 },
-  paddle: { hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 10, sx: 2.2, sy: 1.5, tear: 2, settle: 8, pop: 1 },
-  enemy:  { hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 7, sx: 2.6, sy: 1.3, tear: 1.5, settle: 7, pop: 0.9 },
-  ball:   { hold: 2, jumps: 3, every: 2, decay: 0.5, jerk: 0.8, gap: 4, sx: 3, sy: 1.5, tear: 1, settle: 6, pop: 0.6 },
+  paddle: { mode: 'h', hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 10, sx: 2.2, tear: 2, settle: 8, pop: 1 },
+  enemy:  { mode: 'r', hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 6, sx: 1.8, settle: 7, pop: 0.9 },
+  ball:   { mode: 'r', hold: 2, jumps: 3, every: 2, decay: 0.5, jerk: 0.8, gap: 4, sx: 2.2, settle: 6, pop: 0.6 },
 };
 /** Fester Zufall 0..1 aus zwei Ganzzahlen (Zeilenversatz, Blinken). */
 const derezHash = (i, k) => ((Math.imul(i ^ (k << 12), 0x9E3779B1) >>> 16) & 1023) / 1024;
@@ -733,24 +732,31 @@ export class GameView {
 
   /**
    * Pose des Teleport-Risses zum Frame t (siehe DEREZ): Ruck j, Frames seit dem Ruck (since), Abbrems-Anteil u,
-   * Weg p, Dehnung (sy, Strichbreite w), Zeilenversatz; xAt/yAt liefern die Art-Position von Pixel k.
+   * Weg p, Strichbreite w ('h'), Zeilenversatz; xAt/yAt liefern die Art-Position von Pixel k, dir die Fluchtrichtung.
    */
   derezPose(e, t) {
-    const c = DEREZ[e.kind], jerkEnd = c.hold + c.jumps * c.every;
+    const c = DEREZ[e.kind], jerkEnd = c.hold + c.jumps * c.every, radial = c.mode === 'r';
     // Weg (0..1) nach Ruck j: Spruenge werden geometrisch kleiner, bis jerk erreicht ist
     const at = (j) => (j <= 0 ? 0 : c.jerk * (1 - Math.pow(c.decay, j)) / (1 - Math.pow(c.decay, c.jumps)));
     let j, since, u = 0, p;
     if (t < c.hold) { j = 0; since = -1; p = 0; }
     else if (t < jerkEnd) { j = Math.floor((t - c.hold) / c.every) + 1; since = (t - c.hold) % c.every; p = at(j); }
     else { j = c.jumps; since = 99; u = Math.min(1, (t - jerkEnd + 1) / c.settle); p = c.jerk + (1 - c.jerk) * (1 - Math.pow(1 - u, 3)); }
-    const sy = 1 + (c.sy - 1) * p, w = Math.max(1, Math.round(1 + (c.sx - 1) * p));
-    const tearK = c.tear * Math.min(1, p / 0.3) * (1 - 0.6 * u);
-    const xAt = (k, pp = p, jj = j) => {
-      const tr = jj > 0 ? (derezHash(e.row[k] + e.seed, jj) - 0.5) * 2 * tearK : 0;   // Zeilenversatz je Ruck
-      return Math.round(e.cx + e.dx[k] * (1 + (c.sx - 1) * pp) + (e.dx[k] < 0 ? -1 : 1) * c.gap * pp + tr);
+    const w = radial ? 1 : Math.max(1, Math.round(1 + (c.sx - 1) * p));
+    const tearK = (c.tear || 0) * Math.min(1, p / 0.3) * (1 - 0.6 * u);
+    // Fluchtrichtung: 'h' links/rechts, 'r' von der Mitte weg (Einheitsvektor)
+    const dir = (k) => {
+      const dx = e.dx[k], dy = e.dy[k];
+      if (!radial) return [dx < 0 ? -1 : 1, 0];
+      const d = Math.hypot(dx, dy) || 1;
+      return [dx / d, dy / d];
     };
-    const yAt = (k) => Math.round(e.cy + e.dy[k] * sy);
-    return { c, j, since, u, p, sy, w, at, xAt, yAt };
+    const xAt = (k, pp = p, jj = j) => {
+      const tr = jj > 0 && tearK ? (derezHash(e.row[k] + e.seed, jj) - 0.5) * 2 * tearK : 0;   // Zeilenversatz je Ruck
+      return Math.round(e.cx + e.dx[k] * (1 + (c.sx - 1) * pp) + dir(k)[0] * c.gap * pp + tr);
+    };
+    const yAt = (k, pp = p) => (radial ? Math.round(e.cy + e.dy[k] * (1 + (c.sx - 1) * pp) + dir(k)[1] * c.gap * pp) : e.row[k]);
+    return { c, j, since, u, p, w, radial, at, xAt, yAt, dir };
   }
 
   /** Kleine Explosion in der Rissmitte: Funken mit Impuls und Schwerkraft, dazu ein kleiner Lichtball. */
@@ -765,12 +771,13 @@ export class GameView {
     const D = DEREZ.dots, ps = this.derezPose(e, e.len - 1);
     const r = (a) => a[0] + Math.random() * (a[1] - a[0]);
     for (let k = 0; k < e.m && this.dots.length < D.max; k++) {
-      const X = ps.xAt(k), Y = ps.yAt(k), side = e.dx[k] < 0 ? -1 : 1, far = Math.min(1, Math.abs(e.dx[k]) / e.hw);
+      const X = ps.xAt(k), Y = ps.yAt(k), [ux, uy] = ps.dir(k);
+      const far = Math.min(1, ps.radial ? Math.hypot(e.dx[k], e.dy[k]) / Math.max(e.hw, e.hh) : Math.abs(e.dx[k]) / e.hw);
       const n = Math.max(1, Math.round(ps.w * D.per * (0.6 + 0.8 * Math.random())));
       for (let i = 0; i < n; i++) {
+        const v = r(D.spd) * (1 + D.far * far);
         this.dots.push({
-          x: X + Math.floor(Math.random() * ps.w), y: Y,
-          vx: side * r(D.spd) * (1 + D.far * far), vy: Math.sign(e.dy[k]) * D.vy * Math.random() + (Math.random() - 0.5) * D.vy,
+          x: X + Math.floor(Math.random() * ps.w), y: Y, vx: ux * v, vy: uy * v,
           t: 0, len: Math.round(r(D.life)), col: e.col[k], ph: (Math.random() * 1024) | 0,
         });
       }
@@ -779,8 +786,8 @@ export class GameView {
 
   /**
    * Derez als Teleport-Riss (siehe DEREZ): die Pixel behalten ihre Anordnung und werden je Ruck von der Mitte weg
-   * versetzt, waagerecht gedehnt (Lichtstriche) und senkrecht leicht gespreizt (Scanlines). Weiss-Puls, Wischspur und
-   * Abkuehlen nach Tuerkis additiv (je Ebene ein fill), dazu Rissblitz und Mittellinie. Alles aufs Art-Raster.
+   * versetzt ('h' seitlich zu Lichtstrichen gedehnt, Hoehe bleibt; 'r' radial). Weiss-Puls, Wischspur und
+   * Abkuehlen nach Tuerkis additiv (je Ebene ein fill), bei 'h' dazu die Mittellinie. Alles aufs Art-Raster.
    */
   drawDerez(ctx, S) {
     let any = false;
@@ -797,7 +804,7 @@ export class GameView {
     for (const e of this.effects) {
       if (e.type !== 'derez') continue;
       if (!any) { ctx.save(); any = true; }
-      const t = e.t, ps = this.derezPose(e, t), { c, j, since, u, p, sy, w } = ps;
+      const t = e.t, ps = this.derezPose(e, t), { c, j, since, u, p, w } = ps;
       const hot = t < c.hold ? 1 : since === 0 ? 0.75 : since === 1 ? 0.3 : 0;
       const cur = L.cur, sm = L.smear;
       cur.length = 0; sm.length = 0;
@@ -811,7 +818,8 @@ export class GameView {
         cur.push(X, Y, w);
         if (smearing) {
           const X0 = ps.xAt(k, pPrev, j - 1), a = Math.min(X0, X);
-          sm.push(a, Y, Math.max(X0, X) + w - a);
+          if (ps.radial) sm.push(X0, ps.yAt(k, pPrev), 1);   // radial: Geist am alten Platz
+          else sm.push(a, Y, Math.max(X0, X) + w - a);
         }
       }
       ctx.globalCompositeOperation = 'lighter';
@@ -823,12 +831,8 @@ export class GameView {
       if (smearing) rects(sm, Z.cyan, Z.smear * (since === 0 ? 1 : 0.4));
       rects(cur, Z.hotColor, hot);
       rects(cur, Z.cyan, Z.cool * (0.3 * p + 0.7 * u));
-      // Rissblitz in der Mitte beim ersten Ruck, danach Mittellinie ueber die ganze Breite, verglimmt
-      if (j === 1 && smearing) {
-        ctx.globalAlpha = since === 0 ? 0.9 : 0.4; ctx.fillStyle = Z.hotColor;
-        ctx.fillRect(Math.round(e.cx) * S, Math.round(e.cy - e.hh * sy) * S, S, Math.round(2 * e.hh * sy) * S);
-      }
-      if (t >= c.hold) {
+      // 'h': Mittellinie ueber die ganze Breite, verglimmt
+      if (!ps.radial && t >= c.hold) {
         const span = e.hw * (1 + (c.sx - 1) * p) + c.gap * p;
         ctx.globalAlpha = Z.line * (1 - u); ctx.fillStyle = Z.cyan;
         ctx.fillRect(Math.round(e.cx - span) * S, Math.floor(e.cy) * S, Math.round(2 * span) * S, S);
