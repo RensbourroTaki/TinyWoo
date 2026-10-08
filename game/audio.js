@@ -63,6 +63,8 @@ export class GameAudio {
     if (this.ctx.state !== 'running') { try { this.ctx.resume().catch(() => {}); } catch (e) { /* egal */ } }
     if (!this.unlocked) {
       this.unlocked = true;
+      // Website: Spiel hat jetzt Ton -> Site-Player pausiert sich (MusicPlayer hoert auf 'tw-game-audio')
+      if (!this.muted) { try { window.dispatchEvent(new Event('tw-game-audio')); } catch (e) { /* egal */ } }
       if (this.pendingMusic) this.playMusic(this.pendingMusic);
     }
   }

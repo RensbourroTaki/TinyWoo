@@ -9,6 +9,8 @@ const WIDE_PX = 1180;                           // ab hier drei Spalten, darunte
 // Wisch nach rechts zeigt die linke Tafel (Highscore), Wisch nach links die rechte (Story).
 const PANES = ['scores', 'game', 'story'];
 const PANE_LABEL = { scores: 'Highscore', game: 'Game', story: 'Story' };
+// Andock-Platz fuer den Site-Player ueber dem Spiel (rechtsbuendig zum Spielfeld): Hoehe = Mini-Player, Abstand darunter.
+const DOCK_H = 46, DOCK_GAP = 12;
 
 const pixel = (fs, color) => ({ fontFamily: 'var(--font-pixel)', fontSize: fs, letterSpacing: 'var(--tracking-pixel)', textTransform: 'uppercase', color, lineHeight: 1 });
 /** Pixel-Font fuer Fliesstext: wie pixel(), aber ohne Grossschreibung (lesbarer). */
@@ -253,7 +255,7 @@ function useWide(px) {
 /** Arcade-Seite. Breit: Story | Spiel | Highscore nebeneinander, alle drei kleben beim Scrollen.
  *  Schmal: Wisch-Karussell mit dem Spiel in der Mitte, Highscore links, Story rechts; Reiter darunter.
  *  Die drei Tafeln stehen in beiden Faellen in derselben DOM-Reihenfolge, damit das Spiel beim Umschalten nicht neu startet. */
-function ArcadePage() {
+function ArcadePage({ onDock }) {
   const wide = useWide(WIDE_PX);
   const hs = useHighscores();
   const [expanded, setExpanded] = React.useState(false);
@@ -289,6 +291,24 @@ function ArcadePage() {
     return () => ro.disconnect();
   }, [wide]);
 
+  // Andock-Platz: links/Breite des Spielrahmens innerhalb der Spielspalte (beide Layouts).
+  const [dock, setDock] = React.useState(null);
+  React.useLayoutEffect(() => {
+    const el = gameBox.current;
+    const f = el && el.querySelector('.tw-daig-frame');
+    if (!onDock || !f) return undefined;
+    const upd = () => {
+      const a = el.getBoundingClientRect(), b = f.getBoundingClientRect();
+      const d = { left: Math.round(b.left - a.left), width: Math.round(b.width) };
+      setDock((o) => (o && o.left === d.left && o.width === d.width ? o : d));
+    };
+    upd();
+    if (typeof ResizeObserver === 'undefined') { window.addEventListener('resize', upd); return () => window.removeEventListener('resize', upd); }
+    const ro = new ResizeObserver(upd);
+    ro.observe(el); ro.observe(f);
+    return () => ro.disconnect();
+  }, [wide, onDock]);
+
   // Schmal: auf die aktive Tafel springen (Start = Spiel), auch nach Drehen des Geraets.
   React.useLayoutEffect(() => {
     const el = snap.current;
@@ -317,7 +337,7 @@ function ArcadePage() {
     : { flex: '0 0 100%', minWidth: 0, scrollSnapAlign: 'center', scrollSnapStop: 'always', position: 'relative' };
   const side = wide ? {} : { position: 'absolute', inset: 0, overflowY: 'auto', scrollbarWidth: 'thin', padding: '2px var(--gutter) 8px', boxSizing: 'border-box' };
   const sideInner = wide ? {} : { maxWidth: 560, margin: '0 auto' };
-  const gameInner = wide ? {} : { padding: '0 var(--gutter)' };
+  const gameInner = { position: 'relative', ...(wide ? {} : { padding: '0 var(--gutter)' }), ...(onDock ? { paddingTop: DOCK_H + DOCK_GAP } : {}) };
 
   const panels = {
     scores: <HighscorePanel scores={hs.scores} total={hs.total} live={hs.live} source={hs.source} mine={hs.mine} expanded={expanded} onToggle={() => setExpanded((e) => !e)} height={wide ? storyH : 0} />,
@@ -334,7 +354,10 @@ function ArcadePage() {
         {PANES.map((key) => (
           <div key={key} style={pane(key)}>
             {key === 'game'
-              ? <div ref={gameBox} style={gameInner}>{panels.game}</div>
+              ? <div ref={gameBox} style={gameInner}>
+                  {onDock && dock && <div ref={onDock} style={{ position: 'absolute', top: 0, left: dock.left, width: dock.width, height: DOCK_H, zIndex: 30 }} />}
+                  {panels.game}
+                </div>
               : <div style={side}><div ref={key === 'story' ? storyBox : undefined} style={sideInner}>{panels[key]}</div></div>}
           </div>
         ))}

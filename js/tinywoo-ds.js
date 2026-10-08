@@ -882,9 +882,15 @@ function MusicPlayer({
   storageKey = 'tw-player-pos',
   defaultX = 1,
   defaultY = 1,
+  docked = false,
   style
 }) {
-  const [mini, setMini] = React.useState(() => {
+  // docked: fest angedockt (Arcade-Seite), immer mini, nicht ziehbar, oben rechts im Wirt.
+  // Die gespeicherte Position und der Mini-Zustand des Nutzers bleiben dabei unangetastet.
+  const prevDocked = React.useRef(docked);
+  const dockFlip = prevDocked.current !== docked;
+  prevDocked.current = docked;
+  const [miniPref, setMini] = React.useState(() => {
     try {
       return localStorage.getItem(storageKey + '-mini') === '1';
     } catch (e) {
@@ -897,6 +903,8 @@ function MusicPlayer({
     } catch (e) {}
     return !m;
   });
+  const mini = miniPref || docked;
+  draggable = draggable && !docked;
   const w = mini ? miniWidth : width;
   const [i, setI] = React.useState(0);
   const [playing, setPlaying] = React.useState(false);
@@ -948,6 +956,12 @@ function MusicPlayer({
   React.useEffect(() => {
     if (audio.current) audio.current.volume = vol;
   }, [vol]);
+  // Das Spiel meldet beim Freischalten seines Tons 'tw-game-audio' -> Site-Musik pausieren.
+  React.useEffect(() => {
+    const h = () => setPlaying(false);
+    window.addEventListener('tw-game-audio', h);
+    return () => window.removeEventListener('tw-game-audio', h);
+  }, []);
   React.useEffect(() => {
     if (!playing || tr.src) return;
     const id = setInterval(() => setT(v => {
@@ -995,6 +1009,10 @@ function MusicPlayer({
     } catch (e) {}
   };
   const marquee = `${i + 1}. ${tr.artist ? tr.artist + ' — ' : ''}${tr.title || 'No track'}  ·  `;
+  const at = docked ? {
+    x: 1,
+    y: 0
+  } : pos;
   return /*#__PURE__*/React.createElement("div", {
     ref: wrap,
     style: {
@@ -1007,8 +1025,8 @@ function MusicPlayer({
     ref: card,
     style: {
       position: 'absolute',
-      left: `${pos.x * 100}%`,
-      top: `${pos.y * 100}%`,
+      left: `${at.x * 100}%`,
+      top: `${at.y * 100}%`,
       width: w,
       maxWidth: '100%',
       boxSizing: 'border-box',
@@ -1016,8 +1034,8 @@ function MusicPlayer({
       border: '3px solid var(--ink)',
       borderRadius: 'var(--radius-lg)',
       boxShadow: dragging ? '0 14px 0 var(--ink), var(--shadow-float)' : 'var(--shadow-pop), var(--shadow-float)',
-      transform: `translate(${-pos.x * 100}%, ${-pos.y * 100}%)` + (dragging ? ' rotate(-1.5deg) scale(1.02)' : ''),
-      transition: dragging ? 'box-shadow var(--dur)' : 'transform var(--dur) var(--ease-pop), box-shadow var(--dur)',
+      transform: `translate(${-at.x * 100}%, ${-at.y * 100}%)` + (dragging ? ' rotate(-1.5deg) scale(1.02)' : ''),
+      transition: dragging || dockFlip ? 'box-shadow var(--dur)' : 'transform var(--dur) var(--ease-pop), box-shadow var(--dur)',
       userSelect: 'none',
       overflow: 'hidden',
       pointerEvents: 'auto'
@@ -1105,7 +1123,7 @@ function MusicPlayer({
       transform: open ? 'rotate(180deg)' : 'none',
       transition: 'transform var(--dur) var(--ease-pop)'
     }
-  }))), /*#__PURE__*/React.createElement("button", {
+  }))), !docked && /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: toggleMini,
     onPointerDown: e => e.stopPropagation(),

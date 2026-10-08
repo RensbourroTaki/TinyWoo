@@ -27,8 +27,32 @@ const { NavBar, MusicPlayer } = window.TinyWooDesignSystem_fe221f;
 const I = window.TW_INHALT;
 const LINKS = [{ id: 'home', label: 'Home' }, { id: 'games', label: 'Games' }, { id: 'arcade', label: 'Arcade' }, { id: 'about', label: 'About' }, { id: 'press', label: 'Press' }];
 const CAN_OGG = !!document.createElement('audio').canPlayType('audio/ogg; codecs="vorbis"');
+// Site-Player: lebt in einem eigenen Wirt-Div (Portal), das nie neu gebaut wird, damit die Musik weiterlaeuft.
+// Frei: fixe Ebene ueber der Seite. Arcade: der Wirt wandert in den Andock-Platz ueber dem Spielfeld und scrollt mit.
+const PLAYER_FREE = 'position:fixed;inset:var(--player-top) 16px 14px;z-index:30;pointer-events:none';
+const PLAYER_DOCKED = 'position:absolute;inset:0;pointer-events:none';
 function App() {
   const [page, setPage] = React.useState(() => (location.hash.slice(1) || 'home'));
+  const [host] = React.useState(() => { const d = document.createElement('div'); d.style.cssText = PLAYER_FREE; document.body.appendChild(d); return d; });
+  const [dockEl, setDockEl] = React.useState(null);
+  const flipFrom = React.useRef(null);
+  const cardRect = () => { const c = host.firstElementChild && host.firstElementChild.firstElementChild; const r = c && c.getBoundingClientRect(); return r && r.width ? r : null; };
+  const onDock = React.useCallback((el) => { flipFrom.current = cardRect(); setDockEl(el); }, []);
+  React.useLayoutEffect(() => {
+    if (dockEl) { host.style.cssText = PLAYER_DOCKED; dockEl.appendChild(host); }
+    else { host.style.cssText = PLAYER_FREE; document.body.appendChild(host); }
+    const a = flipFrom.current, b = cardRect();
+    flipFrom.current = null;
+    if (!a || !b || !host.animate) return;
+    const dx = a.right - b.right, dy = a.top - b.top;
+    if (Math.abs(dx) + Math.abs(dy) < 2) return;
+    // Weich losfliegen, kurz ueberschiessen, einrasten
+    host.animate([
+      { transform: `translate(${dx}px, ${dy}px) scale(.94)`, easing: 'cubic-bezier(.6,0,.2,1)' },
+      { transform: 'translate(0, 0) scale(1.06)', offset: 0.8, easing: 'cubic-bezier(.3,0,.3,1)' },
+      { transform: 'none' },
+    ], { duration: 560 });
+  }, [dockEl]);
   React.useEffect(() => { const h = () => setPage(location.hash.slice(1) || 'home'); window.addEventListener('hashchange', h); return () => window.removeEventListener('hashchange', h); }, []);
   const nav = p => { location.hash = p === 'home' ? '' : p; setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   return (
@@ -43,13 +67,11 @@ function App() {
         <Community />
       </>}
       {page === 'games' && <GamesPage onNav={nav} />}
-      {page === 'arcade' && <ArcadePage />}
+      {page === 'arcade' && <ArcadePage onDock={CAN_OGG ? onDock : undefined} />}
       {page === 'about' && <AboutPage />}
       {page === 'press' && <PressPage />}
       <Footer onNav={nav} />
-      {CAN_OGG && <div style={{ position: 'fixed', inset: 'var(--player-top) 16px 14px', zIndex: 30, pointerEvents: 'none' }}>
-        <MusicPlayer tracks={I.musik} storageKey="tw-site-player" style={{ pointerEvents: 'none' }} />
-      </div>}
+      {CAN_OGG && ReactDOM.createPortal(<MusicPlayer tracks={I.musik} storageKey="tw-site-player" docked={!!dockEl} style={{ pointerEvents: 'none' }} />, host)}
     </div>
   );
 }
