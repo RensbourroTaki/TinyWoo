@@ -71,7 +71,7 @@ window.TW_INHALT = {
     {
       title: 'Rocket Trump',
       image: 'assets/games/rocket-trump-menu.jpg',
-      tagline: 'Yes, it\'s Trump. Yes, the chickens have guns.',
+      tagline: 'A tropical rocket skill shot challenge, that can\'t be taken seriously!',
       text: 'Catch rockets, stack coins, hire the Tiger Claws and climb the highscore. Chaotic jungle-base arcade action with a very short fuse.',
       // Games-Seite: tagline = Unterzeile, beschreibung = Absaetze unter dem Titel (\n = neue Zeile),
       // featuresIntro = Satz ueber den Listen, featuresTitel + features = erste Liste (Aufgaben), zwischenzeile = fetter Satz danach,
