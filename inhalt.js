@@ -178,7 +178,7 @@ window.TW_INHALT = {
     heroZeile1: 'Tiny,',
     heroZeile2: 'but fun!',
     heroText: 'Tiny Woo is decades of game-dev experience, distilled into small games that are simply fun to play.',
-    laufband: ['Rocket Trump in development', 'Play Daiganoid in the arcade', 'One samurai', 'Zero Japan', 'Highscores open'],
+    laufband: ['Rocket Trump in development', 'Play Daiganoid in the arcade', 'Tiny, but fun!', 'Pixels made by hand', 'Highscores open'],
     communityTitel: 'Join the dojo',
     communityText: 'Devlogs, playtests, memes and the occasional existential crisis.',
     // About-Seite: Bausteine in Reihenfolge. { h } = Zwischenüberschrift, { p } = Absatz, { liste } = Aufzählung, { schluss } = Schlusssatz.
