@@ -548,7 +548,7 @@ export class GameSession {
     const en = this.enemies[i];
     this.enemies.splice(i, 1);
     this.addScore(500);
-    this.emit('enemyKilled', { x: en.x, y: en.y });
+    this.emit('enemyKilled', { x: en.x, y: en.y, age: en.age });
   }
 
   // ---------------------------------------------------------------- Nachwachsende Steine

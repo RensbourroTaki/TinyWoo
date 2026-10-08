@@ -17,7 +17,7 @@ export const SOUNDS = {
   doorClose: 'sounds/door-close.wav',
   phaser: 'sounds/phaser.wav',      // Phaser-Start / Ball verloren
   beep: 'sounds/beep.wav',          // Text-Beep / naechste Runde
-  explosion_ball: 'sounds/explosion_ball.wav',       // Flipbook-Explosionen (view.js blast)
+  explosion_ball: 'sounds/explosion_ball.wav',       // Pixel-Zerfall (view.js blast)
   explosion_paddle: 'sounds/explosion_paddle.wav',
   explosion_enemy: 'sounds/explosion_enemy.wav',
   paddleSpawn: 'sounds/PaddleSpawn.wav',             // Schlaeger erscheint (Beam bei Levelstart / Respawn)

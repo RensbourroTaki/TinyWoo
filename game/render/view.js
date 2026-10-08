@@ -45,14 +45,21 @@ export const SPARKS = {
   max: 1400,
 };
 /**
- * Flipbook-Explosionen (player/explosions*.webp + explosions.json, 64 Frames aus den 512er TGAs): Ball = Explosion_29,
- * Schlaeger = Explosion_27, Gegner = Explosion_28. anchor = Explosionspunkt im 512er Frame, scale = Art-Pixel je
- * Quell-Pixel, ticks = Logik-Frames je Bild. Kein Lichtblitz: die Funken (SHARDS) ueberdecken das Weiche.
+ * Pixel-Zerfall (Tron-artig) statt Explosions-Textur: Ball, Schlaeger und Gegner werden im Moment des Todes einmal
+ * in Art-Pixel zerlegt (getImageData auf einem kleinen Puffer), daraus zwei Kopien: Kopie A fliegt von der
+ * senkrechten Mittelachse nach links/rechts auseinander, Kopie B von der waagerechten nach oben/unten. Aussen
+ * schneller als innen (spread Art-Px/Frame am Rand, base in der Mitte, jitter = Zufall, cross = Querdrift), Bremsung
+ * drag. Ablauf: reinweiss (flash[0] Frames), weiss blendet bis flash[1] ins Originalbild, ab fade[0] (Anteil von len)
+ * Ausblenden + Pixel fallen flackernd aus, dabei Tuerkis-Schimmer (tint, additiv). axis = leuchtende Spaltlinien
+ * (Laenge = Sprite x [1, 2.4]) in den ersten axis.len Frames. Positionen rasten aufs Art-Pixel-Raster.
  */
-export const FLIP = {
-  ball: { scale: 0.11, ticks: 1, anchor: [256, 352] },
-  paddle: { scale: 0.18, ticks: 1, anchor: [256, 352] },
-  enemy: { scale: 0.1, ticks: 1, anchor: [256, 324] },
+export const SHATTER = {
+  flash: [3, 14], fade: [0.3, 1], drag: 0.93, jitter: 0.45, cross: 0.12, base: 0.25,
+  tint: { color: 'rgb(90,240,215)', alpha: 0.75 },
+  axis: { len: 12, alpha: 0.9, color: 'rgb(200,255,248)' },
+  ball: { len: 48, spread: 1.4 },
+  paddle: { len: 64, spread: 2.2 },
+  enemy: { len: 60, spread: 1.8 },
 };
 /**
  * Funken der Flipbook-Explosionen, additiv, Tuerkis passend zur Elektro-Zone: Striche (durch die Geschwindigkeit
@@ -74,8 +81,7 @@ export const BOOM = { len: 24, core: 13, glow: 34, coreAlpha: 1, glowAlpha: 0.85
 export class GameView {
   constructor(assets, fonts, board, audio, zap) {
     this.img = assets.img;
-    this.flip = assets.flip.anims;
-    this.flipPages = assets.flip.pages;
+    this.snap = null;             // kleiner Puffer zum Zerlegen der Sprites (Pixel-Zerfall)
     this.spin = fonts.spin;
     this.board = board;
     this.audio = audio;
@@ -194,7 +200,7 @@ export class GameView {
           this.audio.play('doorOpen', 0.6);
           break;
         case 'enemyKilled':
-          this.blast('enemy', ax(e.x), ay(e.y));
+          this.blast('enemy', ax(e.x), ay(e.y), { age: e.age });
           break;
         case 'ballLost': {
           // Bewegung je Frame aus der Ball-Spur: der Ball fliegt im Eingangswinkel weiter
@@ -209,12 +215,14 @@ export class GameView {
         case 'lifeLost': {
           this.paddleFade = { dir: -1, t: 0 };   // Schlaeger explodiert, Respawn nach BALL_LOST_FRAMES
           const p = session.field.paddle;
-          this.blast('paddle', (ax(p.left) + ax(p.right + 1)) / 2, 294.5);
+          this.blast('paddle', (ax(p.left) + ax(p.right + 1)) / 2, 294.5, { session });
           break;
         }
-        case 'ballVanish':
-          this.blast('ball', ax(e.x - 1), ay(e.y - 1));
+        case 'ballVanish': {
+          const c = this.ballCenter(e);
+          this.blast('ball', c.x, c.y, { mega: !!session.field.pierceBall });
           break;
+        }
         case 'roundClear':
           this.lightMode = 'clear';
           this.say('SELECT', -1, 126);
@@ -327,11 +335,24 @@ export class GameView {
     this.spawnSparks(x, y, { ...cfg, count: cfg.count.map((n) => n * scale) }, 0, -1, Math.PI * 2);
   }
 
-  /** Flipbook-Explosion kind ('ball' | 'paddle' | 'enemy', siehe FLIP/SHARDS) an (x, y): Animation plus Striche und Punkte. */
-  blast(kind, x, y) {
-    const f = FLIP[kind], c = SHARDS[kind];
+  /**
+   * Tod von kind ('ball' | 'paddle' | 'enemy', siehe SHATTER/SHARDS) mit Mitte (x, y): Pixel-Zerfall plus Striche
+   * und Punkte. opt: session (Schlaeger wie gezeichnet), age (Gegner-Frame), mega (Mega-Ball).
+   */
+  blast(kind, x, y, opt = {}) {
+    const c = SHARDS[kind], I = this.img;
     this.audio.play('explosion_' + kind, kind === 'enemy' ? 0.6 : 1);   // Gegner-WAV ist zu laut: 40 % leiser
-    this.effects.push({ type: 'flip', anim: kind, x, y, scale: f.scale, ticks: f.ticks, t: 0, len: this.flip[kind].frames.length * f.ticks });
+    if (kind === 'ball') {
+      const im = opt.mega && I.ballMega ? I.ballMega : I.ball, X = Math.round(x - 3), Y = Math.round(y - 3);
+      this.shatter(kind, x, y, X, Y, 6, 6, (g) => g.drawImage(im, X, Y, 6, 6));
+    } else if (kind === 'enemy') {
+      const fr = Math.floor((opt.age || 0) / 4) % 8, X = Math.round(x - 10), Y = Math.round(y - 12);
+      this.shatter(kind, x, y, X, Y, 20, 24, (g) => g.drawImage(I.enemy, 0, fr * 24, 20, 24, X, Y, 20, 24));
+    } else if (opt.session) {
+      this.shatter(kind, x, y, 0, 286, 240, 14, (g) => this.drawPaddle(g, 1, opt.session));
+    } else {
+      this.shatter(kind, x, y, 0, 286, 240, 14, (g) => this.drawPaddleBody(g, 1, x - 17, x + 17, 290, 0, 'normal'));
+    }
     const r = (a) => a[0] + Math.random() * (a[1] - a[0]);
     const spawn = (n, streak) => {
       for (let i = 0; i < n && this.sparks.length < SPARKS.max; i++) {
@@ -345,6 +366,59 @@ export class GameView {
     };
     spawn(Math.round(r(c.streaks)), true);
     spawn(Math.round(r(c.dots)), false);
+  }
+
+  /**
+   * Pixel-Zerfall anlegen: paint(g) zeichnet das Sprite in Art-Koordinaten, der Ausschnitt (x0, y0, w, h) wird
+   * einmal ausgelesen. Jedes deckende Pixel wird zweimal Partikel (Kopie A waagerecht, B senkrecht ab (cx, cy)).
+   */
+  shatter(kind, cx, cy, x0, y0, w, h, paint) {
+    const cfg = SHATTER[kind];
+    if (!this.snap) this.snap = document.createElement('canvas');
+    const cv = this.snap;
+    if (cv.width < w || cv.height < h) { cv.width = Math.max(cv.width, w); cv.height = Math.max(cv.height, h); }
+    const g = cv.getContext('2d', { willReadFrequently: true });
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
+    g.clearRect(0, 0, w, h);
+    g.imageSmoothingEnabled = false;
+    g.setTransform(1, 0, 0, 1, -x0, -y0);
+    paint(g);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    const data = g.getImageData(0, 0, w, h).data;
+    const pix = [];
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (let j = 0; j < h; j++) {
+      for (let i = 0; i < w; i++) {
+        const o = (j * w + i) * 4;
+        if (data[o + 3] < 24) continue;
+        pix.push(i, j, o);
+        minX = Math.min(minX, i); maxX = Math.max(maxX, i); minY = Math.min(minY, j); maxY = Math.max(maxY, j);
+      }
+    }
+    const m = pix.length / 3;
+    if (!m) return;
+    const n = 2 * m, px = new Float32Array(n), py = new Float32Array(n), vx = new Float32Array(n), vy = new Float32Array(n);
+    const col = new Array(n);
+    const hw = Math.max(1, cx - (x0 + minX), x0 + maxX + 1 - cx), hh = Math.max(1, cy - (y0 + minY), y0 + maxY + 1 - cy);
+    const rnd = () => Math.random() * 2 - 1;
+    const away = (d, half) => {
+      const dir = Math.abs(d) < 0.25 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(d);
+      return dir * (SHATTER.base + cfg.spread * Math.min(1, Math.abs(d) / half)) * (1 + SHATTER.jitter * rnd());
+    };
+    for (let k = 0; k < m; k++) {
+      const i = pix[3 * k], j = pix[3 * k + 1], o = pix[3 * k + 2];
+      const x = x0 + i, y = y0 + j;
+      const c = `rgba(${data[o]},${data[o + 1]},${data[o + 2]},${(data[o + 3] / 255).toFixed(2)})`;
+      px[k] = px[m + k] = x; py[k] = py[m + k] = y; col[k] = col[m + k] = c;
+      vx[k] = away(x + 0.5 - cx, hw); vy[k] = SHATTER.cross * rnd();             // A: waagerecht auseinander
+      vy[m + k] = away(y + 0.5 - cy, hh); vx[m + k] = SHATTER.cross * rnd();     // B: senkrecht auseinander
+    }
+    this.effects.push({
+      type: 'shatter', t: 0, len: cfg.len, n, px, py, vx, vy, col, sx: new Int16Array(n), sy: new Int16Array(n),
+      cx, cy, w: maxX - minX + 1, h: maxY - minY + 1,
+    });
   }
 
   // ---------------------------------------------------------------- pro Logik-Frame
@@ -585,7 +659,7 @@ export class GameView {
       const w = 24 * e.scale, h = 21 * e.scale;
       ctx.drawImage(I.explosion, 0, fr * 21, 24, 21, Math.round((e.x - w / 2) * S), Math.round((e.y - h / 2) * S), Math.round(w * S), Math.round(h * S));
     }
-    this.drawFlips(ctx, S);
+    this.drawShatters(ctx, S);
     this.drawBooms(ctx, S);
     this.drawSparks(ctx, S);
     this.board.drawDynamic(ctx, bs);
@@ -678,17 +752,52 @@ export class GameView {
     ctx.restore();
   }
 
-  /** Flipbook-Explosionen: beschnittene Frames aus dem Atlas, an FLIP[anim].anchor ausgerichtet, geglaettet verkleinert. */
-  drawFlips(ctx, S) {
+  /**
+   * Pixel-Zerfall (siehe SHATTER): Weg geschlossen aus der Bremsung, aufs Art-Raster gerundet. Drei Durchgaenge:
+   * Originalfarben, Weiss-Blitz darueber, Tuerkis-Schimmer additiv; dazu die Spaltlinien. Pixel fallen flackernd aus.
+   */
+  drawShatters(ctx, S) {
     let any = false;
+    const T = SHATTER, D = T.drag;
+    const hash = (i, k) => ((Math.imul(i ^ (k << 12), 0x9E3779B1) >>> 16) & 1023) / 1024;
     for (const e of this.effects) {
-      if (e.type !== 'flip') continue;
-      const frames = this.flip[e.anim].frames, [ax0, ay0] = FLIP[e.anim].anchor;
-      const [x, y, w, h, ox, oy, page] = frames[Math.min(frames.length - 1, Math.floor(e.t / e.ticks))];
-      if (!w) continue;
-      if (!any) { ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; any = true; }
-      const k = e.scale * S;
-      ctx.drawImage(this.flipPages[page], x, y, w, h, e.x * S + (ox - ax0) * k, e.y * S + (oy - ay0) * k, w * k, h * k);
+      if (e.type !== 'shatter') continue;
+      if (!any) { ctx.save(); any = true; }
+      const t = e.t, u = t / e.len, way = (1 - Math.pow(D, t)) / (1 - D);
+      const white = t < T.flash[0] ? 1 : Math.max(0, 1 - (t - T.flash[0]) / (T.flash[1] - T.flash[0]));
+      const v = Math.min(1, Math.max(0, (u - T.fade[0]) / (T.fade[1] - T.fade[0])));
+      const alpha = 1 - v * v, drop = 0.85 * v, tint = T.tint.alpha * 4 * v * (1 - v);
+      const { n, px, py, vx, vy, col, sx, sy } = e;
+      for (let i = 0; i < n; i++) {
+        sx[i] = hash(i, t >> 1) < drop ? -32768 : Math.round(px[i] + vx[i] * way);
+        sy[i] = Math.round(py[i] + vy[i] * way);
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = alpha;
+      for (let i = 0; i < n; i++) {
+        if (sx[i] === -32768) continue;
+        ctx.fillStyle = col[i];
+        ctx.fillRect(sx[i] * S, sy[i] * S, S, S);
+      }
+      const pass = (a, style) => {
+        ctx.globalAlpha = a;
+        ctx.fillStyle = style;
+        ctx.beginPath();
+        for (let i = 0; i < n; i++) if (sx[i] !== -32768) ctx.rect(sx[i] * S, sy[i] * S, S, S);
+        ctx.fill();
+      };
+      if (white > 0) pass(alpha * white, '#fff');
+      ctx.globalCompositeOperation = 'lighter';
+      if (tint > 0.01) pass(tint, T.tint.color);
+      if (t < T.axis.len) {
+        // Spaltlinien: senkrecht durch die Mitte (Kopie A), waagerecht (Kopie B), wachsen und verloeschen
+        const k = 1 - t / T.axis.len, grow = 1 + 1.4 * (t / T.axis.len);
+        ctx.globalAlpha = T.axis.alpha * k * k;
+        ctx.fillStyle = T.axis.color;
+        const lh = e.h * grow, lw = e.w * grow;
+        ctx.fillRect(Math.round(e.cx - 0.5) * S, Math.round((e.cy - lh / 2) * S), S, Math.round(lh * S));
+        ctx.fillRect(Math.round((e.cx - lw / 2) * S), Math.round(e.cy - 0.5) * S, Math.round(lw * S), S);
+      }
     }
     if (any) ctx.restore();
   }
