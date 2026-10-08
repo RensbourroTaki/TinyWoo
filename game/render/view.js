@@ -45,28 +45,24 @@ export const SPARKS = {
   max: 1400,
 };
 /**
- * Derez (Tron/Matrix/Beam statt Explosion): Ball, Schlaeger und Gegner werden im Moment des Todes einmal in Art-Pixel
- * zerlegt (getImageData auf einem kleinen Puffer). Ablauf:
- *  1. glitch Frames: Objekt friert ein, blitzt weiss (flash), Zeilen springen seitlich, Farbversatz Magenta/Tuerkis.
- *  2. Eine Scan-Front laeuft drueber (sweep 'h' = von der Mitte nach links/rechts, 'v' = von oben nach unten,
- *     'r' = von der Mitte nach aussen), front = Frames bis zum Rand, jitter = Zufallsverzoegerung je Pixel.
- *     Erst was die Front erreicht, loest sich auf - Pixel fuer Pixel in einer Kette, kein Wegsprengen.
- *  3. Jedes Pixel hat zwei Kopien: A treibt waagerecht vom Zentrum weg (a: spd Art-Px/Frame, acc Beschleunigung) und
- *     zieht eine Lichtspur (trail), B loest sich bDelay Frames spaeter und steigt auf (b.dir -1, Beam) bzw. rieselt
- *     herab (+1, Matrix-Regen). Frisch geloest hot Frames heiss-weiss, dann Originalfarbe mit Tuerkis-Schimmer,
- *     funkelt (twinkle) und erlischt nach life Frames.
- *  4. Nachgluehen (afterglow Frames) als duenne Linie, wo das Objekt war ('h').
+ * Derez als Teleport-Riss (Tron): Ball, Schlaeger und Gegner werden im Moment des Todes einmal in Art-Pixel zerlegt
+ * (getImageData auf einem kleinen Puffer). Die Form bleibt erhalten, kein Pixel fliegt frei - das Sprite wird von
+ * seiner Mitte aus auseinandergezogen:
+ *  1. hold Frames: Objekt friert ein, blitzt weiss, Farbversatz Magenta/Tuerkis.
+ *  2. jumps Rucke im Abstand every Frames: an der senkrechten Mittellinie reisst es auf (Rissblitz), linke Haelfte
+ *     springt nach links, rechte nach rechts (Spalt gap Art-Px), dabei waagerecht auf sx gedehnt (Pixel werden zu
+ *     Lichtstrichen), senkrecht nur auf sy (Zeilen ruecken zu Scanlines auseinander). Jeder Ruck: Weiss-Puls,
+ *     Tuerkis-Wischspur vom alten zum neuen Platz, Zeilen versetzt um bis zu tear Art-Px. Rucke werden kleiner
+ *     (decay), bis jerk des Gesamtwegs erreicht ist.
+ *  3. tail Frames: Rest des Wegs weich abgebremst, Farbe kuehlt nach Tuerkis ab, Helligkeit sinkt, Mittellinie
+ *     verglimmt, im letzten Drittel fallen einzelne Pixel flackernd aus, bis alles verstummt.
  */
 export const DEREZ = {
-  flash: [2, 9], hot: 3, twinkle: 0.1,
   hotColor: 'rgb(235,255,252)', cyan: 'rgb(90,240,215)', magenta: 'rgb(255,60,200)',
-  tint: 0.7, chroma: 0.55, trail: { count: 3, step: 2, alpha: 0.6 }, afterglow: 22,
-  paddle: { sweep: 'h', glitch: 7, front: 28, jitter: 4, life: [16, 28], bDelay: [2, 7],
-    a: { spd: [0.25, 0.8], acc: 0.02 }, b: { spd: [0.1, 0.4], acc: 0.018, dir: -1 } },
-  enemy: { sweep: 'v', glitch: 5, front: 20, jitter: 3, life: [14, 24], bDelay: [1, 5],
-    a: { spd: [0.2, 0.6], acc: 0.015 }, b: { spd: [0.2, 0.5], acc: 0.04, dir: 1 } },
-  ball: { sweep: 'r', glitch: 4, front: 8, jitter: 3, life: [12, 20], bDelay: [1, 4],
-    a: { spd: [0.2, 0.6], acc: 0.015 }, b: { spd: [0.15, 0.45], acc: 0.02, dir: -1 } },
+  chroma: 0.6, smear: 0.4, cool: 0.55, line: 0.4,
+  paddle: { hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 10, sx: 2.2, sy: 1.5, tear: 2, tail: 24 },
+  enemy:  { hold: 3, jumps: 4, every: 3, decay: 0.55, jerk: 0.8, gap: 7, sx: 2.6, sy: 1.3, tear: 1.5, tail: 22 },
+  ball:   { hold: 2, jumps: 3, every: 2, decay: 0.5, jerk: 0.8, gap: 4, sx: 3, sy: 1.5, tear: 1, tail: 18 },
 };
 /**
  * Lichtblitz ueber jeder Explosion (additiv): heisser Kern, grosser oranger Schein und ein Druckring.
@@ -352,7 +348,7 @@ export class GameView {
 
   /**
    * Derez anlegen: paint(g) zeichnet das Sprite in Art-Koordinaten, der Ausschnitt (x0, y0, w, h) wird einmal
-   * ausgelesen. Jedes deckende Pixel wird zweimal Partikel: Index k = Kopie A, m + k = Kopie B (siehe DEREZ).
+   * ausgelesen. Jedes deckende Pixel merkt sich Farbe und Abstand (dx, dy) zur Mitte (siehe DEREZ).
    */
   shatter(kind, cx, cy, x0, y0, w, h, paint) {
     const cfg = DEREZ[kind];
@@ -381,32 +377,17 @@ export class GameView {
     }
     const m = pix.length / 3;
     if (!m) return;
-    const n = 2 * m;
-    const px = new Int16Array(n), py = new Int16Array(n), rel = new Float32Array(n), life = new Float32Array(n);
-    const spd = new Float32Array(n), dir = new Int8Array(n), col = new Array(n);
+    const dx = new Float32Array(m), dy = new Float32Array(m), row = new Int16Array(m), col = new Array(m);
     const left = x0 + minX, top = y0 + minY, bw = maxX - minX + 1, bh = maxY - minY + 1;
-    const hw = Math.max(1, cx - left, left + bw - cx), hh = Math.max(1, cy - top, top + bh - cy);
-    const r = (a) => a[0] + Math.random() * (a[1] - a[0]);
-    let end = 0;
     for (let k = 0; k < m; k++) {
       const i = pix[3 * k], j = pix[3 * k + 1], o = pix[3 * k + 2];
-      const x = x0 + i, y = y0 + j, dx = x + 0.5 - cx, dy = y + 0.5 - cy;
-      const d = cfg.sweep === 'h' ? Math.abs(dx) / hw : cfg.sweep === 'v' ? (y - top + 0.5) / bh
-        : Math.min(1, Math.hypot(dx / hw, dy / hh) / Math.SQRT2);
-      const c = `rgba(${data[o]},${data[o + 1]},${data[o + 2]},${(data[o + 3] / 255).toFixed(2)})`;
-      px[k] = px[m + k] = x; py[k] = py[m + k] = y; col[k] = col[m + k] = c;
-      rel[k] = cfg.glitch + cfg.front * Math.min(1, d) + cfg.jitter * Math.random();
-      rel[m + k] = rel[k] + r(cfg.bDelay);
-      life[k] = r(cfg.life); life[m + k] = r(cfg.life);
-      dir[k] = Math.abs(dx) < 0.25 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(dx);   // A: weg vom Zentrum
-      dir[m + k] = cfg.b.dir;                                                            // B: Beam hoch / Regen runter
-      spd[k] = r(cfg.a.spd); spd[m + k] = r(cfg.b.spd);
-      end = Math.max(end, rel[m + k] + life[m + k], rel[k] + life[k] + DEREZ.trail.count * DEREZ.trail.step);
+      dx[k] = x0 + i + 0.5 - cx; dy[k] = y0 + j + 0.5 - cy; row[k] = y0 + j;
+      col[k] = `rgba(${data[o]},${data[o + 1]},${data[o + 2]},${(data[o + 3] / 255).toFixed(2)})`;
     }
-    const len = Math.ceil(Math.max(end, cfg.sweep === 'h' ? cfg.glitch + cfg.front + DEREZ.afterglow : 0)) + 1;
+    const hw = Math.max(1, cx - left, left + bw - cx), hh = Math.max(1, cy - top, top + bh - cy);
     this.effects.push({
-      type: 'derez', kind, t: 0, len, n, m, px, py, rel, life, spd, dir, col,
-      accA: cfg.a.acc, accB: cfg.b.acc, cx, cy, left, top, w: bw, h: bh, hw, hh,
+      type: 'derez', kind, t: 0, len: cfg.hold + cfg.jumps * cfg.every + cfg.tail + 1,
+      m, dx, dy, row, col, cx, cy, hw, hh, seed: (Math.random() * 4096) | 0,
     });
   }
 
@@ -732,96 +713,76 @@ export class GameView {
   }
 
   /**
-   * Derez (siehe DEREZ): intakte Pixel in Originalfarbe (Glitch-Zeilen, Weiss-Blitz, Farbversatz), geloeste Pixel
-   * treiben (A) bzw. steigen/rieseln (B), heisse und funkelnde Pixel weiss, Tuerkis-Schimmer und Spuren additiv in
-   * vier Helligkeitsstufen gebuendelt (je Stufe ein fill), dazu Scan-Front und Nachgluehen. Alles aufs Art-Raster.
+   * Derez als Teleport-Riss (siehe DEREZ): die Pixel behalten ihre Anordnung und werden je Ruck von der Mitte weg
+   * versetzt, waagerecht gedehnt (Lichtstriche) und senkrecht leicht gespreizt (Scanlines). Weiss-Puls, Wischspur und
+   * Abkuehlen nach Tuerkis additiv (je Ebene ein fill), dazu Rissblitz und Mittellinie. Alles aufs Art-Raster.
    */
   drawDerez(ctx, S) {
     let any = false;
-    const Z = DEREZ, TR = Z.trail, NB = 4;
+    const Z = DEREZ;
     const hash = (i, k) => ((Math.imul(i ^ (k << 12), 0x9E3779B1) >>> 16) & 1023) / 1024;
-    const L = this.derezLists || (this.derezLists = { glow: [[], [], [], []], hot: [], intact: [] });
-    const fill = (list, style, a, dx = 0) => {
-      if (!list.length || a <= 0) return;
+    const L = this.derezLists || (this.derezLists = { cur: [], smear: [] });
+    const rects = (list, style, a, ox = 0) => {   // list = [x, y, w, ...] in Art-Pixeln, Hoehe 1
+      if (!list.length || a <= 0.01) return;
       ctx.globalAlpha = Math.min(1, a);
       ctx.fillStyle = style;
       ctx.beginPath();
-      for (let i = 0; i < list.length; i += 2) ctx.rect((list[i] + dx) * S, list[i + 1] * S, S, S);
+      for (let i = 0; i < list.length; i += 3) ctx.rect((list[i] + ox) * S, list[i + 1] * S, list[i + 2] * S, S);
       ctx.fill();
-    };
-    const bar = (x, y, w, h) => {   // Scan-Front: heisser Kern, Tuerkis-Schein drumherum
-      ctx.globalAlpha = 0.35; ctx.fillStyle = Z.cyan;
-      ctx.fillRect(Math.round(x - (w === 1 ? 1 : 0)) * S, Math.round(y - (h === 1 ? 1 : 0)) * S, (w === 1 ? 3 : w) * S, (h === 1 ? 3 : h) * S);
-      ctx.globalAlpha = 1; ctx.fillStyle = Z.hotColor;
-      ctx.fillRect(Math.round(x) * S, Math.round(y) * S, w * S, h * S);
     };
     for (const e of this.effects) {
       if (e.type !== 'derez') continue;
       if (!any) { ctx.save(); any = true; }
-      const cfg = Z[e.kind], t = e.t, glitching = t < cfg.glitch;
-      const white = t < Z.flash[0] ? 1 : Math.max(0, 1 - (t - Z.flash[0]) / (Z.flash[1] - Z.flash[0]));
-      for (const b of L.glow) b.length = 0;
-      L.hot.length = 0; L.intact.length = 0;
-      const glow = (v, x, y) => { if (v > 0.03) L.glow[Math.min(NB - 1, Math.floor(v * NB))].push(x, y); };
-      const { n, m, px, py, rel, life, spd, dir, col } = e;
+      const c = Z[e.kind], t = e.t, jerkEnd = c.hold + c.jumps * c.every;
+      // Weg (0..1) nach Ruck j: Spruenge werden geometrisch kleiner, bis jerk erreicht ist
+      const at = (j) => (j <= 0 ? 0 : c.jerk * (1 - Math.pow(c.decay, j)) / (1 - Math.pow(c.decay, c.jumps)));
+      let j, since, u = 0, p;
+      if (t < c.hold) { j = 0; since = -1; p = 0; }
+      else if (t < jerkEnd) { j = Math.floor((t - c.hold) / c.every) + 1; since = (t - c.hold) % c.every; p = at(j); }
+      else { j = c.jumps; since = 99; u = Math.min(1, (t - jerkEnd) / c.tail); p = c.jerk + (1 - c.jerk) * (1 - Math.pow(1 - u, 3)); }
+      const fade = (1 - u) * (1 - u);
+      const hot = t < c.hold ? 1 : since === 0 ? 0.75 : since === 1 ? 0.3 : 0;
+      const sy = 1 + (c.sy - 1) * p, w = Math.max(1, Math.round(1 + (c.sx - 1) * p));
+      const tearK = c.tear * Math.min(1, p / 0.3) * (1 - u);
+      const xAt = (k, pp, jj) => {
+        const tr = jj > 0 ? (hash(e.row[k] + e.seed, jj) - 0.5) * 2 * tearK : 0;   // Zeilenversatz je Ruck
+        return Math.round(e.cx + e.dx[k] * (1 + (c.sx - 1) * pp) + (e.dx[k] < 0 ? -1 : 1) * c.gap * pp + tr);
+      };
+      const cur = L.cur, sm = L.smear;
+      cur.length = 0; sm.length = 0;
+      const smearing = since === 0 || since === 1, pPrev = at(j - 1);
+      const drop = u > 0.6 ? (u - 0.6) / 0.4 : 0;   // im letzten Drittel fallen Pixel flackernd aus
       ctx.globalCompositeOperation = 'source-over';
-      for (let i = 0; i < n; i++) {
-        const isB = i >= m, a = t - rel[i];
-        if (a < 0) {
-          // noch intakt: Kopie A zeichnet das Pixel, B bleibt als Geist stehen, wenn A schon weg ist
-          if (isB && t < rel[i - m]) continue;
-          let x = px[i];
-          const y = py[i];
-          if (glitching && hash(y, t >> 1) < 0.3) x += (hash(y, t + 77) < 0.5 ? -1 : 1) * (hash(y, t + 13) < 0.3 ? 2 : 1);
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = col[i];
-          ctx.fillRect(x * S, y * S, S, S);
-          L.intact.push(x, y);
-          if (a > -3 && !glitching) glow(0.9 * (1 + a / 3), x, y);   // die Front heizt vor
-          continue;
+      ctx.globalAlpha = fade;
+      for (let k = 0; k < e.m; k++) {
+        if (drop && hash(k + e.seed, t >> 1) < drop) continue;
+        const X = xAt(k, p, j), Y = Math.round(e.cy + e.dy[k] * sy);
+        ctx.fillStyle = e.col[k];
+        ctx.fillRect(X * S, Y * S, w * S, S);
+        cur.push(X, Y, w);
+        if (smearing) {
+          const X0 = xAt(k, pPrev, j - 1), a = Math.min(X0, X);
+          sm.push(a, Y, Math.max(X0, X) + w - a);
         }
-        const acc = isB ? e.accB : e.accA, sp = spd[i], d = dir[i], lf = life[i];
-        if (!isB) {
-          // Lichtspur hinter Kopie A: zurueckliegende Positionen, blasser
-          for (let k = 1; k <= TR.count; k++) {
-            const s = a - k * TR.step;
-            if (s < 0) break;
-            if (s >= lf) continue;
-            glow(TR.alpha * (1 - k / (TR.count + 1)) * (1 - s / lf), Math.round(px[i] + d * (sp * s + acc * s * s)), py[i]);
-          }
-        }
-        const q = a / lf;
-        if (q >= 1) continue;
-        const o = Math.round(d * (sp * a + acc * a * a));
-        const x = isB ? px[i] : px[i] + o, y = isB ? py[i] + o : py[i];
-        if (a < Z.hot || hash(i, t) < Z.twinkle) { L.hot.push(x, y); continue; }
-        ctx.globalAlpha = (1 - q) * (1 - q);
-        ctx.fillStyle = col[i];
-        ctx.fillRect(x * S, y * S, S, S);
-        glow(Z.tint * (1 - q), x, y);
       }
-      fill(L.intact, '#fff', white);
       ctx.globalCompositeOperation = 'lighter';
-      if (glitching) {
-        const k = Z.chroma * (1 - t / cfg.glitch);
-        fill(L.intact, Z.magenta, k, -1);
-        fill(L.intact, Z.cyan, k, 1);
+      if (t < c.hold) {
+        const k = Z.chroma * (1 - t / c.hold);
+        rects(cur, Z.magenta, k, -1);
+        rects(cur, Z.cyan, k, 1);
       }
-      fill(L.hot, Z.hotColor, 1);
-      for (let b = 0; b < NB; b++) fill(L.glow[b], Z.cyan, (b + 0.5) / NB);
-      const f = (t - cfg.glitch) / cfg.front;
-      if (cfg.sweep === 'h') {
-        const span = Math.min(1, Math.max(0, f)) * e.hw;
-        const ta = t - cfg.glitch - cfg.front;
-        // Nachgluehen: duenne Linie im schon geloesten Bereich, verlischt nach dem Durchlauf
-        const k = ta < 0 ? 0.45 : 0.45 * Math.pow(Math.max(0, 1 - ta / Z.afterglow), 2);
-        if (f > 0 && k > 0) {
-          ctx.globalAlpha = k; ctx.fillStyle = Z.cyan;
-          ctx.fillRect(Math.round(e.cx - span) * S, Math.round(e.cy) * S, Math.round(2 * span) * S, S);
-        }
-        if (f >= 0 && f <= 1) { bar(e.cx - span, e.top - 2, 1, e.h + 4); bar(e.cx + span, e.top - 2, 1, e.h + 4); }
-      } else if (cfg.sweep === 'v' && f >= 0 && f <= 1) {
-        bar(e.left - 2, e.top + f * e.h, e.w + 4, 1);
+      if (smearing) rects(sm, Z.cyan, Z.smear * (since === 0 ? 1 : 0.4));
+      rects(cur, Z.hotColor, hot);
+      rects(cur, Z.cyan, Z.cool * (0.3 * p + 0.7 * u) * fade);
+      // Rissblitz in der Mitte beim ersten Ruck, danach Mittellinie ueber die ganze Breite, verglimmt mit
+      if (j === 1 && smearing) {
+        ctx.globalAlpha = since === 0 ? 0.9 : 0.4; ctx.fillStyle = Z.hotColor;
+        ctx.fillRect(Math.round(e.cx) * S, Math.round(e.cy - e.hh * sy) * S, S, Math.round(2 * e.hh * sy) * S);
+      }
+      if (t >= c.hold) {
+        const span = e.hw * (1 + (c.sx - 1) * p) + c.gap * p;
+        ctx.globalAlpha = Z.line * fade; ctx.fillStyle = Z.cyan;
+        ctx.fillRect(Math.round(e.cx - span) * S, Math.floor(e.cy) * S, Math.round(2 * span) * S, S);
       }
     }
     if (any) ctx.restore();
