@@ -34,6 +34,13 @@ const MENU_Y = [116, 142, 168, 194];   // Zeilen fuer die Menueschrift (3/4 Groe
 const GLOW = { alpha: 0.6, fade: 0.2 };
 /** Eigener Mauszeiger (menu/cursor.png): Pixelgroesse = Spielpixel; F8/F9 (nur DEV_KEYS) aendern sie um 1 Geraete-Pixel. */
 const CURSOR = { minus: 'F8', plus: 'F9' };
+/**
+ * START GAME: die App uebernimmt den Zeiger und fliegt ihn weich zum Ball (Spitze auf x, y in Art-Pixeln) und dreht
+ * ihn dabei um angle Grad, bis die Spitze nach unten zeigt und die lange Kante oben waagerecht liegt.
+ * frames = Flugdauer, turn = Anteil davon fuer die Drehung, bob = leichtes Schweben danach (Art-Px, Tempo).
+ * Ausblenden ueber fade Frames, beginnt lead Frames vor dem Spielstart (Schlaeger-Beam laeuft schon an), sink = Absenken dabei.
+ */
+const CURSOR_FLY = { x: 120, y: 282, angle: -135, frames: 60, turn: 0.85, bob: 1.5, bobSpeed: 0.08, fade: 20, lead: 12, sink: 2 };
 /** Hinweiszeile unter dem Menue (Pixelschrift): Text, Art-y, Blinktakt in Frames (an + aus), Font-Pixel S - shrink. */
 const HINT = { text: 'No Coins Needed!', y: 240, period: 60, shrink: 1 };
 /** Credits in der Pixelschrift (wie die Hinweiszeile): { h } = Ueberschrift in CREDITS_Y.color, '' = kleiner Abstand. */
@@ -107,6 +114,7 @@ export class DaiganoidApp {
     this.god = false;           // God Mode (DEV_KEYS), bleibt ueber Level-Wechsel erhalten
     this.godKeyHeld = false;
     this.cursorStep = 0;        // Zeigergroesse relativ zu S (F8/F9)
+    this.cursorFly = null;      // { x, y, t, fade } Zeiger fliegt nach START GAME zum Ball (CURSOR_FLY)
     this.scores = typeof opts.scores === 'function' ? opts.scores : loadScores;
     this.hi = 0;
     this.syncHi();
@@ -291,6 +299,12 @@ export class DaiganoidApp {
       }
     }
     if (this.input) this.input.lockReady = this.state === 'game' && !this.paused;
+    const fly = this.cursorFly;
+    if (fly) {
+      fly.t++;
+      if (fly.fade >= 0 && ++fly.fade >= CURSOR_FLY.fade) this.cursorFly = null;
+      if (this.state !== 'menu' && this.state !== 'starting' && this.state !== 'game') this.cursorFly = null;
+    }
     switch (this.state) {
       case 'intro': this.tickIntro(keys, clicks); break;
       case 'menu': this.tickMenu(keys, clicks); break;
@@ -403,6 +417,8 @@ export class DaiganoidApp {
     if (target === 'starting') {
       this.bs.phaserFrame = -1;   // Phaser aus, im Spiel schaltet ihn nur das Deflector-Item ein
       this.audio.fadeOutMusic();  // Menue-Musik blendet waehrend der Startsequenz aus
+      // sichtbarer Zeiger wird uebernommen und fliegt zum Ball (CURSOR_FLY)
+      if (this.cursorShown()) this.cursorFly = { x: this.input.pointerArt.x, y: this.input.pointerArt.y, t: 0, fade: -1 };
     }
     this.leaveTo(target, this.menuIndex);
   }
@@ -476,6 +492,7 @@ export class DaiganoidApp {
       bs.doorTop = [0, 0]; bs.topLight = [0, 0]; bs.doorLeft = 0; bs.doorRight = 0;
       this.idleLights();
     }
+    if (t === 90 - CURSOR_FLY.lead && this.cursorFly) this.cursorFly.fade = 0;
     if (t >= 90) this.startGame();
   }
 
@@ -618,12 +635,40 @@ export class DaiganoidApp {
    * die Maus). Da der Schlaeger der Maus 1:1 folgt, taucht der Zeiger nach Game Over/Pause genau dort wieder auf.
    */
   drawCursor(ctx, S) {
-    const inp = this.input, im = this.assets && this.assets.img.cursor;
-    if (!inp || !im || !inp.pointerInside || !inp.pointerArt || inp.locked) return;
-    if (this.state === 'loading' || (this.state === 'game' && !this.paused)) return;
+    const im = this.assets && this.assets.img.cursor;
+    if (this.cursorFly && im) { this.drawFlyingCursor(ctx, S, im); return; }
+    if (!this.cursorShown()) return;
+    const inp = this.input;
     const px = Math.max(1, S + this.cursorStep);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(im, Math.round(inp.pointerArt.x * S), Math.round(inp.pointerArt.y * S), im.width * px, im.height * px);
+  }
+
+  /** Steht der eigene Zeiger gerade an der Mausposition im Bild? */
+  cursorShown() {
+    const inp = this.input, im = this.assets && this.assets.img.cursor;
+    if (!inp || !im || !inp.pointerInside || !inp.pointerArt || inp.locked) return false;
+    return this.state !== 'loading' && !(this.state === 'game' && !this.paused);
+  }
+
+  /** Zeiger nach START GAME: fliegt weich zum Ball, dreht die Spitze nach unten, schwebt, blendet aus (CURSOR_FLY). */
+  drawFlyingCursor(ctx, S, im) {
+    const f = this.cursorFly, C = CURSOR_FLY;
+    const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(2 - 2 * k, 3) / 2);
+    const move = ease(Math.min(1, f.t / C.frames));
+    const turn = ease(Math.min(1, f.t / (C.frames * C.turn)));
+    const hover = Math.max(0, f.t - C.frames);
+    const fade = f.fade < 0 ? 0 : f.fade / C.fade;
+    const x = f.x + (C.x - f.x) * move;
+    const y = f.y + (C.y - f.y) * move - (1 - Math.cos(hover * C.bobSpeed)) * C.bob + fade * fade * C.sink;
+    const px = Math.max(1, S + this.cursorStep);
+    ctx.save();
+    ctx.globalAlpha = 1 - fade;
+    ctx.imageSmoothingEnabled = false;
+    ctx.translate(Math.round(x * S), Math.round(y * S));   // Drehpunkt = Spitze (Bildecke oben links)
+    ctx.rotate(C.angle * turn * Math.PI / 180);
+    ctx.drawImage(im, 0, 0, im.width * px, im.height * px);
+    ctx.restore();
   }
 
   drawFront(ctx, S) {
