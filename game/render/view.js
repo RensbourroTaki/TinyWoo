@@ -50,16 +50,16 @@ export const SPARKS = {
  * senkrechten Mittelachse nach links/rechts auseinander, Kopie B von der waagerechten nach oben/unten. Aussen
  * schneller als innen (spread Art-Px/Frame am Rand, base in der Mitte, jitter = Zufall, cross = Querdrift), Bremsung
  * drag. Ablauf: reinweiss (flash[0] Frames), weiss blendet bis flash[1] ins Originalbild, ab fade[0] (Anteil von len)
- * Ausblenden + Pixel fallen flackernd aus, dabei Tuerkis-Schimmer (tint, additiv). axis = leuchtende Spaltlinien
+ * Ausblenden (erst schnell, dann sanft: (1-v)^2) + Pixel fallen flackernd aus, dabei Tuerkis-Schimmer (tint, additiv). axis = leuchtende Spaltlinien
  * (Laenge = Sprite x [1, 2.4]) in den ersten axis.len Frames. Positionen rasten aufs Art-Pixel-Raster.
  */
 export const SHATTER = {
-  flash: [3, 14], fade: [0.3, 1], drag: 0.93, jitter: 0.45, cross: 0.12, base: 0.25,
+  flash: [3, 14], fade: [0.05, 1], drag: 0.93, jitter: 0.45, cross: 0.12, base: 0.4,
   tint: { color: 'rgb(90,240,215)', alpha: 0.75 },
   axis: { len: 12, alpha: 0.9, color: 'rgb(200,255,248)' },
-  ball: { len: 48, spread: 1.4 },
-  paddle: { len: 64, spread: 2.2 },
-  enemy: { len: 60, spread: 1.8 },
+  ball: { len: 48, spread: 2.6 },
+  paddle: { len: 64, spread: 4 },
+  enemy: { len: 60, spread: 3.3 },
 };
 /**
  * Funken der Flipbook-Explosionen, additiv, Tuerkis passend zur Elektro-Zone: Striche (durch die Geschwindigkeit
@@ -68,7 +68,7 @@ export const SHATTER = {
  */
 export const SHARDS = {
   colors: [[255, 255, 255], [200, 255, 248], [90, 240, 215], [30, 170, 130]],
-  stretch: 2.4, width: 0.6, gravity: 0.05, drag: 0.94, dotDrag: 0.975,
+  stretch: 0.8, width: 0.6, gravity: 0.05, drag: 0.94, dotDrag: 0.975,
   ball: { streaks: [36, 52], dots: [50, 74], speed: [1.6, 5.5], life: [18, 42], spread: 2, lift: 0.8 },
   paddle: { streaks: [130, 170], dots: [170, 230], speed: [1.6, 7.5], life: [24, 70], spread: 30, lift: 1.2 },
   enemy: { streaks: [50, 70], dots: [70, 100], speed: [1.6, 6], life: [20, 50], spread: 12, lift: 1.0 },
@@ -766,7 +766,7 @@ export class GameView {
       const t = e.t, u = t / e.len, way = (1 - Math.pow(D, t)) / (1 - D);
       const white = t < T.flash[0] ? 1 : Math.max(0, 1 - (t - T.flash[0]) / (T.flash[1] - T.flash[0]));
       const v = Math.min(1, Math.max(0, (u - T.fade[0]) / (T.fade[1] - T.fade[0])));
-      const alpha = 1 - v * v, drop = 0.85 * v, tint = T.tint.alpha * 4 * v * (1 - v);
+      const alpha = (1 - v) * (1 - v), drop = 0.85 * v, tint = T.tint.alpha * 4 * v * (1 - v);
       const { n, px, py, vx, vy, col, sx, sy } = e;
       for (let i = 0; i < n; i++) {
         sx[i] = hash(i, t >> 1) < drop ? -32768 : Math.round(px[i] + vx[i] * way);
