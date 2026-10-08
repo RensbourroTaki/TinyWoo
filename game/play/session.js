@@ -14,6 +14,7 @@ import { ITEMS, ITEM_H, ITEM_W, LEVEL_ITEMS, pickItem, resolveSurprise } from '.
 export const Phase = Object.freeze({
   INTRO: 'intro',        // Steine erscheinen, Schlaeger fliegt ein
   READY: 'ready',        // LEVEL NN / Name
+  SPAWN: 'spawn',        // nach Leben-Verlust: Schlaeger beamt sich ein (beweglich), Ball noch verborgen
   PLAYING: 'playing',
   BALL_LOST: 'ballLost', // letzter Ball im Phaser
   EXIT: 'exit',          // Portale offen, Spieler waehlt links/rechts
@@ -26,6 +27,7 @@ export const START_LIVES = 3;
 export const INTRO_FRAMES = 110;
 export const READY_FRAMES = 200;   // LEVEL NN / Name in der Drehschrift mit langsamem Ausdrehen
 export const BALL_LOST_FRAMES = 78;   // 1,3 s nach dem Ballverlust, dann Schlaeger + Ball direkt (ohne Intro/Ansage)
+export const SPAWN_FRAMES = 30;       // Dauer des Schlaeger-Beams (view.js: Frame 0 vier Ticks, 13 Frames je zwei Ticks)
 export const EXITING_FRAMES = 80;
 export const MEGA_FRAMES = 600;
 export const DEFLECTOR_FRAMES = 600;       // Deflector (xl-Item) 10 s aktiv
@@ -89,6 +91,7 @@ export class GameSession {
     this.paddleEntrySide = 1;  // Einflug von links (-1) oder rechts (+1)
     this.ballsHidden = true;   // Baelle noch nicht sichtbar (INTRO)
     this.god = false;          // God Mode (Test): verlorene Baelle kosten kein Leben
+    this.spawnX = null;        // Schlaeger-Mitte (Logik) fuer den ersten Spawn eines Spiels, sonst bleibt er, wo er ist
   }
 
   /** Zufall [0,1) aus 24 Bits der Kern-Zufallsquelle (deterministisch pro Seed). */
@@ -102,8 +105,12 @@ export class GameSession {
 
   // ---------------------------------------------------------------- Ablauf
 
-  /** Neues Spiel ab Runde round (0-basiert), Variante variant (0 links, 1 rechts); Normalfall Runde 1 links. */
-  startGame(round = 0, variant = 0) {
+  /**
+   * Neues Spiel ab Runde round (0-basiert), Variante variant (0 links, 1 rechts); Normalfall Runde 1 links.
+   * spawnX = Schlaeger-Mitte (Logik-X) beim ersten Spawn, z. B. die Mausposition.
+   */
+  startGame(round = 0, variant = 0, spawnX = FIELD_CENTER) {
+    this.spawnX = spawnX;
     this.round = round;
     this.variant = variant;
     this.score = 0;
@@ -147,15 +154,14 @@ export class GameSession {
   }
 
   /**
-   * Schlaeger in die Mitte, normaler Typ, neuer klebender Ball (Original-Rundenstart).
-   * newRound: Intro (Steine, Beam) und Ansage LEVEL NN / Name. Nach einem Leben-Verlust (false) geht es
-   * sofort weiter: Ball klebt auf dem Schlaeger, Abschuss per Feuer oder automatisch wie beim Rundenstart.
+   * Normaler Schlaeger an Ort und Stelle (erster Spawn: spawnX), neuer klebender Ball (Original-Rundenstart).
+   * Jeder Spawn beamt den Schlaeger ein, er bleibt dabei beweglich. newRound: Intro (Steine, Beam) und Ansage
+   * LEVEL NN / Name. Nach einem Leben-Verlust (false) nur der Beam (SPAWN), dann klebt der Ball auf dem Schlaeger,
+   * Abschuss per Feuer oder automatisch wie beim Rundenstart.
    */
   resetRound(newRound) {
-    const p = this.field.paddle;
-    p.center = FIELD_CENTER;
-    p.setTypeImmediate(PaddleType.NORMAL);
-    p.delta = 0;
+    this.placePaddle(this.spawnX ?? this.field.paddle.center);
+    this.spawnX = null;
     this.field.pierceBall = 0;
     this.pierceFrames = 0;
     this.laser = 0;
@@ -165,10 +171,22 @@ export class GameSession {
     this.field.difficulty = difficulty(this.round);
     this.field.startRound(startSpeed(this.round), minSpeed(this.round));
     this.paddleEntrySide = this.random() < 0.5 ? -1 : 1;
-    this.ballsHidden = newRound;
-    this.phase = newRound ? Phase.INTRO : Phase.PLAYING;
-    this.phaseTimer = INTRO_FRAMES;
+    this.ballsHidden = true;
+    this.phase = newRound ? Phase.INTRO : Phase.SPAWN;
+    this.phaseTimer = newRound ? INTRO_FRAMES : SPAWN_FRAMES;
     this.emit('roundStart', { round: this.round, variant: this.variant, newRound });
+  }
+
+  /** Normaler Schlaeger mit Mitte x (Logik), an den Raendern so verschoben, dass er ins Feld passt. */
+  placePaddle(x) {
+    const f = this.field, p = f.paddle;
+    p.center = Math.round(x) & 0xFF;
+    p.setTypeImmediate(PaddleType.NORMAL);
+    let d = 0;
+    if (p.left < FIELD_LEFT) d = FIELD_LEFT - p.left;
+    else if (p.right > f.paddleRightLimit) d = f.paddleRightLimit - p.right;
+    if (d) { p.center = (p.center + d) & 0xFF; p.setTypeImmediate(PaddleType.NORMAL); }
+    p.delta = 0;
   }
 
   /**
@@ -181,6 +199,8 @@ export class GameSession {
     const f = this.field;
     switch (this.phase) {
       case Phase.INTRO:
+        f.movePaddle(paddleDelta & 0xFF);   // Beam und Schlaeger gehen mit der Maus mit
+        this.stickBallsToPaddle();
         if (--this.phaseTimer <= 0) {
           this.phase = Phase.READY;
           this.phaseTimer = READY_FRAMES;
@@ -195,6 +215,15 @@ export class GameSession {
         if (--this.phaseTimer <= 0) {
           this.phase = Phase.PLAYING;
           this.emit('go');
+        }
+        break;
+
+      case Phase.SPAWN:
+        f.movePaddle(paddleDelta & 0xFF);
+        this.stickBallsToPaddle();
+        if (--this.phaseTimer <= 0) {
+          this.phase = Phase.PLAYING;
+          this.ballsHidden = false;
         }
         break;
 

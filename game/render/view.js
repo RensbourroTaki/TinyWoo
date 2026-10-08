@@ -22,8 +22,6 @@ const ITEM_FRAMES = [0, 1, 2, 3, 4, 5, 5, 5, 5, 6, 7, 8, 9];   // 6. Frame vierm
 
 /** Ball-Glow (additiv, Radius in Art-Pixeln ab Ballmitte; Ball selbst = 3) und roter Rand des Mega-Balls. */
 export const BALL_GLOW = { radius: 4.6, alpha: 0.42, color: [150, 235, 255], mega: [255, 40, 20], megaBlur: 2.2, megaAlpha: 0.9 };
-/** Schlaeger nach Leben-Verlust: Ausblenden (Frames, 0 = sofort weg, er explodiert) und ruhiges Einblenden beim Respawn mit klebendem Ball. */
-export const PADDLE_FADE = { out: 0, in: 24 };
 
 /**
  * Abprall-Toene harmonisch: alles aus einem Sample (paddle.wav = Grundton C), Schlaeger = C, jeder Stein-Treffer
@@ -92,9 +90,9 @@ export class GameView {
     this.tick = 0;
     this.introBricks = null;      // Erscheinungszeit je Zelle
     this.introTimer = 0;
-    this.beamFrame = -1;
+    this.beamFrame = -1;          // Schlaeger-Beam (jeder Spawn), folgt der Schlaegermitte
+    this.beamTimer = 0;
     this.paddleVisible = true;
-    this.paddleFade = null;       // { dir: -1 aus / 1 ein, t } nach Leben-Verlust
     this.lostBall = null;         // { x, y, vx, vy, t } Ball fliegt in seinem Winkel in die Elektro-Zone
     this.phaserFlash = 0;
     this.lightMode = 'idle';      // idle | flicker | clear
@@ -215,7 +213,7 @@ export class GameView {
           break;
         }
         case 'lifeLost': {
-          this.paddleFade = { dir: -1, t: 0 };   // Schlaeger explodiert, Respawn nach BALL_LOST_FRAMES
+          this.paddleVisible = false;   // Schlaeger explodiert, Respawn (Beam) nach BALL_LOST_FRAMES
           const p = session.field.paddle;
           this.blast('paddle', (ax(p.left) + ax(p.right + 1)) / 2, 294.5, { session });
           break;
@@ -257,28 +255,24 @@ export class GameView {
     }
   }
 
-  /** Nach einem Leben-Verlust: keine Ansage, kein Beam; Schlaeger und klebender Ball blenden ruhig ein. */
+  /** Nach einem Leben-Verlust: keine Ansage, nur derselbe Beam wie beim Levelstart (geht mit dem Schlaeger mit). */
   respawn() {
     for (const a of this.announces) a.stop();
     this.queue = [];
     this.lostBall = null;
     this.trails = [];
-    this.beamFrame = -1;
-    this.paddleVisible = true;
-    this.paddleFade = { dir: 1, t: 0 };
+    this.startBeam();
+  }
+
+  /** Schlaeger-Beam starten: Schlaeger erst sichtbar, wenn der Beam durch ist. */
+  startBeam() {
+    this.paddleVisible = false;
+    this.beamFrame = 0;
+    this.beamTimer = 0;
     this.audio.play('paddleSpawn', 0.7);   // 30 % leiser
   }
 
-  /** Deckkraft von Schlaeger (und Ball beim Einblenden) aus paddleFade. */
-  paddleAlpha() {
-    const pf = this.paddleFade;
-    if (!pf) return 1;
-    if (pf.dir < 0) return PADDLE_FADE.out > 0 ? Math.max(0, 1 - pf.t / PADDLE_FADE.out) : 0;
-    return Math.min(1, pf.t / PADDLE_FADE.in);
-  }
-
   startIntro(session, newRound) {
-    this.paddleFade = null;
     this.effects.length = 0;
     this.texts.length = 0;
     this.announces.length = 0;
@@ -291,9 +285,7 @@ export class GameView {
     this.lightMode = 'idle';
     this.phaserOn(false);
     this.introTimer = 0;
-    this.paddleVisible = false;
-    this.beamFrame = 0;
-    this.audio.play('paddleSpawn', 0.7);   // 30 % leiser
+    this.startBeam();
     if (newRound) {
       // Reihenfolge des Erscheinens: Zeilen, Spalten oder Zufall (Projektplan: drei Reihenfolgen)
       const cells = session.field.bricks.cells;
@@ -457,10 +449,6 @@ export class GameView {
       p.x += p.vx; p.y += p.vy; p.t++;
     }
     this.sparks = this.sparks.filter((p) => p.t < p.len && p.y < 340);
-    if (this.paddleFade) {
-      this.paddleFade.t++;
-      if (this.paddleFade.dir > 0 && this.paddleFade.t >= PADDLE_FADE.in) this.paddleFade = null;
-    }
     // Ball-Trails: Mittelpunkte der letzten Frames (Spruenge > 24 Art-Pixel = neuer Ball, Trail neu)
     const f = session.field;
     for (let i = 0; i < MAX_BALLS; i++) {
@@ -473,15 +461,14 @@ export class GameView {
       if (tr.length > TRAIL.len) tr.shift();
     }
 
-    // Intro: Steine erscheinen, Schlaeger fliegt ein
-    if (session.phase === Phase.INTRO) {
-      this.introTimer++;
-      if (this.beamFrame >= 0) {
-        // Timing aus der Pocket-PC-EXE (.data 0045C470): Frame 0 vier Ticks, danach jeder Frame zwei Ticks
-        const t = this.introTimer;
-        this.beamFrame = t < 4 ? 0 : 1 + ((t - 4) >> 1);
-        if (this.beamFrame >= 14) { this.beamFrame = -1; this.paddleVisible = true; }
-      }
+    // Intro: Steine erscheinen
+    if (session.phase === Phase.INTRO) this.introTimer++;
+    // Schlaeger-Beam (jeder Spawn): Timing aus der Pocket-PC-EXE (.data 0045C470), Frame 0 vier Ticks, danach
+    // jeder Frame zwei Ticks (zusammen SPAWN_FRAMES)
+    if (this.beamFrame >= 0) {
+      const t = ++this.beamTimer;
+      this.beamFrame = t < 4 ? 0 : 1 + ((t - 4) >> 1);
+      if (this.beamFrame >= 14) { this.beamFrame = -1; this.paddleVisible = true; }
     }
     // Gluehender Glanz ueber einem zufaelligen Stein
     if (session.phase === Phase.PLAYING && --this.shineTimer <= 0) {
@@ -632,12 +619,7 @@ export class GameView {
       }
     }
     // Schlaeger
-    const pa = this.paddleAlpha();
-    if (this.paddleVisible && session.phase !== Phase.GAME_OVER && pa > 0) {
-      ctx.globalAlpha = pa;
-      this.drawPaddle(ctx, S, session);
-      ctx.globalAlpha = 1;
-    }
+    if (this.paddleVisible && session.phase !== Phase.GAME_OVER) this.drawPaddle(ctx, S, session);
     if (this.beamFrame >= 0) {
       const cx = ax(f.paddle.center) - 46, cy = 300 - 19;
       ctx.drawImage(I.paddleBeam, 0, this.beamFrame * 19, 93, 19, Math.round(cx * S), Math.round(cy * S), 93 * S, 19 * S);
@@ -650,9 +632,7 @@ export class GameView {
         const b = f.balls[i];
         const x = ax(b.x - 3) - 0.5, y = ay(b.y + 1) - 0.5;
         this.drawTrail(ctx, S, this.trails[i], mega);
-        ctx.globalAlpha = pa;   // beim Respawn blendet der Ball mit dem Schlaeger ein
         this.drawBall(ctx, S, x, y, mega);
-        ctx.globalAlpha = 1;
       }
     }
     ctx.restore();
@@ -717,7 +697,7 @@ export class GameView {
     const img = mega ? this.glowMega : this.glowBall;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    const n = tr.length - 1, pa = this.paddleAlpha();
+    const n = tr.length - 1;
     for (let k = 0; k < n; k++) {
       const a = tr[k], b = tr[k + 1];
       const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / TRAIL.step));
@@ -725,7 +705,7 @@ export class GameView {
         const u = (k + s / steps) / n;          // 0 = aeltester Punkt, 1 = Ball
         const px = a.x + (b.x - a.x) * s / steps, py = a.y + (b.y - a.y) * s / steps;
         const r = TRAIL.radius * (0.35 + 0.65 * u) * S;
-        ctx.globalAlpha = pa * TRAIL.alpha * u * u / Math.sqrt(steps);
+        ctx.globalAlpha = TRAIL.alpha * u * u / Math.sqrt(steps);
         ctx.drawImage(img, px * S - r, py * S - r, 2 * r, 2 * r);
       }
     }

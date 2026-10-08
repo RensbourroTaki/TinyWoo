@@ -5,11 +5,11 @@
 import { loadAssets, roundBackground } from './render/assets.js';
 import { PixelFont, SpinFont } from './render/font.js';
 import { ART_H, ART_W, Board, boardState, flickerPhaser, PHASER_ALPHA_MENU } from './render/board.js';
-import { GameView } from './render/view.js';
+import { GameView, ax } from './render/view.js';
 import { ElectroZone } from './render/zap.js';
 import { SpinText } from './render/spintext.js';
 import { LogoFx } from './render/logo.js';
-import { GameSession, Phase } from './play/session.js';
+import { FIELD_CENTER, FIELD_LEFT, FIELD_RIGHT, GameSession, Phase } from './play/session.js';
 import { ROUNDS } from './play/levels.js';
 import { GameInput } from './input.js';
 import { GameAudio } from './audio.js';
@@ -17,6 +17,7 @@ import { GameAudio } from './audio.js';
 export const SCORES_KEY = 'tw-daiganoid-scores';
 export const OPTIONS_KEY = 'tw-daiganoid-options';
 const FRAME = 1 / 60;
+const PADDLE_HALF = 16;   // halbe Breite des normalen Schlaegers (Logik-Px) zum Klemmen der Spawn-Stelle
 /**
  * Test-Tasten im Spiel: Pfeil links/rechts = Level wechseln (Neustart), Pfeil hoch = God Mode an/aus.
  * Solange an, steuern die Pfeiltasten nicht den Schlaeger (dann Maus oder A/D). false = abgedreht.
@@ -35,12 +36,13 @@ const GLOW = { alpha: 0.6, fade: 0.2 };
 /** Eigener Mauszeiger (menu/cursor.png): Pixelgroesse = Spielpixel; F8/F9 (nur DEV_KEYS) aendern sie um 1 Geraete-Pixel. */
 const CURSOR = { minus: 'F8', plus: 'F9' };
 /**
- * START GAME: die App uebernimmt den Zeiger und fliegt ihn weich zum Ball (Spitze auf x, y in Art-Pixeln) und dreht
+ * START GAME: die App uebernimmt den Zeiger und fliegt ihn weich zum Ball (Spitze auf die Spawn-Stelle des Schlaegers,
+ * die der Maus folgt, Hoehe y in Art-Pixeln) und dreht
  * ihn dabei um angle Grad, bis die Spitze nach unten zeigt und die lange Kante oben waagerecht liegt.
  * frames = Flugdauer, turn = Anteil davon fuer die Drehung, bob = leichtes Schweben danach (Art-Px, Tempo).
  * Ausblenden ueber fade Frames, beginnt lead Frames vor dem Spielstart (Schlaeger-Beam laeuft schon an), sink = Absenken dabei.
  */
-const CURSOR_FLY = { x: 120, y: 282, angle: -135, frames: 60, turn: 0.85, bob: 1.5, bobSpeed: 0.08, fade: 20, lead: 12, sink: 2 };
+const CURSOR_FLY = { y: 282, angle: -135, frames: 60, turn: 0.85, bob: 1.5, bobSpeed: 0.08, fade: 20, lead: 12, sink: 2 };
 /** Hinweiszeile unter dem Menue (Pixelschrift): Text, Art-y, Blinktakt in Frames (an + aus), Font-Pixel S - shrink. */
 const HINT = { text: 'No Coins Needed!', y: 240, period: 60, shrink: 1 };
 /** Credits in der Pixelschrift (wie die Hinweiszeile): { h } = Ueberschrift in CREDITS_Y.color, '' = kleiner Abstand. */
@@ -503,12 +505,18 @@ export class DaiganoidApp {
     this.view = new GameView(this.assets, this.fonts, this.board, this.audio, this.zap);
     this.view.bs = this.bs;
     this.view.zoom = this.menuZoom;
-    this.session.startGame(round, variant);
+    this.session.startGame(round, variant, this.spawnX());
     this.applyRoundBackground();
     this.view.handleEvents(this.session);
     this.paused = false;
     this.setState('game');
     this.pushHud();
+  }
+
+  /** Schlaeger-Mitte (Logik-X) fuer den ersten Spawn: Mausposition, sonst Feldmitte; am Rand ins Feld geklemmt. */
+  spawnX() {
+    const x = this.input && this.input.absoluteX !== null ? this.input.absoluteX : FIELD_CENTER;
+    return Math.max(FIELD_LEFT + PADDLE_HALF, Math.min(FIELD_RIGHT - 1 - PADDLE_HALF, Math.round(x)));
   }
 
   applyRoundBackground() {
@@ -659,7 +667,9 @@ export class DaiganoidApp {
     const turn = ease(Math.min(1, f.t / (C.frames * C.turn)));
     const hover = Math.max(0, f.t - C.frames);
     const fade = f.fade < 0 ? 0 : f.fade / C.fade;
-    const x = f.x + (C.x - f.x) * move;
+    // Ziel-X = Spawn-Stelle des Schlaegers (folgt der Maus), vor dem Spiel aus der Mausposition
+    const tx = this.state === 'game' && this.session ? ax(this.session.field.paddle.center) : ax(this.spawnX());
+    const x = f.x + (tx - f.x) * move;
     const y = f.y + (C.y - f.y) * move - (1 - Math.cos(hover * C.bobSpeed)) * C.bob + fade * fade * C.sink;
     const px = Math.max(1, S + this.cursorStep);
     ctx.save();
