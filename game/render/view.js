@@ -39,6 +39,9 @@ export const SPARKS = {
   gravity: 0.07, drag: 0.985,
   wall: { count: [5, 9], speed: [0.5, 1.6], life: [18, 40] },
   explosion: { count: [60, 90], speed: [0.8, 3.6], life: [30, 72], lift: 1.0, big: 0.3 },
+  // Ball prallt am Phaser ab: Elektro-Spritzer (Weiss -> Tuerkis -> Blau), zittern seitlich (jit), dazu Blitze (bolts)
+  phaser: { count: [28, 40], speed: [1.0, 3.4], life: [12, 32], big: 0.3, g: 0.05, jit: 0.9, bolts: 3,
+    pal: [[255, 255, 255], [190, 255, 250], [20, 255, 215], [30, 90, 255]] },
   colors: [[255, 255, 255], [255, 236, 140], [255, 160, 50], [230, 60, 20]],
   max: 1400,
 };
@@ -122,7 +125,7 @@ export class GameView {
     const base = Math.atan2(dy, dx);
     for (let i = 0; i < n && this.sparks.length < SPARKS.max; i++) {
       const a = base + (Math.random() - 0.5) * spread, v = r(cfg.speed);
-      this.sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - (cfg.lift || 0) * Math.random(), t: 0, len: Math.round(r(cfg.life)), size: Math.random() < (cfg.big || 0) ? 2 : 1 });
+      this.sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - (cfg.lift || 0) * Math.random(), t: 0, len: Math.round(r(cfg.life)), size: Math.random() < (cfg.big || 0) ? 2 : 1, pal: cfg.pal, g: cfg.g, jit: cfg.jit });
     }
   }
 
@@ -156,7 +159,8 @@ export class GameView {
           this.audio.play('phaser', 0.7);
           this.phaserFlash = 6;
           const c = this.ballCenter(session.field.balls[e.ball]);
-          this.spawnSparks(c.x, c.y + 3, SPARKS.wall, 0, -1, 2.2);
+          this.spawnSparks(c.x, c.y + 3, SPARKS.phaser, 0, -1, 2.6);
+          if (this.zap) for (let k = 0; k < SPARKS.phaser.bolts; k++) this.zap.spawnBolt(c.x + (Math.random() - 0.5) * 10, c.y + 3);
           break;
         }
         case 'launch': break;
@@ -447,7 +451,7 @@ export class GameView {
     for (const p of this.sparks) {
       const d = p.drag || SPARKS.drag;
       p.vx *= d; p.vy = p.vy * d + (p.g ?? SPARKS.gravity);
-      p.x += p.vx; p.y += p.vy; p.t++;
+      p.x += p.vx + (p.jit ? (Math.random() - 0.5) * p.jit : 0); p.y += p.vy; p.t++;
     }
     this.sparks = this.sparks.filter((p) => p.t < p.len && p.y < 340);
     // Ball-Trails: Mittelpunkte der letzten Frames (Spruenge > 24 Art-Pixel = neuer Ball, Trail neu)

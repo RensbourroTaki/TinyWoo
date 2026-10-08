@@ -23,6 +23,8 @@ const PADDLE_HALF = 16;   // halbe Breite des normalen Schlaegers (Logik-Px) zum
  * Solange an, steuern die Pfeiltasten nicht den Schlaeger (dann Maus oder A/D). false = abgedreht.
  */
 export const DEV_KEYS = true;
+/** Test-Taste (nur mit DEV_KEYS): schaltet den Phaser ein wie das xl-Item, z. B. 'KeyK'; null = nicht belegt. */
+const PHASER_KEY = null;
 /** Level-Linie fuer DEV_KEYS: L32 .. L02 L01 | R01 R02 .. R32 (Position <= 0 links, > 0 rechts). */
 const DEV_POS_MIN = 1 - ROUNDS, DEV_POS_MAX = ROUNDS;
 const MENU = ['START GAME', 'HIGHSCORE', 'OPTIONS', 'CREDITS'];
@@ -599,6 +601,7 @@ export class DaiganoidApp {
       this.audio.play('beep', 0.7, this.god ? 1.5 : 0.8);
       return false;
     }
+    if (PHASER_KEY && k === PHASER_KEY) { s.applyItem('xl'); this.view.phaserOn(true); return false; }   // Phaser (Deflector) an, wie das xl-Item (Event ginge in step() verloren)
     if (k !== 'ArrowLeft' && k !== 'ArrowRight') return false;
     const pos = s.variant ? s.round + 1 : -s.round;
     const next = Math.max(DEV_POS_MIN, Math.min(DEV_POS_MAX, pos + (k === 'ArrowLeft' ? -1 : 1)));
