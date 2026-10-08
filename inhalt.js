@@ -154,8 +154,8 @@ window.TW_INHALT = {
     apiUrl: 'https://daiganoid-api.tinywoo.workers.dev',   // '' = aus (nur lokale Liste)
 
     header: {
-      kicker: 'Arcade · A fan vision',
-      titel: 'DAIGANOID',
+      kicker: 'Welcome to the',
+      titel: 'ARCADE',
       zeile: 'The Arkanoid fan project!',
       unterzeile: 'Made with the deepest respect for TAITO, creators of the timeless original.',
     },
