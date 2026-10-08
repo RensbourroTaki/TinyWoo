@@ -827,6 +827,31 @@ export class GameView {
     if (any) ctx.restore();
   }
 
+  /** Lichtblitz ueber den Explosionen: heisser Kern, oranger Schein, Druckring (alles additiv). */
+  drawBooms(ctx, S) {
+    let any = false;
+    for (const e of this.effects) {
+      if (e.type !== 'boom') continue;
+      if (!any) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; any = true; }
+      const u = e.t / e.len, k = 1 - u;
+      const cx = e.x * S, cy = e.y * S;
+      const rg = BOOM.glow * e.scale * (0.75 + 0.45 * Math.sqrt(u)) * S;
+      ctx.globalAlpha = BOOM.glowAlpha * k * k;
+      ctx.drawImage(this.glowFire, cx - rg, cy - rg, 2 * rg, 2 * rg);
+      const rc = BOOM.core * e.scale * (1 - 0.5 * u) * S;
+      ctx.globalAlpha = BOOM.coreAlpha * k * k * k;
+      ctx.drawImage(this.glowHot, cx - rc, cy - rc, 2 * rc, 2 * rc);
+      const rr = (BOOM.ring[0] + (BOOM.ring[1] - BOOM.ring[0]) * Math.sqrt(u)) * e.scale * S;
+      ctx.globalAlpha = BOOM.ringAlpha * k * k;
+      ctx.strokeStyle = 'rgb(255,190,110)';
+      ctx.lineWidth = Math.max(1, S * (1.5 - u));
+      ctx.beginPath();
+      ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (any) ctx.restore();
+  }
+
   drawPaddle(ctx, S, session) {
     const f = session.field;
     const p = f.paddle;
