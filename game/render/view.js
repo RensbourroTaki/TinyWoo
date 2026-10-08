@@ -153,7 +153,7 @@ export class GameView {
         case 'deflectorOn': this.phaserOn(true); break;
         case 'deflectorOff': this.phaserOn(false); break;
         case 'floorBounce': {
-          this.audio.play('wall', 0.7);
+          this.audio.play('phaser', 0.7);
           this.phaserFlash = 6;
           const c = this.ballCenter(session.field.balls[e.ball]);
           this.spawnSparks(c.x, c.y + 3, SPARKS.wall, 0, -1, 2.2);
