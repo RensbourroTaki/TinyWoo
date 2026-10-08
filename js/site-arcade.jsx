@@ -13,7 +13,8 @@ const PANE_LABEL = { scores: 'Highscore', game: 'Game', story: 'Story' };
 const pixel = (fs, color) => ({ fontFamily: 'var(--font-pixel)', fontSize: fs, letterSpacing: 'var(--tracking-pixel)', textTransform: 'uppercase', color, lineHeight: 1 });
 const Kicker = ({ children }) => <span className="tw-pixel" style={{ fontSize: 13, color: 'var(--sky-400)' }}>{children}</span>;
 const CSS = '@keyframes tw-live-pulse{0%{box-shadow:0 0 0 0 rgba(123,232,74,.65)}100%{box-shadow:0 0 0 10px rgba(123,232,74,0)}}'
-  + '.tw-snap::-webkit-scrollbar{display:none}';
+  + '.tw-snap::-webkit-scrollbar{display:none}'
+  + '.tw-credit{transition:background .15s,border-color .15s}.tw-credit:hover{background:rgba(255,184,0,.08);border-color:rgba(255,184,0,.55)}';
 
 const localScores = () => { const M = window.Daiganoid; try { return M && M.loadScores ? M.loadScores() : []; } catch (e) { return []; } };
 const readMine = () => { try { const v = JSON.parse(localStorage.getItem(MINE_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
@@ -54,26 +55,40 @@ function ArcadeHeader({ compact }) {
   );
 }
 
+/** Eine Musik-Zeile: Titel fett, Kuenstler gedaempft, Einsatzort als Label, ganze Zeile klickbar. */
+function CreditRow({ c }) {
+  return (
+    <a className="tw-credit" href={c.href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, border: '1px solid rgba(255,184,0,.22)', textDecoration: 'none', color: 'var(--text-body)' }}>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 15, lineHeight: 1.4 }}>
+        <strong style={{ color: 'var(--text-strong)' }}>{c.titel}</strong>
+        <span style={{ color: 'var(--text-muted)' }}> · {c.von}</span>
+      </span>
+      {c.wo && <span style={{ ...pixel(9, 'var(--sky-400)'), whiteSpace: 'nowrap' }}>{c.wo}</span>}
+      <span aria-hidden="true" style={{ color: 'var(--orange-400)', fontSize: 15 }}>↗</span>
+    </a>
+  );
+}
+
 /** Linke Tafel: die Geschichte, Bloecke aus inhalt.js (daiganoid.story). */
 function StoryPanel() {
   const parts = D.story || [];
   return (
     <GlowFrame>
       <PanelTitle>{D.storyTitel || 'The story'}</PanelTitle>
-      <div style={{ padding: '20px 22px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-        {parts.map((p, k) => (
-          <section key={k} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {p.titel && <h3 style={{ margin: 0, ...pixel(12, 'var(--sky-400)'), lineHeight: 1.4 }}>{p.titel}</h3>}
-            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: 'var(--text-body)' }}>{p.text}</p>
-            {p.links && p.links.length > 0 && <ul style={{ margin: 0, paddingLeft: 20, listStyle: 'disc', display: 'flex', flexDirection: 'column', gap: 4, color: 'var(--text-body)' }}>
-              {p.links.map((l, j) => (
-                <li key={j} style={{ fontSize: 15, lineHeight: 1.5 }}>
-                  <a href={l.href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--sky-400)' }}>{l.label}</a>
-                </li>
-              ))}
-            </ul>}
-          </section>
-        ))}
+      <div style={{ padding: '22px 22px 26px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+        {parts.map((p, k) => {
+          if (p.schluss) return <p key={k} style={{ margin: '4px 0 0', ...pixel(16), background: 'var(--grad-sun-hot)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent', lineHeight: 1.3 }}>{p.schluss}</p>;
+          return (
+            <section key={k} style={{ display: 'flex', flexDirection: 'column', gap: 10, ...(p.titel && k > 0 ? { paddingTop: 20, borderTop: '1px solid rgba(255,184,0,.2)' } : {}) }}>
+              {p.titel && <h3 style={{ margin: 0, ...pixel(12, 'var(--sky-400)'), lineHeight: 1.4 }}>{p.titel}</h3>}
+              {p.lead && <p style={{ margin: 0, fontSize: 19, lineHeight: 1.45, fontWeight: 700, color: 'var(--text-strong)' }}>{p.lead}</p>}
+              {p.text && <p style={{ margin: 0, fontSize: 15.5, lineHeight: 1.65, color: 'var(--text-body)' }}>{p.text}</p>}
+              {p.credits && p.credits.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
+                {p.credits.map((c, j) => <CreditRow key={j} c={c} />)}
+              </div>}
+            </section>
+          );
+        })}
       </div>
     </GlowFrame>
   );
