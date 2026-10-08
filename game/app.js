@@ -42,7 +42,8 @@ const CURSOR = { minus: 'F8', plus: 'F9' };
  * frames = Flugdauer, turn = Anteil davon fuer die Drehung, bob = leichtes Schweben danach (Art-Px, Tempo).
  * Ausblenden ueber fade Frames, beginnt lead Frames vor dem Spielstart (Schlaeger-Beam laeuft schon an), sink = Absenken dabei.
  */
-const CURSOR_FLY = { y: 282, angle: -135, frames: 60, turn: 0.85, bob: 1.5, bobSpeed: 0.08, fade: 20, lead: 12, sink: 2 };
+const START_FRAMES = 45;   // Dauer START GAME -> Spiel (Ticks)
+const CURSOR_FLY = { y: 282, angle: -135, frames: 40, turn: 0.85, bob: 1.5, bobSpeed: 0.08, fade: 20, lead: 12, sink: 2 };
 /** Hinweiszeile unter dem Menue (Pixelschrift): Text, Art-y, Blinktakt in Frames (an + aus), Font-Pixel S - shrink. */
 const HINT = { text: 'No Coins Needed!', y: 240, period: 60, shrink: 1 };
 /** Credits in der Pixelschrift (wie die Hinweiszeile): { h } = Ueberschrift in CREDITS_Y.color, '' = kleiner Abstand. */
@@ -481,11 +482,10 @@ export class DaiganoidApp {
     const bs = this.bs;
     this.menuAlpha = Math.max(0, 1 - t / 20);
     if (this.logo) {
-      if (t === 1) this.logo.startShimmer();
       this.logo.update();
-      if (t > 40) this.logoY = Math.round(24 - (t - 40) * (t - 40) * 0.12);
+      this.logoY = Math.round(24 - t * t * 0.7);   // sofort weg, nach ~11 Ticks aus dem Bild
     }
-    if (t < 70) {
+    if (t < START_FRAMES - 20) {
       for (let i = 0; i < 6; i++) bs.lights[i] = Math.random() < 0.5 ? 1 : 0;
       bs.doorTop[0] = (t >> 1) & 3; bs.doorTop[1] = ((t >> 1) + 2) & 3;
       bs.doorLeft = (t >> 2) & 3; bs.doorRight = ((t >> 2) + 1) & 3;
@@ -494,8 +494,8 @@ export class DaiganoidApp {
       bs.doorTop = [0, 0]; bs.topLight = [0, 0]; bs.doorLeft = 0; bs.doorRight = 0;
       this.idleLights();
     }
-    if (t === 90 - CURSOR_FLY.lead && this.cursorFly) this.cursorFly.fade = 0;
-    if (t >= 90) this.startGame();
+    if (t === START_FRAMES - CURSOR_FLY.lead && this.cursorFly) this.cursorFly.fade = 0;
+    if (t >= START_FRAMES) this.startGame();
   }
 
   /** Neues Spiel ab Runde round (0-basiert), Variante variant (0 links, 1 rechts). */
