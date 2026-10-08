@@ -121,8 +121,6 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
         <Hud label="Round" value={`${hud.round}/${hud.rounds}`} color="var(--sky-400)" />
         <Hud label="Lives" value={'▰'.repeat(Math.min(6, hud.lives)) || '-'} color="var(--lime-400)" />
         <Hud label="Hi" value={String(hud.hi).padStart(7, '0')} color="var(--sun-400)" />
-        <Button variant="ghost" size="sm" icon={<Icon name={muted ? 'volume-x' : 'volume-2'} size={18} />} aria-label={muted ? 'Sound on' : 'Sound off'} title={muted ? 'Sound on' : 'Sound off'} aria-pressed={muted} onClick={() => { if (!game.current) return; const m = !muted; game.current.setMuted(m); setMuted(m); }} />
-        <Button variant="ghost" size="sm" icon={<Icon name="maximize" size={18} />} onClick={enterFullscreen}>Fullscreen</Button>
       </div>}
       <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
         <div style={frame}>
@@ -150,6 +148,10 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
       </div>}
       {mobile && <div style={{ position: 'absolute', right: 10, bottom: 'calc(10px + env(safe-area-inset-bottom))' }}>
         <Button variant="ghost" size="sm" icon={<Icon name="minimize" size={18} />} aria-label="Exit fullscreen" title="Exit fullscreen" onClick={leaveMobile} />
+      </div>}
+      {!mobile && <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
+        <Button variant="ghost" size="sm" icon={<Icon name={muted ? 'volume-x' : 'volume-2'} size={18} />} aria-label={muted ? 'Sound on' : 'Sound off'} title={muted ? 'Sound on' : 'Sound off'} aria-pressed={muted} onClick={() => { if (!game.current) return; const m = !muted; game.current.setMuted(m); setMuted(m); }} />
+        <Button variant="ghost" size="sm" icon={<Icon name="maximize" size={18} />} onClick={enterFullscreen}>Fullscreen</Button>
       </div>}
       {!mobile && <p style={{ margin: 0, maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: 'var(--text-muted)', textAlign: 'center' }}>
         {inGame ? 'Mouse or arrow keys move the paddle, click or space launches the ball and fires the laser. P pauses, Esc frees the mouse.' : (D.arcadeHinweis || D.text || '')}
