@@ -48,6 +48,9 @@ export function fieldConfig(columns) {
   return { columns, leftReflect: 0x14, paddleRightLimit: gridRight - 1, lift: 8 };
 }
 
+/** Ball-Y mit Vorzeichen: unter 0 umgebrochene Werte ($F0..$FF, paddleDrop/Deflector) werden negativ. */
+export const ballY = (y) => (y >= 0xF0 ? y - 0x100 : y);
+
 export class Playfield {
   constructor(config = fieldConfig(13)) {
     this.columns = config.columns;

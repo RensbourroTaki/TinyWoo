@@ -9,7 +9,7 @@ import { ZAP, glowSprite } from './zap.js';
 import { SpinText } from './spintext.js';
 import { GOLD, KIND_MASK, KIND_SPECIAL, REGENERATES, ROWS } from '../core/brickgrid.js';
 import { PaddleType } from '../core/paddle.js';
-import { MAX_BALLS } from '../core/playfield.js';
+import { MAX_BALLS, ballY } from '../core/playfield.js';
 import { Phase, INTRO_FRAMES, EXITING_FRAMES, ENEMY_W, ENEMY_H, DEFLECTOR_WARN } from '../play/session.js';
 import { COLUMNS } from '../play/levels.js';
 import { levelName } from '../play/levelnames.js';
@@ -127,7 +127,7 @@ export class GameView {
   }
 
   /** Art-Mittelpunkt eines Balls. */
-  ballCenter(b) { return { x: ax(b.x - 3) + 2.5, y: ay(b.y + 1) + 2.5 }; }
+  ballCenter(b) { return { x: ax(b.x - 3) + 2.5, y: ay(ballY(b.y) + 1) + 2.5 }; }
 
   rand() {
     this.rng = (this.rng * 1103515245 + 12345) & 0x7FFFFFFF;
@@ -631,7 +631,7 @@ export class GameView {
       for (let i = 0; i < MAX_BALLS; i++) {
         if (!f.isActive(i)) continue;
         const b = f.balls[i];
-        const x = ax(b.x - 3) - 0.5, y = ay(b.y + 1) - 0.5;
+        const x = ax(b.x - 3) - 0.5, y = ay(ballY(b.y) + 1) - 0.5;
         this.drawTrail(ctx, S, this.trails[i], mega);
         this.drawBall(ctx, S, x, y, mega);
       }

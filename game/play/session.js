@@ -4,7 +4,7 @@
 //
 // Koordinaten: Hardware-Pixel des Kerns (1 Einheit = 1 Original-Pixel, Y waechst nach oben,
 // Feld X 16..192 bei 11 Spalten, Decke Y = 233 (Original 225 + lift 8), Schlaeger-Band Y 8..15).
-import { MAX_BALLS, Playfield, StepResult, XorShiftRandomBit, fieldConfig } from '../core/playfield.js';
+import { MAX_BALLS, Playfield, StepResult, XorShiftRandomBit, ballY, fieldConfig } from '../core/playfield.js';
 import { PaddleType, paddleGeometryFor } from '../core/paddle.js';
 import { gridCellAt, horizontalReflectionOf, reflectHorizontal } from '../core/ballmotion.js';
 import { GOLD, KIND_CAPSULE, KIND_MASK, KIND_SPECIAL, ROWS, isMover, isVerticalMover } from '../core/brickgrid.js';
@@ -543,7 +543,7 @@ export class GameSession {
         if (!f.isActive(b)) continue;
         const ball = f.balls[b];
         if (ball.stickTimer !== 0) continue;
-        const bx0 = ball.x - 3, bx1 = ball.x + 1, by0 = ball.y - 3, by1 = ball.y + 1;
+        const bx0 = ball.x - 3, bx1 = ball.x + 1, by0 = ballY(ball.y) - 3, by1 = ballY(ball.y) + 1;
         const ex0 = en.x - (ENEMY_W >> 1), ex1 = en.x + (ENEMY_W >> 1), ey0 = en.y - (ENEMY_H >> 1), ey1 = en.y + (ENEMY_H >> 1);
         const ox = Math.min(bx1, ex1) - Math.max(bx0, ex0);
         const oy = Math.min(by1, ey1) - Math.max(by0, ey0);
@@ -604,6 +604,7 @@ export class GameSession {
     for (let i = 0; i < MAX_BALLS; i++) {
       if (!f.isActive(i)) continue;
       const b = f.balls[i];
+      if (ballY(b.y) < 0) continue;   // unter der Verlust-Ebene (Deflector), weit weg vom Raster
       // Ballkasten x-3..x+1, y-3..y+1 ist kleiner als eine Zelle: jede Ueberlappung trifft eine Ecke
       for (const [px, py] of [[b.x - 4, b.y - 4], [b.x + 2, b.y - 4], [b.x - 4, b.y + 2], [b.x + 2, b.y + 2]]) {
         if (gridCellAt(px & 0xFF, py & 0xFF, COLUMNS, LIFT) === cell) return true;
