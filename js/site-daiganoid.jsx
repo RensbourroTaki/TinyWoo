@@ -123,7 +123,7 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
         <Hud label="Hi" value={String(hud.hi).padStart(7, '0')} color="var(--sun-400)" />
       </div>}
       <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
-        <div style={frame}>
+        <div className="tw-daig-frame" style={frame}>
           <div ref={host} />
           {error && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, color: 'var(--cherry-400)', fontFamily: 'var(--font-body)', lineHeight: 1.4, textAlign: 'center' }}>Game failed to load: {error}</div>}
           {over && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(6,18,51,.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', lineHeight: 1.4 }}>

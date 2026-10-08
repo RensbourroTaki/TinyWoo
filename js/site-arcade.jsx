@@ -274,6 +274,20 @@ function ArcadePage() {
     return () => ro.disconnect();
   }, [wide]);
 
+  // Breit: Abstand vom Spalten-Oberrand bis zum Spielrahmen messen (HUD darueber), die Seitentafeln beginnen auf dieser Hoehe.
+  const gameBox = React.useRef(null);
+  const [frameTop, setFrameTop] = React.useState(0);
+  React.useLayoutEffect(() => {
+    const el = gameBox.current;
+    if (!wide || !el) return undefined;
+    const upd = () => { const f = el.querySelector('.tw-daig-frame'); if (f) setFrameTop(Math.round(f.getBoundingClientRect().top - el.getBoundingClientRect().top)); };
+    upd();
+    if (typeof ResizeObserver === 'undefined') { window.addEventListener('resize', upd); return () => window.removeEventListener('resize', upd); }
+    const ro = new ResizeObserver(upd);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [wide]);
+
   // Schmal: auf die aktive Tafel springen (Start = Spiel), auch nach Drehen des Geraets.
   React.useLayoutEffect(() => {
     const el = snap.current;
@@ -297,7 +311,8 @@ function ArcadePage() {
     ? { display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(0, 2.2fr) minmax(280px, 1fr)', gridTemplateAreas: '"story game scores"', gap: 28, alignItems: 'start' }
     : { display: 'flex', overflowX: 'auto', overflowY: 'hidden', scrollSnapType: 'x mandatory', scrollbarWidth: 'none', overscrollBehaviorX: 'contain', margin: '0 calc(-1 * var(--gutter))' };
   const pane = (key) => wide
-    ? { gridArea: key, minWidth: 0, ...stick }
+    ? (key === 'game' ? { gridArea: key, minWidth: 0, ...stick }
+      : { gridArea: key, minWidth: 0, ...stick, top: `calc(var(--nav-h) + 20px + ${frameTop}px)`, marginTop: frameTop, transform: `translateX(${key === 'story' ? 10 : -10}px)` })
     : { flex: '0 0 100%', minWidth: 0, scrollSnapAlign: 'center', scrollSnapStop: 'always', position: 'relative' };
   const side = wide ? {} : { position: 'absolute', inset: 0, overflowY: 'auto', scrollbarWidth: 'thin', padding: '2px var(--gutter) 8px', boxSizing: 'border-box' };
   const sideInner = wide ? {} : { maxWidth: 560, margin: '0 auto' };
@@ -318,7 +333,7 @@ function ArcadePage() {
         {PANES.map((key) => (
           <div key={key} style={pane(key)}>
             {key === 'game'
-              ? <div style={gameInner}>{panels.game}</div>
+              ? <div ref={gameBox} style={gameInner}>{panels.game}</div>
               : <div style={side}><div ref={key === 'story' ? storyBox : undefined} style={sideInner}>{panels[key]}</div></div>}
           </div>
         ))}
