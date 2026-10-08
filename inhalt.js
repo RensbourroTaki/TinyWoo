@@ -79,7 +79,7 @@ window.TW_INHALT = {
       // kicker = gelber Steam-Kasten rechts (Text, oder [Titel, Text]), nachsatz = Absatz darunter ('' / weglassen = aus). (text = kurz, fuer die Startseite)
       // Optional (derzeit aus): cast = Figurenkarten [Name, Text], ablauf = nummerierte Kaertchen, hinweis = kleine Zeile.
       beschreibung: [
-        "Shoot Rockets in a special way - Hit Donald Trump and make him fly - Deal with mercenaries birds, balloons, UFO's and snails -  and invite Putin to judge your rocketeer skills!",
+        "Shoot Rockets • Make D.Trump fly! • Deal with mercenary birds, UFO's and snails • Invite Putin and make him stay!",
       ],
       featuresIntro: 'Rocket Trump is a small but nasty gameplay loop where everything comes down to your rocket skills, to compete worldwide with other Steam players',
       featuresTitel: 'Your job',
