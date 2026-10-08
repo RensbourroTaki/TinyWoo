@@ -24,6 +24,13 @@ const ITEM_FRAMES = [0, 1, 2, 3, 4, 5, 5, 5, 5, 6, 7, 8, 9];   // 6. Frame vierm
 export const BALL_GLOW = { radius: 4.6, alpha: 0.42, color: [150, 235, 255], mega: [255, 40, 20], megaBlur: 2.2, megaAlpha: 0.9 };
 /** Schlaeger nach Leben-Verlust: Ausblenden (Frames, 0 = sofort weg, er explodiert) und ruhiges Einblenden beim Respawn mit klebendem Ball. */
 export const PADDLE_FADE = { out: 0, in: 24 };
+
+/**
+ * Abprall-Toene harmonisch: alles aus einem Sample (paddle.wav = Grundton C), Schlaeger = C, jeder Stein-Treffer
+ * und -Abraeumer (auch der erste Treffer am grauen Stein) eine Oktave hoeher, Gold/unzerstoerbar bewusst verstimmt
+ * ("war wohl nix"). Waende/Decke ohne Tonhoehen-Spielerei. rate = Abspieltempo (2 = Oktave).
+ */
+export const TONE = { sample: 'paddle', paddle: 1, brick: 2, gold: 2 * Math.pow(2, -0.7 / 12) };
 /** Ball-Trail: Laenge in Frames, Staerke, Punktradius (Art-Pixel), Abstand der Zwischenpunkte. */
 export const TRAIL = { len: 14, alpha: 0.3, radius: 2.4, step: 1.2 };
 /**
@@ -138,7 +145,7 @@ export class GameView {
         case 'deflectorOn': this.phaserOn(true); break;
         case 'deflectorOff': this.phaserOn(false); break;
         case 'floorBounce': {
-          this.audio.play('wall', 0.7, 0.8);
+          this.audio.play('wall', 0.7);
           this.phaserFlash = 6;
           const c = this.ballCenter(session.field.balls[e.ball]);
           this.spawnSparks(c.x, c.y + 3, SPARKS.wall, 0, -1, 2.2);
@@ -146,23 +153,23 @@ export class GameView {
         }
         case 'launch': break;
         case 'paddleHit':
-          this.audio.play('paddle', 1, e.edge ? 1.15 : 1);
+          this.audio.play(TONE.sample, 1, TONE.paddle);
           break;
-        case 'catch': this.audio.play('paddle', 0.8, 0.8); break;
+        case 'catch': this.audio.play(TONE.sample, 0.8, TONE.paddle); break;
         case 'wall': {
-          this.audio.play('wall', 0.7, e.side > 0 ? 1.05 : 0.95);
+          this.audio.play('wall', 0.7);
           const c = this.ballCenter(session.field.balls[e.ball]);
           this.spawnSparks(c.x + 3 * e.side, c.y, SPARKS.wall, -e.side, -0.35, 1.8);
           break;
         }
         case 'ceiling': {
-          this.audio.play('wall', 0.7, 1.1);
+          this.audio.play('wall', 0.7);
           const c = this.ballCenter(session.field.balls[e.ball]);
           this.spawnSparks(c.x, c.y - 3, SPARKS.wall, 0, 1, 2.2);
           break;
         }
         case 'brickHit':
-          this.audio.play('brick', 0.9, e.gold ? 0.6 : 0.85);
+          this.audio.play(TONE.sample, 0.9, e.gold ? TONE.gold : TONE.brick);
           // Gold blinkt mit dem Zerstoer-Effekt auf und bleibt stehen, alles andere wackelt
           this.effects.push(e.gold ? { type: 'flash', cell: e.cell, t: 0, len: 9 } : { type: 'shake', cell: e.cell, t: 0, len: 6 });
           break;
@@ -170,7 +177,7 @@ export class GameView {
           for (const fx of this.effects) if (fx.cell === e.from) fx.cell = e.to;
           break;
         case 'brickDestroyed':
-          this.audio.play('brick', 1, 1 + ((e.value >> 3) & 7) * 0.04);
+          this.audio.play(TONE.sample, 1, TONE.brick);
           this.effects.push({ type: 'destroy', cell: e.cell, t: 0, len: 9 });
           break;
         case 'brickRegrown':
