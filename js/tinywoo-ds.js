@@ -748,6 +748,7 @@ const TONES = {
 function SlantSection({
   tone = 'deep',
   angle = -4,
+  topAngle,
   stripes = true,
   edge = 'sun',
   id,
@@ -756,6 +757,16 @@ function SlantSection({
   innerStyle
 }) {
   const edgeColor = edge === 'sun' ? 'var(--sun-400)' : edge === 'orange' ? 'var(--orange-500)' : edge === 'none' ? 'transparent' : 'var(--ink)';
+  // Optional eigene Schraege nur fuer die Oberkante (fuer edge="none"): Grund nach oben verlaengern und
+  // im geskewten Eigenraum schraeg abschneiden. Grund ist 104 % breit (inset -2 %), seine Mitte also bei 52vw.
+  let bgTop = '0',
+    bgClip;
+  if (topAngle != null) {
+    const k = Math.tan(topAngle * Math.PI / 180) - Math.tan(angle * Math.PI / 180);
+    const e = 52 * Math.abs(k);
+    bgTop = `-${e.toFixed(2)}vw`;
+    bgClip = `polygon(0 ${k > 0 ? 0 : (2 * e).toFixed(2)}vw,100% ${k > 0 ? (2 * e).toFixed(2) : 0}vw,100% 100%,0 100%)`;
+  }
   return /*#__PURE__*/React.createElement("section", {
     id: id,
     style: {
@@ -768,9 +779,10 @@ function SlantSection({
     "aria-hidden": true,
     style: {
       position: 'absolute',
-      inset: '0 -2%',
+      inset: `${bgTop} -2% 0`,
       zIndex: -1,
       transform: `skewY(${angle}deg)`,
+      clipPath: bgClip,
       background: TONES[tone] || tone,
       borderTop: `5px solid ${edgeColor}`,
       borderBottom: '5px solid var(--ink)',

@@ -218,8 +218,8 @@ function FactList({ rows }) {
 function FeaturedGame({ onNav }) {
   if (!featured) return null;
   return (
-    // Ohne Oberkante, Fläche beginnt unter der Ticker-Mitte (34 px = halbe Ticker-Höhe), damit keine Lücke bleibt
-    <SlantSection tone="deep" angle={-4} edge="none" style={{ marginTop: -34 }} innerStyle={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', gap: 48, alignItems: 'center' }}>
+    // Ohne Oberkante, Fläche beginnt unter der Ticker-Mitte (34 px = halbe Ticker-Höhe) mit derselben Schräge (3 deg), damit keine Lücke bleibt; Unterkante bleibt -4 deg
+    <SlantSection tone="deep" angle={-4} topAngle={3} edge="none" style={{ marginTop: -34, paddingTop: 'calc(var(--space-9) + 40px)' }} innerStyle={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', gap: 48, alignItems: 'center' }}>
       <div style={{ position: 'relative' }}>
         {ytId(featured.trailer)
           ? <Trailer url={featured.trailer} title={featured.title} style={{ transform: 'rotate(-2.5deg)' }} />
