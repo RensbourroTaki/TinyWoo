@@ -8,7 +8,7 @@ const TICKER_REGENBOGEN_MS = 900;
 // Glanz oben, Schatten unten — liegt ueber der Grundfarbe, damit der Farbwechsel weich ueberblenden kann.
 const TICKER_GLANZ = 'linear-gradient(180deg, rgba(255,255,255,.38) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,.18) 100%)';
 
-function Ticker({ items, angle = 3, tone = 'sun' }) {
+function Ticker({ items, angle = 1.5, tone = 'sun' }) {
   const [modus, setModus] = React.useState(7);   // 0..6 = feste Farbe, 7 = Regenbogen (Default)
   const [regenbogen, setRegenbogen] = React.useState(0);
 
@@ -42,13 +42,13 @@ function Ticker({ items, angle = 3, tone = 'sun' }) {
 
 // Der Hero liegt mit seinem Grund (--bg-hero) auch unter dem durchsichtigen Header, damit der Logo-Glow oben nicht abreisst.
 const HEADER_H = 72;          // Header-Hoehe: --nav-h (Logo 54 px + 2 x 8 px Padding passt hinein)
-// Unten endet der Grund schraeg (3 deg wie der Ticker, links hoch) genau unter der Ticker-Mitte, damit keine Kante sichtbar wird.
+// Unten endet der Grund schraeg (1.5 deg wie der Ticker, links hoch) genau unter der Ticker-Mitte, damit keine Kante sichtbar wird.
 const TICKER_HALB = 34;       // halbe Ticker-Hoehe
-const TIEF = `calc(${TICKER_HALB}px + 2.62vw)`;   // 2.62vw = tan(3 deg) * 50vw
+const TIEF = `calc(${TICKER_HALB}px + 1.31vw)`;   // 1.31vw = tan(1.5 deg) * 50vw
 
 function Hero({ onNav }) {
   return (
-    <section style={{ position: 'relative', overflowX: 'clip', marginTop: -HEADER_H, marginBottom: `calc(-1 * ${TIEF})`, padding: `${40 + HEADER_H}px 0 calc(110px + ${TIEF})`, background: 'var(--bg-hero)', clipPath: 'polygon(0 0,100% 0,100% 100%,0 calc(100% - 5.24vw))' }}>
+    <section style={{ position: 'relative', overflowX: 'clip', marginTop: -HEADER_H, marginBottom: `calc(-1 * ${TIEF})`, padding: `${40 + HEADER_H}px 0 calc(110px + ${TIEF})`, background: 'var(--bg-hero)', clipPath: 'polygon(0 0,100% 0,100% 100%,0 calc(100% - 2.62vw))' }}>
       <div style={{ position: 'relative', maxWidth: 'var(--container)', margin: '0 auto', padding: '0 var(--gutter)', display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,1fr)', gap: 40, alignItems: 'center' }}>
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 22, animation: 'tw-pop-in var(--dur-slow) var(--ease-pop)' }}>
           <h1 className="tw-heading" style={{ fontSize: 'var(--fs-hero)', transform: 'rotate(-4deg)', transformOrigin: 'left' }}>
