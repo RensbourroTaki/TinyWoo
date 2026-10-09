@@ -46,10 +46,25 @@ const HEADER_H = 72;          // Header-Hoehe: --nav-h (Logo 54 px + 2 x 8 px Pa
 const TICKER_HALB = 34;       // halbe Ticker-Hoehe
 const TIEF = `calc(${TICKER_HALB}px + 1.31vw)`;   // 1.31vw = tan(1.5 deg) * 50vw
 
+// Handy (gleiche Grenze wie das Nav-Menue): eine Spalte, Logo oben. Das Logo-PNG ist 150 % so breit wie der Bildschirm
+// (max. 1:1), der Schriftzug selbst fuellt davon ~56 % — der Glow ragt seitlich raus und wird vom Hero abgeschnitten.
+const MOBIL_MQ = '(max-width: 760px)';
+const LOGO_B_MOBIL = 'min(150vw, 912px)';
+function useMobil() {
+  const [m, setM] = React.useState(() => window.matchMedia(MOBIL_MQ).matches);
+  React.useEffect(() => { const q = window.matchMedia(MOBIL_MQ); const h = e => setM(e.matches); q.addEventListener('change', h); return () => q.removeEventListener('change', h); }, []);
+  return m;
+}
+
 function Hero({ onNav }) {
+  const mobil = useMobil();
   return (
-    <section style={{ position: 'relative', overflowX: 'clip', marginTop: -HEADER_H, marginBottom: `calc(-1 * ${TIEF})`, padding: `${40 + HEADER_H}px 0 calc(110px + ${TIEF})`, background: 'var(--bg-hero)', clipPath: 'polygon(0 0,100% 0,100% 100%,0 calc(100% - 2.62vw))' }}>
-      <div style={{ position: 'relative', maxWidth: 'var(--container)', margin: '0 auto', padding: '0 var(--gutter)', display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,1fr)', gap: 40, alignItems: 'center' }}>
+    <section style={{ position: 'relative', overflowX: 'clip', marginTop: -HEADER_H, marginBottom: `calc(-1 * ${TIEF})`, padding: `${(mobil ? 8 : 40) + HEADER_H}px 0 calc(${mobil ? 70 : 110}px + ${TIEF})`, background: 'var(--bg-hero)', clipPath: 'polygon(0 0,100% 0,100% 100%,0 calc(100% - 2.62vw))' }}>
+      <div style={{ position: 'relative', maxWidth: 'var(--container)', margin: '0 auto', padding: '0 var(--gutter)', display: 'grid', gridTemplateColumns: mobil ? 'minmax(0,1fr)' : 'minmax(0,1.1fr) minmax(0,1fr)', gap: mobil ? 8 : 40, alignItems: 'center' }}>
+        {/* Handy: Logo oben, Hoehe ~ Schriftzug + etwas Luft, Glow darf ueber den Text bluten */}
+        {mobil && <div style={{ position: 'relative', height: `calc(${LOGO_B_MOBIL} * .42)` }}>
+          <img src={I.logoHero} alt="Tiny Woo" width={912} height={744} style={{ position: 'absolute', left: '50%', top: '50%', width: LOGO_B_MOBIL, height: 'auto', maxWidth: 'none', marginLeft: `calc(${LOGO_B_MOBIL} / -2)`, marginTop: `calc(${LOGO_B_MOBIL} * 372 / -912)`, pointerEvents: 'none', animation: 'tw-bob 3.2s ease-in-out infinite' }} />
+        </div>}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 22, animation: 'tw-pop-in var(--dur-slow) var(--ease-pop)' }}>
           <h1 className="tw-heading" style={{ fontSize: 'var(--fs-hero)', transform: 'rotate(-4deg)', transformOrigin: 'left' }}>
             {I.texte.heroZeile1}<br /><span style={{ color: 'var(--orange-400)' }}>{I.texte.heroZeile2}</span>
@@ -60,9 +75,9 @@ function Hero({ onNav }) {
           </div>
         </div>
         {/* Logo mit Glow 1:1 (912x744), mittig auf der rechten Spalte, darf ueber die Spalte hinausragen */}
-        <div style={{ position: 'relative', alignSelf: 'stretch' }}>
+        {!mobil && <div style={{ position: 'relative', alignSelf: 'stretch' }}>
           <img src={I.logoHero} alt="Tiny Woo" width={912} height={744} style={{ position: 'absolute', left: '50%', top: '50%', width: 912, height: 744, maxWidth: 'none', margin: '-372px 0 0 -456px', pointerEvents: 'none', animation: 'tw-bob 3.2s ease-in-out infinite' }} />
-        </div>
+        </div>}
       </div>
     </section>
   );
