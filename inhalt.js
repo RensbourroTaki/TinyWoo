@@ -181,7 +181,7 @@ window.TW_INHALT = {
     story: [
       { lead: 'DAIGANOID is my love letter to TAITO\'s arcade masterpiece from the mid 80\'s ARKANOID',
         text: 'Every graphic and the font were pixelled around 2000 for a Pocket PC version a friend and I never got to finish. Twenty-five years later, with AI lending a hand on the code side, those pixels finally got the game they were made for, with everything that makes the original great packed into it.' },
-      { titel: 'What\'s next', text: 'Bosses, a level editor and more are on the list. As long as the other games waiting in line don\'t get jealous ;)' },
+      { titel: 'What\'s next', text: 'Bosses, a level editor and more are on the way. Check out the roadmap below!' },
       { titel: 'Music', text: 'Two tracks from OpenGameArt set the mood. Neither artist asked for credit, but they deserve it. Thank you!',
         credits: [
           { titel: 'Out There', von: 'yd', wo: 'Main menu', href: 'https://opengameart.org/content/space-music-out-there' },
