@@ -8,6 +8,7 @@ const GAME_URL = './game/daiganoid.js';
 const loadGame = () => window.Daiganoid ? Promise.resolve(window.Daiganoid) : new Function('u', 'return import(u)')(GAME_URL);
 
 const pixel = (fs, color) => ({ fontFamily: 'var(--font-pixel)', fontSize: fs, letterSpacing: 'var(--tracking-pixel)', textTransform: 'uppercase', color, lineHeight: 1 });
+const pixelBtn = { fontFamily: 'var(--font-pixel)', letterSpacing: 'var(--tracking-pixel)' };
 const frame = { position: 'relative', display: 'inline-block', minWidth: 240, minHeight: 334, borderRadius: 'var(--radius-xl)', border: '4px solid var(--ink)', boxShadow: 'var(--shadow-pop-lg)', background: '#000', overflow: 'hidden', lineHeight: 0 };
 // Handy-Vollbild: Spiel oben so breit wie pixelgenau moeglich, darunter die Schlaeger-Zone (mindestens PAD_MIN hoch)
 const isTouch = () => !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
@@ -127,13 +128,13 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
           <div ref={host} />
           {error && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, color: 'var(--cherry-400)', fontFamily: 'var(--font-body)', lineHeight: 1.4, textAlign: 'center' }}>Game failed to load: {error}</div>}
           {over && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(6,18,51,.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', lineHeight: 1.4 }}>
-            <div style={{ width: '100%', maxWidth: 340, background: 'var(--blue-800)', border: '4px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: 22, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'center', animation: 'tw-pop-in var(--dur-slow) var(--ease-pop)' }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 40, lineHeight: 1, color: over.complete ? 'var(--lime-400)' : 'var(--orange-400)', WebkitTextStroke: '3px var(--ink)', paintOrder: 'stroke fill', textShadow: '0 4px 0 var(--ink)', transform: 'rotate(-3deg)' }}>{over.complete ? 'All clear!' : 'Game over'}</div>
+            <div style={{ width: '100%', maxWidth: 340, background: 'var(--blue-800)', border: '4px solid var(--ink)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-pop-lg)', padding: 22, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'center', fontFamily: 'var(--font-pixel)', animation: 'tw-pop-in var(--dur-slow) var(--ease-pop)' }}>
+              <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 40, letterSpacing: 'var(--tracking-pixel)', textTransform: 'uppercase', lineHeight: 1, color: over.complete ? 'var(--lime-400)' : 'var(--orange-400)', WebkitTextStroke: '3px var(--ink)', paintOrder: 'stroke fill', textShadow: '0 4px 0 var(--ink)' }}>{over.complete ? 'All clear!' : 'Game over'}</div>
               <div style={pixel(36, 'var(--gray-50)')}>{over.score}</div>
               <div style={pixel(12, 'var(--gray-300)')}>Round {over.round}</div>
               <Input label="Enter your name" pixel maxLength={10} placeholder="AAA" value={name} autoFocus error={nameError || submitError} onChange={(e) => { setName(e.target.value); setSubmitError(''); }} onKeyDown={(e) => e.key === 'Enter' && save()} />
-              <Button onClick={save} disabled={busy || !!nameError} icon={<Icon name="trophy" size={20} />}>{busy ? 'Saving…' : 'Save score'}</Button>
-              <Button variant="ghost" size="sm" onClick={skip}>Skip</Button>
+              <Button onClick={save} disabled={busy || !!nameError} icon={<Icon name="trophy" size={20} />} style={pixelBtn}>{busy ? 'Saving…' : 'Save score'}</Button>
+              <Button variant="ghost" size="sm" onClick={skip} style={pixelBtn}>Skip</Button>
             </div>
           </div>}
         </div>
