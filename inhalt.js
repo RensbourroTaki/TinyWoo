@@ -147,7 +147,7 @@ window.TW_INHALT = {
   daiganoid: {
     titel: 'Daiganoid',
     text: 'A fan-made Arkanoid: 32 rounds, two exits per round, lasers, mega balls and a cube that wants your ball. Pixel-exact ball physics rebuilt from the 1987 arcade original.',
-    arcadeHinweis: 'Your highscores are saved and guaranteed to stick around until at least 2040!',   // Zeile unter dem Spiel auf der Arcade-Seite
+    arcadeHinweis: 'HIGHSCORES STAY ONLINE UNTIL THE INTERNET DIES!',   // Zeile unter dem Spiel auf der Arcade-Seite
     musikMenue: 'assets/daiganoid/music/OutThere.ogg',        // "Out There" von yd (OpenGameArt, CC0)
     musikHighscore: 'assets/daiganoid/music/PartySector.ogg', // "Party Sector" von Joth (OpenGameArt, CC0)
     musikSpiel: '',          // z.B. 'assets/daiganoid/music/game.ogg'
