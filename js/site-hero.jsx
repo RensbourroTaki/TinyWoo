@@ -34,7 +34,7 @@ function Ticker({ items, angle = 3, tone = 'sun' }) {
   const dauer = modus === 7 ? TICKER_REGENBOGEN_MS + 'ms linear' : '.3s ease';
   const line = items.map(t => t + '  ★  ').join('');
   return (
-    <div style={{ position: 'relative', zIndex: 2, transform: `rotate(${angle}deg)`, margin: '0 -40px', ...(tone === 'sun' ? { backgroundColor: farbe, backgroundImage: TICKER_GLANZ, transition: `background-color ${dauer}` } : { background: 'var(--ink)' }), borderTop: '4.5px solid var(--ink)', borderBottom: '4.5px solid var(--ink)', overflow: 'hidden', whiteSpace: 'nowrap', padding: '12px 0' }}>
+    <div style={{ position: 'relative', zIndex: 2, transform: `rotate(${angle}deg)`, margin: '0 -40px', ...(tone === 'sun' ? { backgroundColor: farbe, backgroundImage: TICKER_GLANZ, transition: `background-color ${dauer}` } : { background: 'var(--ink)' }), borderTop: '4.5px solid var(--ink)', borderBottom: '4.5px solid var(--ink)', backgroundClip: 'padding-box', overflow: 'hidden', whiteSpace: 'nowrap', padding: '12px 0' }}>
       <div style={{ display: 'inline-block', animation: 'tw-marquee 22s linear infinite', fontFamily: 'var(--font-display)', fontSize: 28, color: tone === 'sun' ? 'var(--ink)' : 'var(--sun-400)', letterSpacing: '.03em' }}>{line}{line}{line}{line}</div>
     </div>
   );
