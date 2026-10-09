@@ -180,7 +180,7 @@ window.TW_INHALT = {
     storyTitel: 'The story',
     story: [
       { lead: 'DAIGANOID is my love letter to TAITO\'s arcade masterpiece from the mid 80\'s ARKANOID',
-        text: 'Every graphic and the font were pixelled around 2000 for a Pocket PC version a friend and I never got to finish. Twenty-five years later, with AI lending a hand on the code side, those pixels finally got the game they were made for, with everything that makes the original great packed into it.' },
+        text: 'Every graphic and the font were pixelled back around 2000 for a Pocket PC version a friend and I never got to finish.\nTwenty-five years later, with AI lending a hand on the code side, those pixels finally got the game they were made for, with everything that makes the original great packed into it.' },
       { titel: 'What\'s next', text: 'Bosses, a level editor and more are on the way. Check out the roadmap below!' },
       { titel: 'Music', text: 'Big thanks to yd and Joth for their great tracks! I chose a 16-bit-style sound over 8-bit chiptune because I think it goes great with chunky pixels!',
         credits: [
