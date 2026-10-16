@@ -13,7 +13,8 @@ const frame = { position: 'relative', display: 'inline-block', minWidth: 240, mi
 // Handy-Vollbild: Spiel oben so breit wie pixelgenau moeglich, darunter die Schlaeger-Zone (mindestens PAD_MIN hoch)
 const isTouch = () => !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 const PAD_MIN = 170;
-const FS_PAD = 20;        // Desktop-Vollbild: freier Rand oben und unten
+const MOBILE_DROP = 25;   // Handy-Vollbild: Spielbild so weit nach unten versetzt (Slider bleibt, wo er ist)
+const FS_PAD = 20;       // Desktop-Vollbild: freier Rand oben und unten
 const FS_GAP = 14;        // Desktop-Vollbild: Abstand HUD/Knoepfe zum Spielrahmen
 const FS_SIDE = 160;      // Desktop-Vollbild: reservierte Breite je Seitenspalte
 const FS_EDGE = 32;       // = --radius-xl: Ende der Kantenrundung des Rahmens
@@ -146,7 +147,7 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
       {!mobile && !desk && <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', padding: '0 8px' }}>
         {hudItems}
       </div>}
-      <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ position: 'relative', top: mobile ? MOBILE_DROP : 0, zIndex: 1, width: '100%', display: 'flex', justifyContent: 'center' }}>
         <div style={{ position: 'relative' }}>
         {desk && <div style={{ position: 'absolute', left: `calc(100% + ${FS_GAP}px)`, top: FS_HUD_TOP, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 14 }}>
           {hudItems}
