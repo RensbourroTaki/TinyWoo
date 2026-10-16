@@ -13,6 +13,12 @@ const frame = { position: 'relative', display: 'inline-block', minWidth: 240, mi
 // Handy-Vollbild: Spiel oben so breit wie pixelgenau moeglich, darunter die Schlaeger-Zone (mindestens PAD_MIN hoch)
 const isTouch = () => !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 const PAD_MIN = 170;
+const MOBILE_DROP = 25;   // Handy-Vollbild: Spielbild so weit nach unten versetzt (Slider bleibt, wo er ist)
+const FS_PAD = 20;        // Desktop-Vollbild: freier Rand oben und unten
+const FS_GAP = 14;        // Desktop-Vollbild: Abstand HUD/Knoepfe zum Spielrahmen
+const FS_SIDE = 160;      // Desktop-Vollbild: reservierte Breite je Seitenspalte
+const FS_EDGE = 32;       // = --radius-xl: Ende der Kantenrundung des Rahmens
+const FS_HUD_TOP = FS_EDGE + 30;
 
 // Namensfilter (game/filter/namefilter.js, ueber das Spielmodul). Ohne Modul: nur kuerzen.
 const filterCheck = (raw) => { const M = window.Daiganoid; return M && M.checkName ? M.checkName(raw) : { ok: true, name: String(raw || '').toUpperCase().slice(0, 10) }; };
@@ -30,6 +36,7 @@ const submitText = (r) => {
 function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
   const host = React.useRef(null), wrap = React.useRef(null), game = React.useRef(null), pad = React.useRef(null);
   const [mobile, setMobile] = React.useState(false);
+  const [desk, setDesk] = React.useState(false);   // Desktop-Vollbild (HUD rechts, Knoepfe links)
   const scoresRef = React.useRef(scores || []);
   const [hud, setHud] = React.useState({ score: 0, round: 1, lives: 3, hi: 0, rounds: 32 });
   const [state, setState] = React.useState('loading');
@@ -56,6 +63,9 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
         fullscreenElement: wrap.current,
         availWidth: () => (wrap.current ? wrap.current.clientWidth : 240) - 16,
         availHeight: () => Math.max(480, window.innerHeight - 100),
+        // Desktop-Vollbild: HUD/Knoepfe stehen seitlich, oben/unten nur FS_PAD Rand + Rahmen (2 x 4 px)
+        fullscreenHeight: () => window.innerHeight - 2 * FS_PAD - 8,
+        fullscreenWidth: () => window.innerWidth - 2 * (FS_SIDE + FS_GAP) - 8,
         scores: () => scoresRef.current,
         hooks: {
           onHud: setHud,
@@ -112,18 +122,40 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
   };
   const skip = () => { setOver(null); if (game.current) game.current.showHighscores(); };
   const inGame = state === 'game' || state === 'gameover';
+  React.useEffect(() => {
+    const onFs = () => setDesk(!isTouch() && !!wrap.current && document.fullscreenElement === wrap.current);
+    document.addEventListener('fullscreenchange', onFs);
+    return () => document.removeEventListener('fullscreenchange', onFs);
+  }, []);
+  React.useEffect(() => { if (game.current) game.current.fit(); }, [desk]);
+
+  const hudItems = [
+    <Hud key="s" label="Score" value={String(hud.score).padStart(7, '0')} color="var(--gray-50)" align={desk ? 'flex-start' : 'center'} />,
+    <Hud key="r" label="Round" value={`${hud.round}/${hud.rounds}`} color="var(--sky-400)" align={desk ? 'flex-start' : 'center'} />,
+    <Hud key="l" label="Lives" value={'▰'.repeat(Math.min(6, hud.lives)) || '-'} color="var(--lime-400)" align={desk ? 'flex-start' : 'center'} />,
+    <Hud key="h" label="Hi" value={String(hud.hi).padStart(7, '0')} color="var(--sun-400)" align={desk ? 'flex-start' : 'center'} />,
+  ];
+  const muteBtn = <Button variant="ghost" size="sm" icon={<Icon name={muted ? 'volume-x' : 'volume-2'} size={18} />} aria-label={muted ? 'Sound on' : 'Sound off'} title={muted ? 'Sound on' : 'Sound off'} aria-pressed={muted} onClick={() => { if (!game.current) return; const m = !muted; game.current.setMuted(m); setMuted(m); }} />;
+  const fsBtn = desk
+    ? <Button variant="ghost" size="sm" icon={<Icon name="maximize" size={18} />} aria-label="Fullscreen" title="Fullscreen" onClick={enterFullscreen} />
+    : <Button variant="ghost" size="sm" icon={<Icon name="maximize" size={18} />} onClick={enterFullscreen}>Fullscreen</Button>;
 
   return (
-    <div ref={wrap} className="tw-daig-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: mobile ? 0 : 14,
+    <div ref={wrap} className={mobile ? 'tw-daig-wrap tw-daig-mobile' : 'tw-daig-wrap'} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: mobile ? 0 : 14,
       ...(mobile ? { position: 'fixed', inset: 0, zIndex: 1000, paddingTop: 'max(4px, env(safe-area-inset-top))', boxSizing: 'border-box', background: 'var(--bg-page)' } : null) }}>
-      <style>{'.tw-daig-wrap:fullscreen{background:var(--bg-page)}'}</style>
-      {!mobile && <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', padding: '0 8px' }}>
-        <Hud label="Score" value={String(hud.score).padStart(7, '0')} color="var(--gray-50)" />
-        <Hud label="Round" value={`${hud.round}/${hud.rounds}`} color="var(--sky-400)" />
-        <Hud label="Lives" value={'▰'.repeat(Math.min(6, hud.lives)) || '-'} color="var(--lime-400)" />
-        <Hud label="Hi" value={String(hud.hi).padStart(7, '0')} color="var(--sun-400)" />
+      <style>{`.tw-daig-wrap:fullscreen{background:var(--bg-page)}.tw-daig-wrap:fullscreen:not(.tw-daig-mobile){padding:${FS_PAD}px 0;box-sizing:border-box;justify-content:center}`}</style>
+      {!mobile && !desk && <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', padding: '0 8px' }}>
+        {hudItems}
       </div>}
-      <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ position: 'relative', top: mobile ? MOBILE_DROP : 0, zIndex: 1, width: '100%', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ position: 'relative' }}>
+        {desk && <div style={{ position: 'absolute', left: `calc(100% + ${FS_GAP}px)`, top: FS_HUD_TOP, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 14 }}>
+          {hudItems}
+        </div>}
+        {desk && <div style={{ position: 'absolute', right: `calc(100% + ${FS_GAP}px)`, bottom: FS_EDGE, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          {muteBtn}
+          {fsBtn}
+        </div>}
         <div className="tw-daig-frame" style={frame}>
           <div ref={host} />
           {error && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, color: 'var(--cherry-400)', fontFamily: 'var(--font-body)', lineHeight: 1.4, textAlign: 'center' }}>Game failed to load: {error}</div>}
@@ -138,6 +170,7 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
             </div>
           </div>}
         </div>
+        </div>
       </div>
       {mobile && <div ref={pad} style={{ position: 'relative', flex: 1, alignSelf: 'stretch', minHeight: PAD_MIN, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div style={{ width: '72%', maxWidth: 320, height: 64, boxSizing: 'border-box', borderRadius: 999, border: '4px solid var(--ink)', background: 'var(--blue-800)', boxShadow: 'var(--shadow-pop-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 18px', ...pixel(20, 'var(--sky-400)') }}>
@@ -150,20 +183,20 @@ function DaiganoidArcade({ scores, onSubmit, onPlaying }) {
       {mobile && <div style={{ position: 'absolute', right: 10, bottom: 'calc(10px + env(safe-area-inset-bottom))' }}>
         <Button variant="ghost" size="sm" icon={<Icon name="minimize" size={18} />} aria-label="Exit fullscreen" title="Exit fullscreen" onClick={leaveMobile} />
       </div>}
-      {!mobile && <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
-        <Button variant="ghost" size="sm" icon={<Icon name={muted ? 'volume-x' : 'volume-2'} size={18} />} aria-label={muted ? 'Sound on' : 'Sound off'} title={muted ? 'Sound on' : 'Sound off'} aria-pressed={muted} onClick={() => { if (!game.current) return; const m = !muted; game.current.setMuted(m); setMuted(m); }} />
-        <Button variant="ghost" size="sm" icon={<Icon name="maximize" size={18} />} onClick={enterFullscreen}>Fullscreen</Button>
+      {!mobile && !desk && <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
+        {muteBtn}
+        {fsBtn}
       </div>}
-      {!mobile && inGame && <p style={{ margin: 0, maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: 'var(--text-muted)', textAlign: 'center' }}>
+      {!mobile && !desk && inGame && <p style={{ margin: 0, maxWidth: 560, fontSize: 14, lineHeight: 1.5, color: 'var(--text-muted)', textAlign: 'center' }}>
         Mouse or arrow keys move the paddle, click or space launches the ball and fires the laser. P pauses, Esc frees the mouse.
       </p>}
     </div>
   );
 }
 
-function Hud({ label, value, color }) {
+function Hud({ label, value, color, align = 'center' }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', minWidth: 70 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: align, minWidth: 70 }}>
       <span style={pixel(11, 'var(--gray-400)')}>{label}</span>
       <span style={{ ...pixel(20, color), textShadow: '0 2px 0 var(--ink)' }}>{value}</span>
     </div>

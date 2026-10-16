@@ -26,9 +26,12 @@ export async function mountDaiganoid(container, opts = {}) {
 
   function fit() {
     const dpr = window.devicePixelRatio || 1;
-    const fs = fill || document.fullscreenElement && container.contains(document.fullscreenElement) || document.fullscreenElement === container;
+    const fs = fill || !!(document.fullscreenElement && document.fullscreenElement.contains(container));
     let availW, availH;
-    if (fill) { availW = fill.width(); availH = fill.height(); } else if (fs) { availW = window.innerWidth; availH = window.innerHeight; } else {
+    if (fill) { availW = fill.width(); availH = fill.height(); } else if (fs) {
+      availW = opts.fullscreenWidth ? opts.fullscreenWidth() : window.innerWidth;
+      availH = opts.fullscreenHeight ? opts.fullscreenHeight() : window.innerHeight;
+    } else {
       availW = opts.availWidth ? opts.availWidth() : (container.clientWidth || ART_W);
       availH = opts.availHeight ? opts.availHeight() : Math.max(ART_H, window.innerHeight - 140);
     }
