@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /game/test.html
+
+Sitemap: https://tinywoogames.com/sitemap.xml

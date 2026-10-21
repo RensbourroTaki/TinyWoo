@@ -269,8 +269,8 @@ function Footer({ onNav }) {
     <footer style={{ maxWidth: 'var(--container)', margin: '0 auto', padding: '56px var(--gutter) 260px', display: 'flex', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
       <span className="tw-pixel" style={{ fontSize: 12, color: 'var(--gray-400)' }}>{I.texte.footer}</span>
       <span className="tw-pixel" style={{ fontSize: 12, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-        <a href="#press" onClick={e => { e.preventDefault(); onNav('press'); }}>Press kit</a>
-        <a href="#about" onClick={e => { e.preventDefault(); onNav('about'); }}>Contact</a>
+        <a href="/press/" onClick={e => { e.preventDefault(); onNav('press'); }}>Press kit</a>
+        <a href="/about/" onClick={e => { e.preventDefault(); onNav('about'); }}>Contact</a>
       </span>
     </footer>
   );

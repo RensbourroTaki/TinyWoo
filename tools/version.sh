@@ -6,3 +6,5 @@ V=$(date -u +%Y%m%d%H%M%S)
 FILES=$(find game -name '*.js' -not -path 'game/tools/*' | sort | sed "s/.*/'&'/" | paste -sd, -)
 printf "// Automatisch erzeugt von tools/version.sh beim Commit. Nicht von Hand bearbeiten.\nwindow.TW_V = '%s';\nwindow.TW_GAME = [%s];\n" "$V" "$FILES" > version.js
 git add version.js
+# SEO: Meta-Block in index.html + Unterseiten (games/, arcade/, about/, press/) + sitemap.xml neu schreiben
+node tools/seo-pages.js && git add index.html games arcade about press sitemap.xml

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+<!-- Alle relativen Pfade zeigen auf die Wurzel, auch in den Unterseiten /games/, /arcade/ ... -->
+<base href="/">
+<!-- SEO: Inhalt zwischen den Marken schreibt tools/seo-pages.js (Texte dort aendern, nicht hier) -->
+<!--seo-head-->
+<title>Daiganoid – Play a free Arkanoid-style game online | Tiny Woo</title>
+<meta name="description" content="Play Daiganoid free in your browser: a fan-made Arkanoid with 32 rounds, lasers, mega balls and an online highscore list. Ball physics rebuilt from the 1987 arcade original.">
+<link rel="canonical" href="https://tinywoogames.com/arcade/">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Tiny Woo">
+<meta property="og:title" content="Daiganoid – Play a free Arkanoid-style game online | Tiny Woo"><meta property="og:description" content="Play Daiganoid free in your browser: a fan-made Arkanoid with 32 rounds, lasers, mega balls and an online highscore list. Ball physics rebuilt from the 1987 arcade original.">
+<meta property="og:url" content="https://tinywoogames.com/arcade/"><meta property="og:image" content="https://tinywoogames.com/assets/og/og-arcade.jpg">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Daiganoid – Play a free Arkanoid-style game online | Tiny Woo">
+<meta name="twitter:description" content="Play Daiganoid free in your browser: a fan-made Arkanoid with 32 rounds, lasers, mega balls and an online highscore list. Ball physics rebuilt from the 1987 arcade original."><meta name="twitter:image" content="https://tinywoogames.com/assets/og/og-arcade.jpg">
+<script>window.TW_TITLES = {"home":"Tiny Woo – Tiny indie games, big fun","games":"Games – Rocket Trump | Tiny Woo","arcade":"Daiganoid – Play a free Arkanoid-style game online | Tiny Woo","about":"About – Tiny Woo","press":"Press kit – Tiny Woo"};</script>
+<!--/seo-head-->
+<meta name="theme-color" content="#1F3A70">
+<link rel="icon" href="assets/logo/tinywoo-logo.png">
+<link rel="apple-touch-icon" href="assets/logo/tinywoo-logo.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Organization","@id":"https://tinywoogames.com/#org","name":"Tiny Woo","url":"https://tinywoogames.com/","logo":"https://tinywoogames.com/assets/logo/tinywoo-logo.png"},
+{"@type":"WebSite","name":"Tiny Woo","url":"https://tinywoogames.com/","publisher":{"@id":"https://tinywoogames.com/#org"}},
+{"@type":"VideoGame","name":"Daiganoid","url":"https://tinywoogames.com/arcade/","image":"https://tinywoogames.com/assets/og/og-arcade.jpg","description":"A fan-made Arkanoid: 32 rounds, two exits per round, lasers, mega balls and an online highscore list. Ball physics rebuilt from the 1987 arcade original.","genre":["Arcade","Breakout"],"gamePlatform":"Web browser","operatingSystem":"Any","applicationCategory":"Game","playMode":"SinglePlayer","isAccessibleForFree":true,"author":{"@id":"https://tinywoogames.com/#org"}},
+{"@type":"VideoGame","name":"Rocket Trump","url":"https://tinywoogames.com/games/","image":"https://tinywoogames.com/assets/games/rocket-trump-menu.jpg","description":"A tropical rocket skill-shot arcade game with a worldwide Steam highscore board.","genre":"Arcade","gamePlatform":"PC","playMode":"SinglePlayer","author":{"@id":"https://tinywoogames.com/#org"}}
+]}
+</script>
+<!-- Cache-Busting: version.js wird immer frisch geholt (Date.now), alle eigenen Dateien bekommen ?v=TW_V.
+     TW_V + Modulliste schreibt tools/version.sh automatisch bei jedem Commit (git pre-commit Hook). -->
+<script>document.write('<script src="version.js?t=' + Date.now() + '"><\/script>');</script>
+<script>
+(function () {
+  window.TW_V = window.TW_V || Date.now();
+  var v = '?v=' + window.TW_V, w = function (s) { document.write(s); };
+  ['fonts', 'colors', 'typography', 'spacing', 'effects', 'base'].forEach(function (n) { w('<link rel="stylesheet" href="tokens/' + n + '.css' + v + '">'); });
+  var map = {}; (window.TW_GAME || []).forEach(function (f) { map['./' + f] = './' + f + v; });
+  w('<script type="importmap">' + JSON.stringify({ imports: map }) + '<\/script>');
+})();
+</script>
+<style>:root{color-scheme:dark;--player-top:96px}@media (max-width:760px){:root{--player-top:72px}}html,body{margin:0;background:var(--bg-page);color:var(--text-body);font-family:var(--font-body);overflow-x:hidden}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>document.write('<script src="js/tinywoo-ds.js?v=' + TW_V + '"><\/script>');</script>
+<script>document.write('<script src="inhalt.js?v=' + Date.now() + '"><\/script>');</script>
+<script type="module">import * as m from './game/daiganoid.js'; window.Daiganoid = m;</script>
+</head><body><div id="root"><!--seo-body-->
+<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"><h1>Daiganoid – play a free Arkanoid-style arcade game in your browser</h1><p>Play Daiganoid free in your browser: a fan-made Arkanoid with 32 rounds, lasers, mega balls and an online highscore list. Ball physics rebuilt from the 1987 arcade original.</p><nav><a href="/">Home</a> <a href="/games/">Games</a> <a href="/arcade/">Arcade</a> <a href="/about/">About</a> <a href="/press/">Press</a></nav></div>
+<!--/seo-body--></div>
+<script>['site-hero', 'site-daiganoid', 'site-arcade', 'site-sections'].forEach(function (n) { document.write('<script type="text/babel" src="js/' + n + '.jsx?v=' + TW_V + '"><\/script>'); });</script>
+<script type="text/babel">
+const { NavBar, MusicPlayer } = window.TinyWooDesignSystem_fe221f;
+const I = window.TW_INHALT;
+// Seiten haben echte Pfade (/games/, /arcade/ ...), damit Suchmaschinen sie einzeln finden. Alte #arcade-Links werden umgeschrieben.
+const urlOf = p => (p === 'home' ? '/' : '/' + p + '/');
+const LINKS = [{ id: 'home', label: 'Home' }, { id: 'games', label: 'Games' }, { id: 'arcade', label: 'Arcade' }, { id: 'about', label: 'About' }, { id: 'press', label: 'Press' }].map(l => ({ ...l, href: urlOf(l.id) }));
+const pageFromUrl = () => { const p = location.pathname.split('/')[1] || location.hash.slice(1) || 'home'; return LINKS.some(l => l.id === p) ? p : 'home'; };
+if (location.hash.length > 1) history.replaceState(null, '', urlOf(pageFromUrl()));
+const CAN_OGG = !!document.createElement('audio').canPlayType('audio/ogg; codecs="vorbis"');
+// Site-Player: lebt in einem eigenen Wirt-Div (Portal), das nie neu gebaut wird, damit die Musik weiterlaeuft.
+// Frei: fixe Ebene ueber der Seite. Arcade: der Wirt wandert in den Andock-Platz ueber dem Spielfeld und scrollt mit.
+const PLAYER_FREE = 'position:fixed;inset:var(--player-top) 16px 14px;z-index:30;pointer-events:none';
+const PLAYER_DOCKED = 'position:absolute;inset:0;pointer-events:none';
+function App() {
+  const [page, setPage] = React.useState(pageFromUrl);
+  const [host] = React.useState(() => { const d = document.createElement('div'); d.style.cssText = PLAYER_FREE; document.body.appendChild(d); return d; });
+  const [dockEl, setDockEl] = React.useState(null);
+  const flipFrom = React.useRef(null);
+  const cardRect = () => { const c = host.firstElementChild && host.firstElementChild.firstElementChild; const r = c && c.getBoundingClientRect(); return r && r.width ? r : null; };
+  const onDock = React.useCallback((el) => { flipFrom.current = cardRect(); setDockEl(el); }, []);
+  React.useLayoutEffect(() => {
+    if (dockEl) { host.style.cssText = PLAYER_DOCKED; dockEl.appendChild(host); }
+    else { host.style.cssText = PLAYER_FREE; document.body.appendChild(host); }
+    const a = flipFrom.current, b = cardRect();
+    flipFrom.current = null;
+    if (!a || !b || !host.animate) return;
+    const dx = a.right - b.right, dy = a.top - b.top;
+    if (Math.abs(dx) + Math.abs(dy) < 2) return;
+    // Weich losfliegen, kurz ueberschiessen, einrasten
+    host.animate([
+      { transform: `translate(${dx}px, ${dy}px) scale(.94)`, easing: 'cubic-bezier(.6,0,.2,1)' },
+      { transform: 'translate(0, 0) scale(1.06)', offset: 0.8, easing: 'cubic-bezier(.3,0,.3,1)' },
+      { transform: 'none' },
+    ], { duration: 560 });
+  }, [dockEl]);
+  React.useEffect(() => { const h = () => setPage(pageFromUrl()); window.addEventListener('popstate', h); return () => window.removeEventListener('popstate', h); }, []);
+  React.useEffect(() => { if (window.TW_TITLES && TW_TITLES[page]) document.title = TW_TITLES[page]; }, [page]);
+  const nav = p => { if (location.pathname !== urlOf(p)) history.pushState(null, '', urlOf(p)); setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  return (
+    <div style={{ minHeight: '100vh' }}>
+      <NavBar logo={I.logoNav} links={LINKS} active={page} onNavigate={nav} overlay={page === 'home'} />
+      {page === 'home' && <>
+        <Hero onNav={nav} />
+        <Ticker items={I.texte.laufband} />
+        <FeaturedGame onNav={nav} />
+        <ArcadeTeaser onNav={nav} />
+        <Community />
+      </>}
+      {page === 'games' && <GamesPage onNav={nav} />}
+      {page === 'arcade' && <ArcadePage onDock={CAN_OGG ? onDock : undefined} />}
+      {page === 'about' && <AboutPage />}
+      {page === 'press' && <PressPage />}
+      <Footer onNav={nav} />
+      {CAN_OGG && ReactDOM.createPortal(<MusicPlayer tracks={I.musik} storageKey="tw-site-player" docked={!!dockEl} style={{ pointerEvents: 'none' }} />, host)}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script></body></html>
