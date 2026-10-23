@@ -1,4 +1,4 @@
-// Eingabe: Maus (Pointer-Lock = relativ wie der Spinner des Originals, sonst absolut), Touch, Tastatur.
+// Eingabe: Maus (Pointer-Lock = relativ wie ein Drehregler, sonst absolut), Touch, Tastatur.
 // Liefert pro Logik-Frame das Schlaeger-Delta in Logik-Pixeln und den Feuer-Zustand.
 import { ART_H, ART_W } from './render/board.js';
 

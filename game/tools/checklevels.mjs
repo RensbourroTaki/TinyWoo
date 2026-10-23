@@ -38,7 +38,7 @@ LEVELS.forEach((pair, r) => pair.forEach((L, v) => {
     if (!n) err(name, `einzelner Spezialstein ${c} bei ${x},${y}`);
   }));
   for (const y in movers) if (movers[y] < 2) err(name, `Mover in Zeile ${y} ohne Partner`);
-  if ((items < 4 || items > 8) && !(r === 0 && v === 0)) err(name, `${items} Items`);   // R1L = Original, bleibt wie es ist
+  if ((items < 4 || items > 8) && !(r === 0 && v === 0)) err(name, `${items} Items`);   // R1L = Farbreihen-Start, bleibt wie es ist
   // Gold-Einschluss: Flutung von unten (Zeile 17) durch alles ausser Gold
   const H = LEVEL_ROWS, seen = new Set(), stack = [];
   for (let x = 0; x < COLUMNS; x++) stack.push([x, H - 1]);

@@ -1,13 +1,12 @@
-// Spielablauf um den verifizierten Kern herum: Runden mit Portal-Auswahl, Leben, Punkte, Items, Laser,
-// Gegner, nachwachsende Steine. Alles hier ist eigenes Gameplay; die Ball-/Schlaeger-/Steinmechanik
-// kommt unveraendert aus core/playfield.js. Ein step() = ein Frame bei 60 Hz. Keine DOM-Abhaengigkeit.
+// Spielablauf um den Kern (core/field.js) herum: Runden mit Portal-Auswahl, Leben, Punkte, Items, Laser,
+// Gegner, nachwachsende Steine. Ein step() = ein Frame bei 60 Hz. Keine DOM-Abhaengigkeit.
 //
-// Koordinaten: Hardware-Pixel des Kerns (1 Einheit = 1 Original-Pixel, Y waechst nach oben,
-// Feld X 16..192 bei 11 Spalten, Decke Y = 233 (Original 225 + lift 8), Schlaeger-Band Y 8..15).
-import { MAX_BALLS, Playfield, StepResult, XorShiftRandomBit, ballY, fieldConfig } from '../core/playfield.js';
-import { PaddleType, paddleGeometryFor } from '../core/paddle.js';
-import { gridCellAt, horizontalReflectionOf, reflectHorizontal } from '../core/ballmotion.js';
-import { GOLD, KIND_CAPSULE, KIND_MASK, KIND_SPECIAL, ROWS, isMover, isVerticalMover } from '../core/brickgrid.js';
+// Koordinaten: Logik-Pixel des Kerns (Y waechst nach oben), Feld X 16..192 bei 11 Spalten, Decke Y = 233,
+// Schlaeger-Oberkante Y = 16 - PADDLE_DROP.
+import { CEILING, Field, GRID_TOP, MAX_BALLS, StepResult } from '../core/field.js';
+import { PaddleType, paddleHalfWidth } from '../core/paddle.js';
+import { XorShift32 } from '../core/rng.js';
+import { BRICK, ROWS, brickColor, brickType, hasItem, isMover, isVerticalMover } from '../core/bricks.js';
 import { COLUMNS, ROUNDS, loadLevel } from './levels.js';
 import { ITEMS, ITEM_H, ITEM_W, LEVEL_ITEMS, pickItem, resolveSurprise } from './items.js';
 
@@ -46,24 +45,27 @@ export const MOVER_SLIDE = 24;             // Frames je Zelle des wandernden Gol
 export const MOVER_SLIDE_V = 18;           // Frames je Zeile des senkrechten Goldsteins (33 Art-Pixel/s, ruhiger)
 export const MOVER_TOP_ROW = 2;            // senkrechte Goldsteine fahren nie in die Gegner-Spur (Zeile 0/1)
 
-export const PADDLE_DROP = 4;              // Schlaeger-Ebene 4 Logik-Pixel (= 5 Art-Pixel) tiefer als im ROM
+export const PADDLE_DROP = 4;              // Schlaeger-Oberkante bei Y 16 - PADDLE_DROP
 
-export const FIELD_LEFT = 0x10;
-export const FIELD_RIGHT = 0x10 + 16 * COLUMNS;   // 192 = erste Position rechts vom Raster
+export const FIELD_LEFT = 16;
+export const FIELD_RIGHT = 16 + 16 * COLUMNS;   // 192 = erste Position rechts vom Raster
 export const FIELD_CENTER = (FIELD_LEFT + FIELD_RIGHT) >> 1;
-export const LIFT = fieldConfig(COLUMNS).lift;
-export const CEILING = 0xE1 + LIFT;
+export { CEILING };
+
+// Kein Level-Tempo: jede Runde beginnt gleich, schneller wird der Ball nur ueber die Abpraller;
+// die Schwierigkeit kommt allein aus dem Level-Design.
+export const START_LEVEL = 6;   // Tempostufe beim Abschuss (core/field.js: speedOf)
+export const MIN_LEVEL = 7;     // Mindest-Tempo nach dem ersten Deckenkontakt
 
 export class GameSession {
   constructor(seed = 1) {
     this.seed = seed >>> 0;
-    this.rng = new XorShiftRandomBit(this.seed ^ 0xA5A5A5A5);
-    this.field = new Playfield(fieldConfig(COLUMNS));
-    this.field.random = new XorShiftRandomBit(this.seed);
+    this.rng = new XorShift32(this.seed ^ 0xA5A5A5A5);
+    this.field = new Field(COLUMNS);
+    this.field.random = new XorShift32(this.seed);
     this.field.listener = this;
-    this.field.difficulty = 1;
     this.field.solidGold = true;   // Gold ist auch fuer den Mega-Ball unzerstoerbar
-    this.field.paddleDrop = PADDLE_DROP;
+    this.field.paddleTop = 16 - PADDLE_DROP;
 
     this.events = [];
     this.items = [];     // { key, x (Mitte), y16 (Unterkante in 1/16), age }
@@ -97,9 +99,7 @@ export class GameSession {
 
   /** Zufall [0,1) aus 24 Bits der Kern-Zufallsquelle (deterministisch pro Seed). */
   random() {
-    let v = 0;
-    for (let i = 0; i < 24; i++) v = (v << 1) | (this.rng.nextBit() ? 1 : 0);
-    return v / 16777216;
+    return (this.rng.next() >>> 8) / 16777216;
   }
 
   randomInt(n) { return Math.floor(this.random() * n); }
@@ -137,7 +137,7 @@ export class GameSession {
     // Fest vergebene Items: je eins in einem zufaelligen Item-Stein
     this.levelItems.clear();
     const capsules = [];
-    for (let i = 0; i < cells.length; i++) if ((cells[i] & KIND_MASK) === KIND_CAPSULE) capsules.push(i);
+    for (let i = 0; i < cells.length; i++) if (hasItem(cells[i])) capsules.push(i);
     for (const key of LEVEL_ITEMS) {
       if (!capsules.length) break;
       const cell = capsules.splice(this.randomInt(capsules.length), 1)[0];
@@ -155,7 +155,7 @@ export class GameSession {
   }
 
   /**
-   * Normaler Schlaeger an Ort und Stelle (erster Spawn: spawnX), neuer klebender Ball (Original-Rundenstart).
+   * Normaler Schlaeger an Ort und Stelle (erster Spawn: spawnX), neuer klebender Ball.
    * Jeder Spawn beamt den Schlaeger ein, er bleibt dabei beweglich. newRound: Intro (Steine, Beam) und Ansage
    * LEVEL NN / Name. Nach einem Leben-Verlust (false) nur der Beam (SPAWN), dann klebt der Ball auf dem Schlaeger,
    * Abschuss per Feuer oder automatisch wie beim Rundenstart.
@@ -167,10 +167,7 @@ export class GameSession {
     this.pierceFrames = 0;
     this.laser = 0;
     this.endDeflector();
-    this.field.flatReflect = 0;
-    this.field.specialMode = 0;
-    this.field.difficulty = difficulty(this.round);
-    this.field.startRound(startSpeed(this.round), minSpeed(this.round));
+    this.field.startRound(START_LEVEL, MIN_LEVEL);
     this.paddleEntrySide = this.random() < 0.5 ? -1 : 1;
     this.ballsHidden = true;
     this.phase = newRound ? Phase.INTRO : Phase.SPAWN;
@@ -181,12 +178,8 @@ export class GameSession {
   /** Normaler Schlaeger mit Mitte x (Logik), an den Raendern so verschoben, dass er ins Feld passt. */
   placePaddle(x) {
     const f = this.field, p = f.paddle;
-    p.center = Math.round(x) & 0xFF;
-    p.setTypeImmediate(PaddleType.NORMAL);
-    let d = 0;
-    if (p.left < FIELD_LEFT) d = FIELD_LEFT - p.left;
-    else if (p.right > f.paddleRightLimit) d = f.paddleRightLimit - p.right;
-    if (d) { p.center = (p.center + d) & 0xFF; p.setTypeImmediate(PaddleType.NORMAL); }
+    p.setType(PaddleType.NORMAL);
+    p.center = Math.max(FIELD_LEFT + p.half, Math.min(f.paddleRightLimit - p.half, Math.round(x)));
     p.delta = 0;
   }
 
@@ -200,7 +193,7 @@ export class GameSession {
     const f = this.field;
     switch (this.phase) {
       case Phase.INTRO:
-        f.movePaddle(paddleDelta & 0xFF);   // Beam und Schlaeger gehen mit der Maus mit
+        f.movePaddle(paddleDelta);   // Beam und Schlaeger gehen mit der Maus mit
         this.stickBallsToPaddle();
         if (--this.phaseTimer === INTRO_FRAMES - ANNOUNCE_AT) this.emit('announce');
         if (this.phaseTimer <= 0) {
@@ -212,7 +205,7 @@ export class GameSession {
         break;
 
       case Phase.READY:
-        f.movePaddle(paddleDelta & 0xFF);
+        f.movePaddle(paddleDelta);
         this.stickBallsToPaddle();
         if (--this.phaseTimer <= 0) {
           this.phase = Phase.PLAYING;
@@ -221,7 +214,7 @@ export class GameSession {
         break;
 
       case Phase.SPAWN:
-        f.movePaddle(paddleDelta & 0xFF);
+        f.movePaddle(paddleDelta);
         this.stickBallsToPaddle();
         if (--this.phaseTimer <= 0) {
           this.phase = Phase.PLAYING;
@@ -271,7 +264,7 @@ export class GameSession {
         break;
 
       case Phase.EXIT:
-        f.movePaddle(paddleDelta & 0xFF);
+        f.movePaddle(paddleDelta);
         this.updateEnemies();
         this.checkExitChoice(paddleDelta);
         break;
@@ -288,7 +281,7 @@ export class GameSession {
   stickBallsToPaddle() {
     const f = this.field;
     for (let i = 0; i < MAX_BALLS; i++) {
-      if (f.isActive(i) && f.balls[i].stickTimer !== 0) f.balls[i].x = f.paddle.center;
+      if (f.isActive(i) && f.balls[i].stuck !== 0) f.balls[i].x = f.paddle.center;
     }
   }
 
@@ -310,7 +303,6 @@ export class GameSession {
       this.emit('ballVanish', { ball: i, x: f.balls[i].x, y: f.balls[i].y });
       f.setActive(i, false);
     }
-    f.ballCount = 0;
     this.endDeflector();
   }
 
@@ -331,7 +323,6 @@ export class GameSession {
   /** Schlaeger gegen die Wand druecken = Portal waehlen (10 Frames Druck, damit es keine Fehlwahl gibt). */
   checkExitChoice(paddleDelta) {
     const p = this.field.paddle;
-    const geo = paddleGeometryFor(p.type);
     const atLeft = p.left <= FIELD_LEFT && paddleDelta < 0;
     const atRight = p.right >= this.field.paddleRightLimit && paddleDelta > 0;
     if (atLeft || atRight) {
@@ -344,7 +335,7 @@ export class GameSession {
       this.items.length = 0;
       this.shots.length = 0;
       this.enemies.length = 0;
-      this.emit('exitChosen', { side: this.exitSide, width: geo[2] - geo[3] });
+      this.emit('exitChosen', { side: this.exitSide, width: p.right - p.left });
     } else {
       this.exitPush = 0;
     }
@@ -402,7 +393,7 @@ export class GameSession {
     else if (this.items.length >= MAX_ITEMS) return;
     else key = pickItem(() => this.random(), true);
     const col = cell % COLUMNS, row = Math.floor(cell / COLUMNS);
-    const it = { key, x: FIELD_LEFT + 8 + 16 * col, y16: (216 + LIFT - 8 * row) << 4, age: 0 };
+    const it = { key, x: FIELD_LEFT + 8 + 16 * col, y16: (GRID_TOP - 8 - 8 * row) << 4, age: 0 };
     this.items.push(it);
     this.emit('itemSpawned', { key, cell });
   }
@@ -429,7 +420,7 @@ export class GameSession {
         for (let i = 0; i < MAX_BALLS; i++) {
           if (!f.isActive(i)) continue;
           const b = f.balls[i];
-          b.speed = Math.max(1, b.speed - 3);
+          b.level = Math.max(1, b.level - 3);
           b.bouncesLeft = 40;
         }
         break;
@@ -439,24 +430,20 @@ export class GameSession {
     }
   }
 
-  /**
-   * Typwechsel ohne Umbau-Animation. Vorher die Mitte so verschieben, dass die neue Geometrie in
-   * L >= $10 und R <= Klemmgrenze passt (sonst wickeln die Bytes ueber); klebende Baelle wandern mit.
-   */
+  /** Typwechsel ohne Umbau-Animation. Die Mitte rueckt so, dass der Schlaeger ins Feld passt; klebende Baelle wandern mit. */
   setPaddleType(type) {
     const f = this.field;
     const p = f.paddle;
-    const geo = paddleGeometryFor(type);
-    const cMin = FIELD_LEFT - geo[3], cMax = f.paddleRightLimit - geo[2];
-    const c = Math.max(cMin, Math.min(cMax, p.center));
+    const half = paddleHalfWidth(type);
+    const c = Math.max(FIELD_LEFT + half, Math.min(f.paddleRightLimit - half, p.center));
     const shift = c - p.center;
-    p.center = c & 0xFF;
-    p.setTypeImmediate(type);
+    p.center = c;
+    p.setType(type);
     this.emit('paddleType', { type });
     if (shift === 0) return;
     for (let i = 0; i < MAX_BALLS; i++) {
       const b = f.balls[i];
-      if (f.isActive(i) && b.stickTimer !== 0) b.x = (b.x + shift) & 0xFF;
+      if (f.isActive(i) && b.stuck !== 0) b.x += shift;
     }
   }
 
@@ -466,7 +453,7 @@ export class GameSession {
     if (this.shots.length + 2 > MAX_SHOTS + 1) return;
     const p = this.field.paddle;
     const xs = [p.left + 3, p.right - 3];
-    for (const x of xs) this.shots.push({ x: x & 0xFF, y: 16 - PADDLE_DROP, age: 0 });
+    for (const x of xs) this.shots.push({ x, y: 16 - PADDLE_DROP, age: 0 });
     this.emit('shot', { count: xs.length });
   }
 
@@ -479,7 +466,7 @@ export class GameSession {
       for (let k = 0; k < SHOT_SPEED && !hit; k++) {
         s.y++;
         if (s.y >= CEILING) { hit = true; break; }
-        const cell = gridCellAt(s.x, s.y, COLUMNS, LIFT);
+        const cell = this.field.cellAt(s.x, s.y);
         if (cell >= 0 && grid.hit(cell, false, -1, this)) hit = true;
       }
       if (!hit) {
@@ -496,7 +483,7 @@ export class GameSession {
     }
   }
 
-  // ---------------------------------------------------------------- Gegner (eigenes Gameplay, nicht aus dem ROM)
+  // ---------------------------------------------------------------- Gegner
 
   maxEnemies() { return this.round < 3 ? 0 : this.round < 12 ? 1 : this.round < 24 ? 2 : 3; }
 
@@ -518,7 +505,7 @@ export class GameSession {
       en.vx = Math.sin(en.drift) * 0.6;
       let nx = en.x + en.vx, ny = en.y + en.vy;
       // nicht durch Steine: unter dem Gegner eine Zelle pruefen
-      const below = gridCellAt(Math.round(nx) & 0xFF, Math.round(ny - (ENEMY_H >> 1)) & 0xFF, COLUMNS, LIFT);
+      const below = f.cellAt(Math.round(nx), Math.round(ny - (ENEMY_H >> 1)));
       if (below >= 0 && f.bricks.cells[below] !== 0) {
         ny = en.y;
         nx = en.x + (Math.sin(en.drift) >= 0 ? 0.8 : -0.8);
@@ -542,8 +529,8 @@ export class GameSession {
       for (let b = 0; b < MAX_BALLS; b++) {
         if (!f.isActive(b)) continue;
         const ball = f.balls[b];
-        if (ball.stickTimer !== 0) continue;
-        const bx0 = ball.x - 3, bx1 = ball.x + 1, by0 = ballY(ball.y) - 3, by1 = ballY(ball.y) + 1;
+        if (ball.stuck !== 0) continue;
+        const bx0 = ball.x - 3, bx1 = ball.x + 1, by0 = ball.y - 3, by1 = ball.y + 1;
         const ex0 = en.x - (ENEMY_W >> 1), ex1 = en.x + (ENEMY_W >> 1), ey0 = en.y - (ENEMY_H >> 1), ey1 = en.y + (ENEMY_H >> 1);
         const ox = Math.min(bx1, ex1) - Math.max(bx0, ex0);
         const oy = Math.min(by1, ey1) - Math.max(by0, ey0);
@@ -555,24 +542,9 @@ export class GameSession {
     }
   }
 
-  /**
-   * Gegnertreffer ($35F6, nach Spec 5.1): von der Seite tauscht das Original die Winkel
-   * (53.1 <-> 36.9, 63.4 <-> 26.6) und schickt den Ball nach unten; von oben/unten waagerechte Reflexion.
-   */
+  /** Gegnertreffer: Der Ball prallt am Gegner ab wie an einem Stein (seitlich oder oben/unten). */
   enemyBounce(ball, fromSide) {
-    ball.phase &= 0x7F;
-    if (!fromSide) {
-      reflectHorizontal(ball);
-      return;
-    }
-    const xPlus = (ball.direction & 0x10) !== 0;
-    const idx = (8 - (ball.direction & 0x0F)) & 0x0F;
-    let code;
-    if (!xPlus) code = idx < 8 ? (16 - idx) & 0x1F : idx;        // Quadrant 1 (runter, X-)
-    else code = idx >= 8 ? 16 + ((16 - idx) & 0x0F) : 16 + idx;   // Quadrant 2 (runter, X+)
-    if ((code & 7) === 0) code |= 1;
-    ball.direction = code & 0x1F;
-    if (ball.bouncesLeft !== 0) ball.bouncesLeft--;
+    if (fromSide) ball.flipX(); else ball.flipY();
   }
 
   killEnemy(i) {
@@ -604,10 +576,10 @@ export class GameSession {
     for (let i = 0; i < MAX_BALLS; i++) {
       if (!f.isActive(i)) continue;
       const b = f.balls[i];
-      if (ballY(b.y) < 0) continue;   // unter der Verlust-Ebene (Deflector), weit weg vom Raster
+      if (b.y < 0) continue;   // unter der Verlust-Ebene (Deflector), weit weg vom Raster
       // Ballkasten x-3..x+1, y-3..y+1 ist kleiner als eine Zelle: jede Ueberlappung trifft eine Ecke
       for (const [px, py] of [[b.x - 4, b.y - 4], [b.x + 2, b.y - 4], [b.x - 4, b.y + 2], [b.x + 2, b.y + 2]]) {
-        if (gridCellAt(px & 0xFF, py & 0xFF, COLUMNS, LIFT) === cell) return true;
+        if (f.cellAt(px, py) === cell) return true;
       }
     }
     return false;
@@ -681,51 +653,30 @@ export class GameSession {
   }
 
   onLaunch(ball) { this.emit('launch', { ball }); }
-  onPaddleHit(ball, code) {
-    const b = this.field.balls[ball];
-    const d = (b.x - this.field.paddle.left) & 0xFF;
-    this.emit('paddleHit', { ball, code, edge: d < 6 || d > 29 });
-  }
+  onPaddleHit(ball, edge) { this.emit('paddleHit', { ball, edge }); }
   onCatch(ball) { this.emit('catch', { ball }); }
-  onPaddleFlatBounce(ball) { this.emit('paddleHit', { ball, code: -1, edge: false }); }
-  onShadowHit(ball, hitCount) {
-    this.addScore(100 * hitCount);
-    this.emit('shadowHit', { ball, hitCount });
-  }
   onWallBounce(ball) { this.emit('wall', { ball, side: this.field.balls[ball].x >= FIELD_CENTER ? 1 : -1 }); }
   onCeilingBounce(ball) { this.emit('ceiling', { ball }); }
-  onSpeedUp(ball, speed) { this.emit('speedUp', { ball, speed }); }
-  onRandomTurn(ball, code) { this.emit('randomTurn', { ball, code }); }
+  onSpeedUp(ball, level) { this.emit('speedUp', { ball, level }); }
+  onRandomTurn(ball) { this.emit('randomTurn', { ball }); }
   onBallLost(ball, x, y) {
     this.emit('ballLost', { ball, x, y, remaining: this.field.ballCount });
   }
   onFloorBounce(ball) { this.emit('floorBounce', { ball }); }
-  onIdleLimit() {}
 
   onBrickHit(ball, cell, before, after) {
     this.emit('brickHit', { ball, cell, before, after, gold: before === after });
   }
 
   onBrickDestroyed(ball, cell, value, capsule, regenerates) {
-    const kind = value & KIND_MASK;
-    if (kind === KIND_SPECIAL) {
-      if ((value & GOLD) !== 0) this.addScore(200);
-      else if (regenerates) this.addScore(100);
-      else this.addScore(50 * (this.round + 1));
-    } else {
-      this.addScore((((value >> 3) & 7) + 5) * 10);
-    }
+    const type = brickType(value);
+    if (type === BRICK.COLOR) this.addScore((brickColor(value) + 5) * 10);
+    else if (type === BRICK.HARD) this.addScore(50 * (this.round + 1));
+    else if (regenerates) this.addScore(100);
+    else this.addScore(200);   // Gold (nur ohne solidGold zerstoerbar)
     if (regenerates) this.regens.push({ cell, value, timer: REGEN_FRAMES });
     this.emit('brickDestroyed', { ball, cell, value, regenerates });
     if (capsule && this.phase === Phase.PLAYING) this.spawnItem(cell);
   }
 }
 
-// Kein Level-Tempo (User 2026-10-07): jede Runde beginnt wie Runde 1, schneller wird der Ball
-// nur ueber die Abpraller; die Schwierigkeit kommt allein aus dem Level-Design.
-/** Startgeschwindigkeit wie das Original Runde 1 (5, im ersten Frame 6). */
-export function startSpeed(round) { return 5; }
-/** Mindest-Speed nach Deckenkontakt wie das Original Runde 1 (7). */
-export function minSpeed(round) { return 7; }
-/** Speed-Up-Tabelle (SPEED_UP_BOUNCES): eigene Tabelle 5, langsamer als das ROM. */
-export function difficulty(round) { return 5; }

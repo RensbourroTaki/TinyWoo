@@ -25,7 +25,7 @@ const ticks = parseInt(q.get('ticks') || '0', 10);
 if (q.get('state') === 'game') {
   app.boardAlpha = 1; app.menuAlpha = 1;
   app.startGame();
-  if (q.get('paddle')) app.session.setPaddleType(parseInt(q.get('paddle'), 10));   // 2 gross, 8 klein, 3 Twin, 7 Schatten
+  if (q.get('paddle')) app.session.setPaddleType(q.get('paddle'));   // large, small, catch
   // Test-Tasten (DEV_KEYS): ?keys=ArrowLeft,ArrowLeft,ArrowUp
   for (const k of (q.get('keys') || '').split(',').filter(Boolean)) { app.devKey(k); app.godKeyHeld = false; }
   if (q.get('mega')) { app.session.field.pierceBall = 1; app.session.pierceFrames = 1e6; }   // Mega-Ball dauerhaft

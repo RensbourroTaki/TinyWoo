@@ -50,7 +50,7 @@ export const OPTIONAL_IMAGES = {
   glow: 'menu/glow.png',                     // gebackener Auswahl-Glow je Menuetext (Atlas, Rechtecke in menu/glow.json)
 };
 
-/** Farbklasse 0..7 der normalen Steine -> Bild (Punkte 50..120 wie im Original). */
+/** Farbklasse 0..7 der normalen Steine -> Bild (Punkte 50..120). */
 export const BRICK_COLORS = ['brickWhite', 'brickOrange', 'brickTuerk', 'brickGreen', 'brickRed', 'brickBlue', 'brickPink', 'brickYellow'];
 
 /**

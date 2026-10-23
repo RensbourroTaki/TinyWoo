@@ -1,5 +1,5 @@
 // Darstellung des laufenden Spiels: Steine mit Schatten, Items, Gegner, Laser, Schlaeger (gesliced),
-// Baelle, Effekte, Ankuendigungen. Rechnet Logik-Koordinaten (Hardware-Pixel des Kerns) in Art-Pixel um:
+// Baelle, Effekte, Ankuendigungen. Rechnet Logik-Koordinaten (Pixel des Kerns) in Art-Pixel um:
 //   Art-X = 10 + 1,25 * (hwX - 16)      Art-Y = 301 - 1,25 * hwY   (Decke hwY 233 -> Art 9,75)
 // Alle Positionen werden erst beim Zeichnen mit der Geraete-Skalierung S multipliziert und gerundet,
 // so bleibt die 1,25-Schrittweite bei 4x exakt (5 Geraete-Pixel je Logik-Pixel).
@@ -7,9 +7,9 @@ import { ART_H, INNER, PHASER_Y, boardState, flickerPhaser } from './board.js';
 import { BRICK_COLORS } from './assets.js';
 import { ZAP, glowSprite } from './zap.js';
 import { SpinText } from './spintext.js';
-import { GOLD, KIND_MASK, KIND_SPECIAL, REGENERATES, ROWS } from '../core/brickgrid.js';
+import { BRICK, ROWS, brickColor, brickType } from '../core/bricks.js';
 import { PaddleType } from '../core/paddle.js';
-import { MAX_BALLS, ballY } from '../core/playfield.js';
+import { MAX_BALLS } from '../core/field.js';
 import { Phase, INTRO_FRAMES, EXITING_FRAMES, ENEMY_W, ENEMY_H, DEFLECTOR_WARN } from '../play/session.js';
 import { COLUMNS } from '../play/levels.js';
 import { levelName } from '../play/levelnames.js';
@@ -129,8 +129,8 @@ export class GameView {
     }
   }
 
-  /** Art-Mittelpunkt eines Balls. */
-  ballCenter(b) { return { x: ax(b.x - 3) + 2.5, y: ay(ballY(b.y) + 1) + 2.5 }; }
+  /** Art-Mittelpunkt eines Balls (auf ganze Logik-Pixel gerastert wie der Ball selbst). */
+  ballCenter(b) { return { x: ax(Math.floor(b.x) - 3) + 2.5, y: ay(Math.floor(b.y) + 1) + 2.5 }; }
 
   rand() {
     this.rng = (this.rng * 1103515245 + 12345) & 0x7FFFFFFF;
@@ -635,7 +635,7 @@ export class GameView {
       for (let i = 0; i < MAX_BALLS; i++) {
         if (!f.isActive(i)) continue;
         const b = f.balls[i];
-        const x = ax(b.x - 3) - 0.5, y = ay(ballY(b.y) + 1) - 0.5;
+        const x = ax(Math.floor(b.x) - 3) - 0.5, y = ay(Math.floor(b.y) + 1) - 0.5;
         this.drawTrail(ctx, S, this.trails[i], mega);
         this.drawBall(ctx, S, x, y, mega);
       }
@@ -932,18 +932,6 @@ export class GameView {
     }
     const y = 290;
     const variant = session.laser ? 'laser' : p.type === PaddleType.CATCH ? 'catch' : 'normal';
-    if (p.type === PaddleType.TWIN) {
-      this.drawPaddleBody(ctx, S, ax(p.left) + shiftX, ax(p.left + 33), y, frame, variant);
-      this.drawPaddleBody(ctx, S, ax(p.right - 32) + shiftX, ax(p.right + 1), y, frame, variant);
-      return;
-    }
-    if (p.type === PaddleType.SHADOW) {
-      ctx.globalAlpha = 0.45;
-      this.drawPaddleBody(ctx, S, ax(p.bytes[8]), ax(p.bytes[7] + 1), y, frame, variant);
-      ctx.globalAlpha = 0.65;
-      this.drawPaddleBody(ctx, S, ax(p.bytes[6]), ax(p.bytes[5] + 1), y, frame, variant);
-      ctx.globalAlpha = 1;
-    }
     this.drawPaddleBody(ctx, S, ax(p.left) + shiftX, ax(p.right + 1) + shiftX, y, frame, variant);
   }
 
@@ -977,10 +965,13 @@ export class GameView {
 
 /** Stein-Byte -> Bildname. */
 export function brickImage(v) {
-  if ((v & KIND_MASK) !== KIND_SPECIAL) return BRICK_COLORS[(v >> 3) & 7];
-  if (v & GOLD) return (v & REGENERATES) ? 'brickMover' : 'brickGold';
-  if (v & REGENERATES) return 'brickRegen';
-  return 'brickHard';
+  switch (brickType(v)) {
+    case BRICK.COLOR: return BRICK_COLORS[brickColor(v)];
+    case BRICK.HARD: return 'brickHard';
+    case BRICK.REGROW: return 'brickRegen';
+    case BRICK.GOLD: return 'brickGold';
+    default: return 'brickMover';
+  }
 }
 
 export function itemImage(key) {

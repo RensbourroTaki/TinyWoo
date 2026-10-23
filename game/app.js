@@ -59,8 +59,7 @@ const HINT = { text: 'No Coins Needed!', y: 240, period: 60, shrink: 1 };
 const CREDITS = [
   { h: 'DAIGANOID' }, 'A Tiny Woo Game', '',
   { h: 'Graphics, Sound FX and Design' }, 'Tiny Woo', '',
-  { h: 'Music' }, 'Out There by yd', 'Party Sector by Joth', '',
-  { h: 'Ball Physics from' }, 'Arkanoid 2 (1987)',
+  { h: 'Music' }, 'Out There by yd', 'Party Sector by Joth',
 ];
 /** Credits-Layout in Art-Pixeln: erste Zeile, Zeilenabstand, Abstand fuer '', Ueberschriftfarbe; PRESS FIRE wie im Highscore. */
 const CREDITS_Y = { top: 50, line: 16, gap: 10, color: '#FFD21F' };

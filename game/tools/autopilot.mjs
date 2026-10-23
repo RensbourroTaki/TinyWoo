@@ -3,7 +3,7 @@
 // Prueft, dass der Ablauf ohne Ausnahme laeuft und Runden erreicht werden.
 //   node game/tools/autopilot.mjs [seeds] [minuten]
 import { GameSession, Phase } from '../play/session.js';
-import { MAX_BALLS } from '../core/playfield.js';
+import { MAX_BALLS } from '../core/field.js';
 
 const seeds = parseInt(process.argv[2] || '6', 10);
 const minutes = parseFloat(process.argv[3] || '10');

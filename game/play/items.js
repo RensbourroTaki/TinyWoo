@@ -2,9 +2,9 @@
 // Wirkung wird in session.js umgesetzt; hier nur Definition, Gewichtung und Auswahl.
 
 export const ITEMS = Object.freeze({
-  n:     { key: 'n',     name: 'ENLARGE',  weight: 14, bad: false },   // Schlaeger gross (Original-Zonen $5D3C)
-  minus: { key: 'minus', name: 'SHRINK',   weight: 8,  bad: true },    // Schlaeger klein ($5DBD)
-  c:     { key: 'c',     name: 'CATCH',    weight: 12, bad: false },   // Ball klebt (Typ 6)
+  n:     { key: 'n',     name: 'ENLARGE',  weight: 14, bad: false },   // Schlaeger gross
+  minus: { key: 'minus', name: 'SHRINK',   weight: 8,  bad: true },    // Schlaeger klein
+  c:     { key: 'c',     name: 'CATCH',    weight: 12, bad: false },   // Ball klebt
   l:     { key: 'l',     name: 'LASER',    weight: 14, bad: false },   // zwei Strahlen
   a:     { key: 'a',     name: 'MEGA',     weight: 5,  bad: false },   // Durchschlag-Ball (Aura)
   b:     { key: 'b',     name: 'DISRUPT',  weight: 12, bad: false },   // drei Baelle

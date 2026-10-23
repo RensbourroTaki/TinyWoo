@@ -11,7 +11,7 @@
 //  - Zeilen 0 und 1 bleiben IMMER leer (dort kommen die Gegner aus den oberen Tueren), Steine ab Zeile 2
 //    bis hinunter zu Zeile 17.
 //  - Je Runde ein Motiv-Level (Pixel-Bild, zur Entspannung) und ein Pattern-Level (Level-Design), die Seite
-//    wechselt jede Runde; jede 4. Runde und Runde 31 sind beide Seiten Pattern. Runde 32 rechts = DOH.
+//    wechselt jede Runde; jede 4. Runde und Runde 31 sind beide Seiten Pattern. Runde 32 rechts = Gesicht.
 //  - Motive halten seitlich eine Steinbreite Abstand zur Wand (Spalte 0 und 10 leer).
 //    Pattern-Level duerfen seitlich an die Wand.
 //  - Spezialsteine nie einzeln verstreut: Grau als 2er-Bloecke, Reihen oder Boegen, Gold als Balken/Sockel,
@@ -21,14 +21,14 @@
 //  - Schwierigkeit der Pattern-Level steigt: Runde 1-8 Farbe + etwas Grau, 9-16 Gold-Abweiser, Nachwachser,
 //    erste Mover (waagerecht, dann Aufzuege an der Wand), 17-24 Gold-Kanaele, Schilde, Aufzug-Schaechte,
 //    25-32 Festungen, Kaefige, Kreuzverkehr aus waagerechten und senkrechten Movern.
-import { MOVER, MOVER_V, goldBrick, normalBrick, silverBrick } from '../core/brickgrid.js';
+import { MOVER, MOVER_V, colorBrick, goldBrick, hardBrick, regrowBrick } from '../core/bricks.js';
 
 export const COLUMNS = 11;
 export const ROUNDS = 32;
 export const LEVEL_ROWS = 18;
 
 export const LEVELS = [
-  // ---- Runde 1  (Original | Motiv Space Invader)
+  // ---- Runde 1  (Farbreihen | Motiv Alien)
   [
     [
       '...........',
@@ -1361,7 +1361,7 @@ export const LEVELS = [
       '3D3333333D3',
     ],
   ],
-  // ---- Runde 32  (Mandala mit Kreuzverkehr | Motiv DOH)
+  // ---- Runde 32  (Mandala mit Kreuzverkehr | Motiv Gesicht)
   [
     [
       '...........',
@@ -1413,12 +1413,12 @@ export const LEVELS = [
 export const MOTIF_SIDE = [1, 0, 1, -1, 0, 1, 0, -1, 1, 0, 1, -1, 0, 1, 0, -1, 1, 0, 1, -1, 0, 1, 0, -1, 1, 0, 1, -1, 0, 1, -1, 1];
 
 export function parseBrick(ch) {
-  if (ch >= '0' && ch <= '7') return normalBrick(ch.charCodeAt(0) - 48, false);
-  if (ch >= 'A' && ch <= 'H') return normalBrick(ch.charCodeAt(0) - 65, true);
+  if (ch >= '0' && ch <= '7') return colorBrick(ch.charCodeAt(0) - 48, false);
+  if (ch >= 'A' && ch <= 'H') return colorBrick(ch.charCodeAt(0) - 65, true);
   switch (ch) {
     case 's':
-    case 'S': return silverBrick(1, false);
-    case 'r': return silverBrick(0, true);
+    case 'S': return hardBrick(2);
+    case 'r': return regrowBrick();
     case 'g': return goldBrick();
     case 'm': return MOVER;
     case 'v': return MOVER_V;

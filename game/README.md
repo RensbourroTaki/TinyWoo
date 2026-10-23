@@ -7,26 +7,25 @@ Teaser auf der Startseite). Grafiken und Sounds liegen in `assets/daiganoid/`.
 
 | Ordner | Inhalt |
 |---|---|
-| `core/` | Ball-/Schläger-/Stein-Logik von „Arkanoid – Revenge of Doh“, byte-genau portiert (`playfield.js`, `ballmotion.js`, `brickgrid.js`, `ball.js`, `paddle.js`, `tables.js`). 11 Spalten im Spiel, 13 für die Verifikation. |
+| `core/` | Ball-/Schläger-/Stein-Logik: `field.js` (Spielfeld, Bewegung, Kollision, Tempo, Schläger-Abprall, Multiball), `ball.js`, `paddle.js`, `bricks.js` (Steinraster + Kodierung), `rng.js`. Stellschrauben fürs Spielgefühl oben in `field.js` (`RAMP`, `EDGE_BANDS`, `FLAT_BOOST`, `FAN_STEP` …). |
 | `play/` | Eigenes Gameplay: `session.js` (Runden, Leben, Items, Laser, Gegner, Portale), `levels.js` (32 Runden × 2 Varianten, Textformat), `levelnames.js` (Namen je Runde links/rechts, Ansage `LEVEL NN` → Name), `items.js`. |
 | `render/` | Darstellung: `board.js` (Hintergrund, Rahmen + Schatten, Türen, Lichter, Phaser), `bgfx.js` (Masken-Schimmer), `view.js` (Steine, Schläger, Bälle, Effekte), `font.js` + `spintext.js` (Drehschrift, Konsolenschrift), `assets.js` (Ladeliste). |
 | `app.js` | Zustandsmaschine: Intro → Menü / Optionen / Highscore / Credits → Spiel → Game Over. |
 | `daiganoid.js` | Einstieg `mountDaiganoid(container, opts)`: Canvas, Skalierung (ganzzahlig, max. 4×), Vollbild. |
 | `input.js`, `audio.js` | Maus (absolut: Schläger = Mauszeiger-X; Option MOUSE LOCK = Pointer-Lock wie ein Spinner, Standard aus), Touch, Tastatur; WAV-Effekte, Musik. Über dem Spiel wird `menu/cursor.png` als Zeiger gezeichnet (1:1 Spielpixel), im laufenden Spiel ist der Schläger die Maus; verlässt die Maus das Spiel ¾ s lang, pausiert es (Klick spielt weiter). |
 | `filter/` | Namensfilter der Highscore-Liste (`namefilter.js`, Wortlisten `wordlist.js`, Tests `test.mjs`). Läuft identisch im Browser und im Highscore-Server `api/`. Doku in `filter/README.md`. |
-| `tools/verify.mjs` | Node: Kern gegen die MAME-Traces prüfen (`node game/tools/verify.mjs <trace.bin>...`). |
 | `tools/checklevels.mjs` | Node: Level-Regeln statisch prüfen (18 Zeilen, Zeilen 0/1 frei, Motive mit Wandabstand, keine einzelnen Spezialsteine, Mover paarweise: `m` waagerecht je Zeile, `v` senkrecht gespiegelt mit Schacht ≥ 3, 4–8 Items, kein Gold-Einschluss). Regeln stehen oben in `levels.js`. |
 | `tools/autopilot.mjs` | Node: Session ohne Browser durchspielen (Ausnahmen-Test). |
 | `test.html` | Testseite ohne React: `game/test.html?state=game&ticks=600` spult vor (lokaler Server nötig), `&keys=ArrowLeft,ArrowUp` drückt Test-Tasten. |
 
 ## Koordinaten
 
-Logik in Original-Pixeln (Zelle 16×8, Y wächst nach oben). Anzeige: 1 Logik-Pixel = 1,25 Art-Pixel
+Logik in Logik-Pixeln (Zelle 16×8, Y wächst nach oben). Anzeige: 1 Logik-Pixel = 1,25 Art-Pixel
 (Stein 20×10, Ball 5 px), Art-Pixel × S Gerätepixel (S = 2..4, ganzzahlig). Art-X = 10 + 1,25·(X−16),
 Art-Y = 301 − 1,25·Y. Schirm 240×334 (= Vollbild-Hintergrund), Rahmen oben angehängt, Spielfläche 220×301 bei
 (10,10), Phaser-Linie y 307 und Düsen y 311 (6 bzw. 10 px unter dem Rohrende 301; Phaser liegt über Rahmen und Düsen), Portale y 281,
-Schläger y 285. Im Daiganoid-Feld liegen Decke und Steinraster um `lift` = 8 höher als im Original
-(Decke Y 233), das Schläger-Band (Y 8..15) bleibt; der Original-Modus (13 Spalten) hat `lift` 0.
+Schläger y 285. Steinraster oben bei Y 232 (Zeile r = Y 224−8r … 231−8r), Decke Y 233, Schläger-Oberkante
+Y 12 (`PADDLE_DROP` in `play/session.js`).
 
 ## Lokal testen
 
@@ -54,7 +53,7 @@ ASCII 32–126 (Raster 9×17, Zeichen 8×16 ab (1,1), Breite aus der letzten Tin
 
 Regler oben in `render/view.js`: `BALL_GLOW` (Ball-Glow, roter Rand des Mega-Balls `player/ball-item1.png`),
 `TRAIL` (Ball-Schweif), `SPARKS` (Funken bei Wand/Decke und Explosionen, additiv mit Schwerkraft).
-Auswahl-Glow im Menü/Optionen: `GLOW` in `app.js`. Ball-Tempo: jede Runde wie Runde 1 (`startSpeed`/`minSpeed`/`difficulty` in `play/session.js`), schneller nur über Abpraller.
+Auswahl-Glow im Menü/Optionen: `GLOW` in `app.js`. Ball-Tempo: jede Runde gleich (`START_LEVEL`/`MIN_LEVEL` in `play/session.js`), schneller nur über Abpraller (`RAMP` in `core/field.js`).
 
 ## Grafiken ersetzen
 
